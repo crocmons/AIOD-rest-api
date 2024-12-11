@@ -12,11 +12,12 @@ import pkg_resources
 import uvicorn
 from fastapi import Depends, FastAPI
 from fastapi.responses import HTMLResponse
-from sqlmodel import select
+from sqlmodel import select, SQLModel
 
 from authentication import get_user_or_raise, User
 from config import KEYCLOAK_CONFIG
 from database.deletion.triggers import create_delete_triggers
+import database.authorization  # noqa  # Trigger registration of User, Permission -> likely obsolete when couple with aiod_entry is done
 from database.model.concept.concept import AIoDConcept
 from database.model.platform.platform import Platform
 from database.model.platform.platform_names import PlatformName
@@ -132,7 +133,7 @@ def create_app() -> FastAPI:
 
         drop_database = args.build_db == "drop-then-build"
         create_database(delete_first=drop_database)
-        AIoDConcept.metadata.create_all(EngineSingleton().engine, checkfirst=True)
+        SQLModel.metadata.create_all(EngineSingleton().engine, checkfirst=True)
         with DbSession() as session:
             triggers = create_delete_triggers(AIoDConcept)
             for trigger in triggers:
