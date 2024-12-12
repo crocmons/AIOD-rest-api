@@ -4,10 +4,14 @@ import sqlalchemy
 from sqlalchemy import Column
 from sqlmodel import SQLModel, Field, Relationship
 
+from authentication import User
 from database.model.concept.aiod_entry import AIoDEntryORM
 
 
-class User(SQLModel, table=True):  # type: ignore [call-arg]
+class RegisteredUser(SQLModel, table=True):  # type: ignore [call-arg]
+    """A user which is explicitly registered or uploaded an asset."""
+
+    __tablename__ = "user"
     subject_identifier: str = Field(primary_key=True)
 
 

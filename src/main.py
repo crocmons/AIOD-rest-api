@@ -17,7 +17,7 @@ from sqlmodel import select, SQLModel
 from authentication import get_user_or_raise, User
 from config import KEYCLOAK_CONFIG
 from database.deletion.triggers import create_delete_triggers
-import database.authorization  # noqa  # Trigger registration of User, Permission -> likely obsolete when couple with aiod_entry is done
+import database.authorization  # noqa  # Trigger registration of RegisteredUser, Permission -> likely obsolete when couple with aiod_entry is done
 from database.model.concept.concept import AIoDConcept
 from database.model.platform.platform import Platform
 from database.model.platform.platform_names import PlatformName
