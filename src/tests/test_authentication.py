@@ -42,7 +42,8 @@ def test_get_user_or_none_leaks_no_information():
     authorization_test endpoint.
     """
     assert inspect.signature(get_user_or_raise).return_annotation == KeycloakUser
-    assert set(inspect.get_annotations(KeycloakUser)) == {"name", "roles"}
+    user = KeycloakUser(name="Alice", roles={"reviewer"}, _subject_identifier="some-identifier")
+    assert set(user.dict()) == {"name", "roles"}
 
 
 @pytest.mark.asyncio

@@ -115,6 +115,7 @@ def _user_with_roles(*roles: str) -> dict[str, Any]:
         "username": "user",
         "token_type": "Bearer",
         "active": True,
+        "sub": "default0-fake-test-only-000000000000",
     }
 
 

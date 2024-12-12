@@ -48,12 +48,16 @@ keycloak_openid = KeycloakOpenID(
 class KeycloakUser(BaseModel):
     name: str = Field(description="The username.")
     roles: set[str] = Field(description="The roles.")
+    _subject_identifier: str = Field(description="Unique user identifier.")
 
     def has_role(self, role: str) -> bool:
         return role in self.roles
 
     def has_any_role(self, *roles: str) -> bool:
         return bool(set(roles) & self.roles)
+
+    def dict(self, *args, **kwargs):
+        return super().dict(exclude={"_subject_identifier"})
 
 
 async def _get_user(token) -> KeycloakUser:
@@ -85,7 +89,9 @@ async def _get_user(token) -> KeycloakUser:
             logging.error("Invalid userinfo or inactive user.")
             raise InvalidUserError("Invalid userinfo or inactive user")  # caught below
         return KeycloakUser(
-            name=userinfo["username"], roles=set(userinfo.get("realm_access", {}).get("roles", []))
+            name=userinfo["username"],
+            roles=set(userinfo.get("realm_access", {}).get("roles", [])),
+            _subject_identifier=userinfo["sub"],
         )
     except InvalidUserError:
         raise
