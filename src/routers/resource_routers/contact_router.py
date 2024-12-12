@@ -1,5 +1,5 @@
 from typing import Sequence
-from authentication import User
+from authentication import KeycloakUser
 from database.model.agent.contact import Contact
 from database.model.agent.email import Email
 from database.model.agent.organisation import Organisation
@@ -39,7 +39,7 @@ class ContactRouter(ResourceRouter):
 
     @staticmethod
     def _mask_or_filter(
-        resources: Sequence[type[Contact]], session: Session, user: User | None
+        resources: Sequence[type[Contact]], session: Session, user: KeycloakUser | None
     ) -> Sequence[type[Contact]]:
         """
         Only authenticated users can see the contact email.

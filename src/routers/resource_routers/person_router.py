@@ -3,7 +3,7 @@ from sqlmodel import Session
 from database.model.agent.person import Person
 from database.model.platform.platform_names import PlatformName
 from routers.resource_router import ResourceRouter
-from authentication import User
+from authentication import KeycloakUser
 
 
 class PersonRouter(ResourceRouter):
@@ -25,7 +25,7 @@ class PersonRouter(ResourceRouter):
 
     @staticmethod
     def _mask_or_filter(
-        resources: Sequence[type[Person]], session: Session, user: User | None
+        resources: Sequence[type[Person]], session: Session, user: KeycloakUser | None
     ) -> Sequence[type[Person]]:
         """
         For the old ai4europe_cms platform, only users with "full_view_ai4europe_cms_resources"

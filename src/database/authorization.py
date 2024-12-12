@@ -4,11 +4,11 @@ import sqlalchemy
 from sqlalchemy import Column
 from sqlmodel import SQLModel, Field, Relationship
 
-from authentication import User
+from authentication import KeycloakUser
 from database.model.concept.aiod_entry import AIoDEntryORM
 
 
-class RegisteredUser(SQLModel, table=True):  # type: ignore [call-arg]
+class User(SQLModel, table=True):  # type: ignore [call-arg]
     """A user which is explicitly registered or uploaded an asset."""
 
     __tablename__ = "user"
@@ -36,18 +36,18 @@ class Permission(SQLModel, table=True):  # type: ignore [call-arg]
     )
 
 
-def user_can_read(user: User, aiod_entry) -> bool:
+def user_can_read(user: KeycloakUser, aiod_entry) -> bool:
     # TODO:
     #  - [ ] add option for private entries
     #  - [ ] check if any permissions exist (read is least permissive)
     return True
 
 
-def user_can_write(user: User, aiod_entry) -> bool:
+def user_can_write(user: KeycloakUser, aiod_entry) -> bool:
     # TODO: check for write or admin permission
     return False
 
 
-def user_can_administer(user: User, aiod_entry) -> bool:
+def user_can_administer(user: KeycloakUser, aiod_entry) -> bool:
     # TODO: check for write or admin permission
     return False

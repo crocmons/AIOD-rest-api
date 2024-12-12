@@ -9,7 +9,7 @@ from keycloak import KeycloakError
 from starlette import status
 
 
-from authentication import get_user_or_raise, keycloak_openid, User
+from authentication import get_user_or_raise, keycloak_openid, KeycloakUser
 from tests.testutils.mock_keycloak import MockedKeycloak, TestUserType
 
 
@@ -36,13 +36,13 @@ async def test_happy_path_privileged():
 
 def test_get_user_or_none_leaks_no_information():
     """
-    Make sure an error is thrown if you change the fields on User. There may be good reasons to
-    make a change, but please be very careful: we don't want to expose sensitive information to
-    our application if it is not necessary. Moreover, the User class is returned by the
+    Make sure an error is thrown if you change the fields on KeycloakUser. There may be good reasons
+    to make a change, but please be very careful: we don't want to expose sensitive information to
+    our application if it is not necessary. Moreover, the KeycloakUser class is returned by the
     authorization_test endpoint.
     """
-    assert inspect.signature(get_user_or_raise).return_annotation == User
-    assert set(inspect.get_annotations(User)) == {"name", "roles"}
+    assert inspect.signature(get_user_or_raise).return_annotation == KeycloakUser
+    assert set(inspect.get_annotations(KeycloakUser)) == {"name", "roles"}
 
 
 @pytest.mark.asyncio

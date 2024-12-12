@@ -45,7 +45,7 @@ keycloak_openid = KeycloakOpenID(
 )
 
 
-class User(BaseModel):
+class KeycloakUser(BaseModel):
     name: str = Field(description="The username.")
     roles: set[str] = Field(description="The roles.")
 
@@ -56,7 +56,7 @@ class User(BaseModel):
         return bool(set(roles) & self.roles)
 
 
-async def _get_user(token) -> User:
+async def _get_user(token) -> KeycloakUser:
     """
     Check the roles of the user for authorization.
 
@@ -84,7 +84,7 @@ async def _get_user(token) -> User:
         if not userinfo.get("active", False):
             logging.error("Invalid userinfo or inactive user.")
             raise InvalidUserError("Invalid userinfo or inactive user")  # caught below
-        return User(
+        return KeycloakUser(
             name=userinfo["username"], roles=set(userinfo.get("realm_access", {}).get("roles", []))
         )
     except InvalidUserError:
@@ -98,7 +98,7 @@ async def _get_user(token) -> User:
         )
 
 
-async def get_user_or_none(token=Security(oidc)) -> User | None:
+async def get_user_or_none(token=Security(oidc)) -> KeycloakUser | None:
     """
     Use this function in Depends() to ask for authentication.
     This method should be only used to get the current user
@@ -111,7 +111,7 @@ async def get_user_or_none(token=Security(oidc)) -> User | None:
         return None
 
 
-async def get_user_or_raise(token=Security(oidc)) -> User:
+async def get_user_or_raise(token=Security(oidc)) -> KeycloakUser:
     """
     Use this function in Depends() to force authentication. Check the roles of the user for
     authorization.

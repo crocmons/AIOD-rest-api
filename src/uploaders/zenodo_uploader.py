@@ -7,7 +7,7 @@ from typing import Optional
 
 from fastapi import UploadFile, HTTPException, status
 
-from authentication import User
+from authentication import KeycloakUser
 from config import REQUEST_TIMEOUT
 
 from database.model.agent.contact import Contact
@@ -30,7 +30,7 @@ class ZenodoUploader(Uploader):
         self.platform_name = PlatformName.zenodo
 
     def handle_upload(
-        self, identifier: int, file: UploadFile, token: str, *args: bool, user: User
+        self, identifier: int, file: UploadFile, token: str, *args: bool, user: KeycloakUser
     ) -> int:
         """
         Method to upload content to the Zenodo platform.

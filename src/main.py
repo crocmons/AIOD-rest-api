@@ -14,10 +14,10 @@ from fastapi import Depends, FastAPI
 from fastapi.responses import HTMLResponse
 from sqlmodel import select, SQLModel
 
-from authentication import get_user_or_raise, User
+from authentication import get_user_or_raise, KeycloakUser
 from config import KEYCLOAK_CONFIG
 from database.deletion.triggers import create_delete_triggers
-import database.authorization  # noqa  # Trigger registration of RegisteredUser, Permission -> likely obsolete when couple with aiod_entry is done
+import database.authorization  # noqa  # Trigger registration of User, Permission -> likely obsolete when couple with aiod_entry is done
 from database.model.concept.concept import AIoDConcept
 from database.model.platform.platform import Platform
 from database.model.platform.platform_names import PlatformName
@@ -73,7 +73,7 @@ def add_routes(app: FastAPI, url_prefix=""):
         """
 
     @app.get(url_prefix + "/authorization_test")
-    def test_authorization(user: User = Depends(get_user_or_raise)) -> User:
+    def test_authorization(user: KeycloakUser = Depends(get_user_or_raise)) -> KeycloakUser:
         """
         Returns the user, if authenticated correctly.
         """

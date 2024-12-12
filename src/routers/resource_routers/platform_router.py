@@ -4,7 +4,7 @@ from typing import Any, Sequence
 from fastapi import Depends, HTTPException, status, APIRouter
 from sqlmodel import SQLModel, Session, select
 
-from authentication import User, get_user_or_raise
+from authentication import KeycloakUser, get_user_or_raise
 from config import KEYCLOAK_CONFIG
 from database.model.platform.platform import Platform
 from database.model.resource_read_and_create import resource_create, resource_read
@@ -176,7 +176,7 @@ class PlatformRouter:
 
         def register_resource(
             resource_create: clz_create,  # type: ignore
-            user: User = Depends(get_user_or_raise),
+            user: KeycloakUser = Depends(get_user_or_raise),
         ):
             if not user.has_any_role(
                 KEYCLOAK_CONFIG.get("role"),
@@ -220,7 +220,7 @@ class PlatformRouter:
         def put_resource(
             identifier: int,
             resource_create_instance: clz_create,  # type: ignore
-            user: User = Depends(get_user_or_raise),
+            user: KeycloakUser = Depends(get_user_or_raise),
         ):
             if not user.has_any_role(
                 KEYCLOAK_CONFIG.get("role"),
@@ -262,7 +262,7 @@ class PlatformRouter:
 
         def delete_resource(
             identifier: str,
-            user: User = Depends(get_user_or_raise),
+            user: KeycloakUser = Depends(get_user_or_raise),
         ):
             with DbSession() as session:
                 if not user.has_any_role(

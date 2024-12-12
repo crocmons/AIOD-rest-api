@@ -12,7 +12,7 @@ from sqlalchemy.sql.operators import is_
 from sqlmodel import SQLModel, Session, select
 from starlette.responses import JSONResponse
 
-from authentication import User, get_user_or_none, get_user_or_raise
+from authentication import KeycloakUser, get_user_or_none, get_user_or_raise
 from config import KEYCLOAK_CONFIG
 from converters.schema_converters.schema_converter import SchemaConverter
 from database.model.ai_resource.resource import AbstractAIResource
@@ -192,7 +192,7 @@ class ResourceRouter(abc.ABC):
         schema: str,
         pagination: Pagination,
         resource_filters: ResourceFilters,
-        user: User | None = None,
+        user: KeycloakUser | None = None,
         platform: str | None = None,
     ):
         """Fetch all resources of this platform in given schema, using pagination"""
@@ -212,7 +212,11 @@ class ResourceRouter(abc.ABC):
                 raise as_http_exception(e)
 
     def get_resource(
-        self, identifier: str, schema: str, user: User | None = None, platform: str | None = None
+        self,
+        identifier: str,
+        schema: str,
+        user: KeycloakUser | None = None,
+        platform: str | None = None,
     ):
         """
         Get the resource identified by AIoD identifier (if platform is None) or by platform AND
@@ -241,7 +245,7 @@ class ResourceRouter(abc.ABC):
             pagination: PaginationParams,
             resource_filters: ResourceFiltersParams,
             schema: self._possible_schemas_type = "aiod",  # type:ignore
-            user: User | None = Depends(get_user_or_none),
+            user: KeycloakUser | None = Depends(get_user_or_none),
         ):
             resources = self.get_resources(
                 schema=schema,
@@ -311,7 +315,7 @@ class ResourceRouter(abc.ABC):
             pagination: PaginationParams,
             resource_filters: ResourceFiltersParams,
             schema: self._possible_schemas_type = "aiod",  # type:ignore
-            user: User | None = Depends(get_user_or_none),
+            user: KeycloakUser | None = Depends(get_user_or_none),
         ):
             resources = self.get_resources(
                 schema=schema,
@@ -334,7 +338,7 @@ class ResourceRouter(abc.ABC):
         def get_resource(
             identifier: str,
             schema: self._possible_schemas_type = "aiod",  # type: ignore
-            user: User | None = Depends(get_user_or_none),
+            user: KeycloakUser | None = Depends(get_user_or_none),
         ):
             resource = self.get_resource(
                 identifier=identifier, schema=schema, user=user, platform=None
@@ -365,7 +369,7 @@ class ResourceRouter(abc.ABC):
                 ),
             ],
             schema: self._possible_schemas_type = "aiod",  # type:ignore
-            user: User | None = Depends(get_user_or_none),
+            user: KeycloakUser | None = Depends(get_user_or_none),
         ):
             return self.get_resource(
                 identifier=identifier, schema=schema, user=user, platform=platform
@@ -383,7 +387,7 @@ class ResourceRouter(abc.ABC):
 
         def register_resource(
             resource_create: clz_create,  # type: ignore
-            user: User = Depends(get_user_or_raise),
+            user: KeycloakUser = Depends(get_user_or_raise),
         ):
             if not user.has_any_role(
                 KEYCLOAK_CONFIG.get("role"),
@@ -427,7 +431,7 @@ class ResourceRouter(abc.ABC):
         def put_resource(
             identifier: int,
             resource_create_instance: clz_create,  # type: ignore
-            user: User = Depends(get_user_or_raise),
+            user: KeycloakUser = Depends(get_user_or_raise),
         ):
             if not user.has_any_role(
                 KEYCLOAK_CONFIG.get("role"),
@@ -471,7 +475,7 @@ class ResourceRouter(abc.ABC):
 
         def delete_resource(
             identifier: str,
-            user: User = Depends(get_user_or_raise),
+            user: KeycloakUser = Depends(get_user_or_raise),
         ):
             with DbSession() as session:
                 if not user.has_any_role(
@@ -575,7 +579,7 @@ class ResourceRouter(abc.ABC):
         self,
         session: Session,
         identifier: int | str,
-        user: User | None = None,
+        user: KeycloakUser | None = None,
         platform: str | None = None,
     ) -> type[RESOURCE_MODEL]:
         """
@@ -592,7 +596,7 @@ class ResourceRouter(abc.ABC):
         session: Session,
         pagination: Pagination,
         resource_filters: ResourceFilters,
-        user: User | None = None,
+        user: KeycloakUser | None = None,
         platform: str | None = None,
     ) -> Sequence[type[RESOURCE_MODEL]]:
         """
@@ -607,7 +611,7 @@ class ResourceRouter(abc.ABC):
 
     @staticmethod
     def _mask_or_filter(
-        resources: Sequence[type[RESOURCE_MODEL]], session: Session, user: User | None
+        resources: Sequence[type[RESOURCE_MODEL]], session: Session, user: KeycloakUser | None
     ) -> Sequence[type[RESOURCE_MODEL]]:
         """
         Can be implemented in children to post process resources based on user roles
