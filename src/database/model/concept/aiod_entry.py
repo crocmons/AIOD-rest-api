@@ -15,6 +15,7 @@ from database.model.serializers import (
 
 if TYPE_CHECKING:
     from database.model.agent.person import Person
+    from database.authorization import Permission
 
 
 class AIoDEntryBase(SQLModel):
@@ -49,6 +50,10 @@ class AIoDEntryORM(AIoDEntryBase, table=True):  # type: ignore [call-arg]
     # date_modified is updated in the resource_router
     date_modified: datetime = Field(default_factory=datetime.utcnow)
     date_created: datetime = Field(default_factory=datetime.utcnow)
+
+    permissions: list["Permission"] = Relationship(
+        back_populates="aiod_entry",
+    )
 
     class RelationshipConfig:
         editor: list[int] = ManyToMany()  # No deletion triggers: "orphan" Persons should be kept

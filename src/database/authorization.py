@@ -2,7 +2,9 @@ import enum
 
 import sqlalchemy
 from sqlalchemy import Column
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel, Field, Relationship
+
+from database.model.concept.aiod_entry import AIoDEntryORM
 
 
 class User(SQLModel, table=True):  # type: ignore [call-arg]
@@ -20,6 +22,9 @@ class Permission(SQLModel, table=True):  # type: ignore [call-arg]
     #   - [ ] expand primary key to triplet
     #   - [ ] either group or user needs to be None
     aiod_entry_identifier: int = Field(foreign_key="aiod_entry.identifier", primary_key=True)
+    aiod_entry: AIoDEntryORM = Relationship(
+        back_populates="permissions",
+    )
     user_identifier: str = Field(foreign_key="user.subject_identifier", primary_key=True)
 
     type_: PermissionType = Field(
