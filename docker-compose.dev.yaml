@@ -1,5 +1,6 @@
 services:
   app:
+    stdin_open: true
     volumes:
       - ./src:/app:ro
     command: >
