@@ -30,41 +30,58 @@ def draft() -> Status:
 
 
 @pytest.fixture(scope="session")
-def body_concept() -> dict:
+def load_body_concept() -> dict:
     with open(path_test_resources() / "schemes" / "aiod" / "aiod_concept.json", "r") as f:
         return json.load(f)
 
 
+@pytest.fixture()
+def body_concept(load_body_concept: dict) -> dict:
+    return copy.deepcopy(load_body_concept)
+
+
 @pytest.fixture(scope="session")
-def body_resource(body_concept: dict) -> dict:
-    body = copy.copy(body_concept)
+def load_body_resource() -> dict:
     with open(path_test_resources() / "schemes" / "aiod" / "ai_resource.json", "r") as f:
-        resource = json.load(f)
-    body.update(resource)
-    return body
+        return json.load(f)
+
+
+@pytest.fixture()
+def body_resource(body_concept: dict, load_body_resource: dict) -> dict:
+    body = copy.deepcopy(body_concept)
+    body.update(load_body_resource)
+    return copy.deepcopy(body)
 
 
 @pytest.fixture(scope="session")
-def body_asset(body_resource: dict) -> dict:
-    body = copy.copy(body_resource)
+def load_body_asset() -> dict:
     with open(path_test_resources() / "schemes" / "aiod" / "ai_asset.json", "r") as f:
-        asset = json.load(f)
-    body.update(asset)
-    return body
+        return json.load(f)
+
+
+@pytest.fixture()
+def body_asset(body_resource: dict, load_body_asset: dict) -> dict:
+    body = copy.deepcopy(body_resource)
+    body.update(load_body_asset)
+    return copy.deepcopy(body)
 
 
 @pytest.fixture(scope="session")
-def body_agent(body_resource: dict) -> dict:
-    body = copy.copy(body_resource)
+def load_body_agent() -> dict:
     with open(path_test_resources() / "schemes" / "aiod" / "agent.json", "r") as f:
-        agent = json.load(f)
-    body.update(agent)
-    return body
+        return json.load(f)
+
+
+@pytest.fixture()
+def body_agent(body_resource: dict, load_body_agent: dict) -> dict:
+    body = copy.deepcopy(body_resource)
+    body.update(load_body_agent)
+    return copy.deepcopy(body)
 
 
 @pytest.fixture
 def publication(body_asset: dict) -> Publication:
-    body = copy.copy(body_asset)
+    body = copy.deepcopy(body_asset)
     body["permanent_identifier"] = "http://dx.doi.org/10.1093/ajae/aaq063"
     body["isbn"] = "9783161484100"
     body["issn"] = "20493630"
@@ -74,7 +91,7 @@ def publication(body_asset: dict) -> Publication:
 
 @pytest.fixture
 def contact(body_concept, engine: Engine) -> Contact:
-    body = copy.copy(body_concept)
+    body = copy.deepcopy(body_concept)
     body["email"] = ["a@b.com"]
     body["telephone"] = ["0032 XXXX XXXX"]
     body["location"] = [
@@ -88,7 +105,7 @@ def contact(body_concept, engine: Engine) -> Contact:
 
 @pytest.fixture
 def dataset(body_asset: dict) -> Dataset:
-    body = copy.copy(body_asset)
+    body = copy.deepcopy(body_asset)
     body["issn"] = "20493630"
     body["measurement_technique"] = "mass spectrometry"
     body["temporal_coverage"] = "2011/2012"
@@ -96,8 +113,8 @@ def dataset(body_asset: dict) -> Dataset:
 
 
 @pytest.fixture
-def organisation(body_agent) -> Organisation:
-    body = copy.copy(body_agent)
+def organisation(body_agent: dict) -> Organisation:
+    body = copy.deepcopy(body_agent)
     body["date_founded"] = "2022-01-01"
     body["legal_name"] = "Legal Name"
     body["ai_relevance"] = "Description of relevance in AI"
@@ -105,17 +122,16 @@ def organisation(body_agent) -> Organisation:
 
 
 @pytest.fixture
-def person(body_agent) -> Person:
-    body = copy.copy(body_agent)
+def person(body_agent: dict) -> Person:
+    body = copy.deepcopy(body_agent)
     body["expertise"] = ["machine learning"]
     body["language"] = ["eng", "nld"]
     return _create_class_with_body(Person, body)
 
 
 @pytest.fixture
-def experiment(body_asset) -> Experiment:
-    body = copy.copy(body_asset)
-    return _create_class_with_body(Experiment, body)
+def experiment(body_asset: dict) -> Experiment:
+    return _create_class_with_body(Experiment, body_asset)
 
 
 @pytest.fixture
