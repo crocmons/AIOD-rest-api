@@ -57,11 +57,6 @@ class AIoDEntryCreate(AIoDEntryBase):
         default_factory=list,
         schema_extra={"example": []},
     )
-    status: EntryStatus = Field(
-        description="Status of the entry. One of {', '.join(EntryStatus)}.",
-        default=EntryStatus.DRAFT,
-        schema_extra={"example": EntryStatus.DRAFT},
-    )
 
 
 class AIoDEntryRead(AIoDEntryBase):

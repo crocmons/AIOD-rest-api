@@ -40,7 +40,7 @@ def test_entry_status_can_update_on_put(
     )
     assert response.status_code == 200, response.json()
 
-    # Status is updated to published
+    # Status is not updated to published
     response = client.get(f"/publications/v1/{identifier}")
     assert response.status_code == 200, response.json()
-    assert response.json()["aiod_entry"]["status"] == EntryStatus.PUBLISHED
+    assert response.json()["aiod_entry"]["status"] == EntryStatus.DRAFT

@@ -127,7 +127,6 @@ def test_incorrect_citation():
         resources_with_relations = list(connector.fetch())
     (related_resources,) = [r.related_resources for r in resources_with_relations]
     (citation,) = related_resources["citation"]
-    assert citation.aiod_entry.status == "published"
     assert (
         citation.name == "ArCOV-19: The First Arabic COVID-19 Twitter Dataset with Propagation "
         "Networks"
