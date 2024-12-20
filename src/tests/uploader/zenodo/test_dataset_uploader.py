@@ -281,7 +281,6 @@ def test_attempt_to_upload_published_resource(
     """
     body = copy.deepcopy(body_no_dist)
     body["distribution"] = distribution_from_zenodo(FILE1, is_published=True)
-    body["aiod_entry"]["status"] = "published"
 
     with DbSession() as session:
         # Needed because `body_no_dist` references a Person.

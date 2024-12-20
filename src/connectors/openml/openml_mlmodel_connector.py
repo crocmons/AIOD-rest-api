@@ -73,9 +73,7 @@ class OpenMlMLModelConnector(ResourceConnectorById[MLModel]):
 
         pydantic_class = resource_create(MLModel)
         mlmodel = pydantic_class(
-            aiod_entry=AIoDEntryCreate(
-                status="published",
-            ),
+            aiod_entry=AIoDEntryCreate(),
             platform_resource_identifier=identifier,
             platform=self.platform_name,
             name=mlmodel_json["name"],

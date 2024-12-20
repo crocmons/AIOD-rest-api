@@ -119,7 +119,7 @@ class HuggingFaceDatasetConnector(ResourceConnectorOnStartUp[Dataset]):
 
         return ResourceWithRelations[pydantic_class](  # type:ignore
             resource=pydantic_class(
-                aiod_entry=AIoDEntryCreate(status="published"),
+                aiod_entry=AIoDEntryCreate(),
                 platform_resource_identifier=dataset._id,  # see #385, 392
                 platform=self.platform_name,
                 name=dataset.id,
@@ -148,11 +148,7 @@ class HuggingFaceDatasetConnector(ResourceConnectorOnStartUp[Dataset]):
                 parsed_citations = bibtexparser.loads(raw_citation + "}").entries
             elif len(parsed_citations) == 0 and len(raw_citation) <= field_length.NORMAL:
                 # Sometimes dataset.citation is not a bibtex field, but just the title of an article
-                return [
-                    pydantic_class_publication(
-                        name=raw_citation, aiod_entry=AIoDEntryCreate(status="published")
-                    )
-                ]
+                return [pydantic_class_publication(name=raw_citation, aiod_entry=AIoDEntryCreate())]
             return [
                 pydantic_class_publication(
                     # The platform and platform_resource_identifier should be None: this publication
@@ -164,7 +160,7 @@ class HuggingFaceDatasetConnector(ResourceConnectorOnStartUp[Dataset]):
                     description=Text(plain=f"By {citation['author']}")
                     if "author" in citation
                     else None,
-                    aiod_entry=AIoDEntryCreate(status="published"),
+                    aiod_entry=AIoDEntryCreate(),
                 )
                 for citation in parsed_citations
             ]

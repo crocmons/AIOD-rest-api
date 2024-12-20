@@ -21,6 +21,9 @@ class AIoDEntryBase(SQLModel):
     """Metadata of the metadata: when was the metadata last updated, with what identifiers is it
     known on other platforms, etc."""
 
+    class Config:
+        extra = "forbid"
+
 
 class EntryStatus(enum.StrEnum):
     DRAFT = enum.auto()

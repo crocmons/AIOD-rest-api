@@ -12,8 +12,7 @@
       "execution_settings": "string",
       "reproducibility_explanation": "string",
       "aiod_entry": {
-        "editor": [],
-        "status": "draft"
+        "editor": []
       },
       "alternate_name": [
         "alias 1",

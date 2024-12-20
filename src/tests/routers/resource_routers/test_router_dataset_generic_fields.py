@@ -37,7 +37,6 @@ def test_happy_path(
 
     body = copy.deepcopy(body_asset)
     body["aiod_entry"]["editor"] = [1]
-    body["aiod_entry"]["status"] = "published"
     body["contact"] = [1]
     body["creator"] = [1]
     body["citation"] = [1]
@@ -246,7 +245,7 @@ def test_post_editors(
             "platform": "example",
             "platform_resource_identifier": id_,
             "name": "How user evaluation changed in times of COVID-19",
-            "aiod_entry": {"editor": editors, "status": "published"},
+            "aiod_entry": {"editor": editors},
         }
         response = client.post("/events/v1", json=body, headers=headers)
         assert response.status_code == 200, response.json()
