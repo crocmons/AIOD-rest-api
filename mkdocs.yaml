@@ -21,11 +21,9 @@ nav:
           - 'Attributes': developer/schema/attributes.md
           - 'Relationships': developer/schema/relationships.md
           - 'Objects': developer/schema/objects.md
-  - 'Contributing': Contributing.md
-  - 'Unorganized Docs':
-      - 'Code Advice': developer/code.md
-      - 'DB Schema Migration': developer/migration.md
+          - 'Schema Migration': developer/schema/migration.md
       - 'Scripts': developer/scripts.md
+  - 'Contributing': Contributing.md
 
 markdown_extensions:
   - pymdownx.snippets:
