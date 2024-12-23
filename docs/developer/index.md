@@ -239,15 +239,8 @@ start-up work (e.g., populating the database).
 The Python classes that define the database tables are found in [src/database/model/](../src/database/model/). 
 The structure is based on the 
 [metadata schema](https://github.com/aiondemand/metadata-schema).
-
-
-## Adding resources
-
-See [src/README.md](developer/code.md).
+Updating the database schema is done using [Alembic](schema/migration.md).
 
 ## Backups and Restoration
 
 We provide several scripts to facilitate the scheduling of backups and the manual restoration of files. For details on these scripts and others, please see [scripts/README.md](scripts/README.md).
-
-## Releases
-
