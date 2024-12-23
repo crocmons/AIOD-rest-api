@@ -61,7 +61,7 @@ and see the REST API documentation. This should look similar to the [api.aiod.eu
 but is connected to your local database and services.
 
 ### Starting Connector Services
---8<-- "./docs/hosting/connectors.md:4:23"
+--8<-- "./docs/hosting/connectors.md:4:30"
 
 For more information, see the ["Connectors"](connectors.md) page.
 

@@ -11,6 +11,7 @@ nav:
   - Hosting the API:
       - hosting/index.md
       - 'Connectors': hosting/connectors.md
+      - 'Synchronization': hosting/synchronization.md
   - 'Developer Resources':
       - developer/index.md
       - 'Metadata Schema':
