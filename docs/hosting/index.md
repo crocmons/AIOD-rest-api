@@ -1,4 +1,4 @@
-# Hosting the Metadata Catalogue
+# Getting Started
 This page has information on how to host your own metadata catalogue.
 If you plan to locally develop the REST API, please follow the installation procedure in ["Contributing"](../contributing) 
 after following the instructions on this page.
@@ -61,27 +61,9 @@ and see the REST API documentation. This should look similar to the [api.aiod.eu
 but is connected to your local database and services.
 
 ### Starting Connector Services
-To start connector services that automatically index data from external platforms into the metadata catalogue,
-you must specify their docker-compose profiles (as defined in the `docker-compose.yaml` file).
-For example, you can use the following commands when starting the connectors for OpenML and Zenodo.
+--8<-- "./docs/hosting/connectors.md:4:23"
 
-=== "Shorthand"
-    ```commandline
-    ./scripts/up.sh openml zenodo-datasets
-    ```
-=== "Docker Compose"
-    ```commandline
-    docker compose --profile openml --profile zenodo-datasets up -d
-    ```
-
-The full list of connector profiles are:
-
-- openml: indexes datasets and models from OpenML.
-- zenodo-datasets: indexes datasets from Zenodo.
-- huggingface-datasets: indexes datasets from Hugging Face.
-- examples: fills the database with some example data. Do not use in production.
-
-[//]: # (TODO: Link to docs or consolidate in dedicated page.)
+For more information, see the ["Connectors"](connectors.md) page.
 
 ## Configuration
 There are two main places to configure the metadata catalogue services: 

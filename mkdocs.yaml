@@ -8,7 +8,9 @@ theme:
 nav:
   - Home: README.md
   - Using the API: Using.md
-  - Hosting the API: Hosting.md
+  - Hosting the API:
+      - hosting/index.md
+      - 'Connectors': hosting/connectors.md
   - 'Developer Resources':
       - developer/index.md
       - 'Metadata Schema':
