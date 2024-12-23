@@ -10,10 +10,12 @@ nav:
   - Using the API: Using.md
   - Hosting the API:
       - hosting/index.md
+      - 'Authentication': hosting/authentication.md
       - 'Connectors': hosting/connectors.md
       - 'Synchronization': hosting/synchronization.md
   - 'Developer Resources':
       - developer/index.md
+      - 'Authentication': developer/authentication.md
       - 'Metadata Schema':
           - developer/schema/index.md
           - 'Attributes': developer/schema/attributes.md
@@ -22,7 +24,6 @@ nav:
   - 'Contributing': Contributing.md
   - 'Unorganized Docs':
       - 'Code Advice': developer/code.md
-      - 'Keycloak': developer/auth.md
       - 'DB Schema Migration': developer/migration.md
       - 'Scripts': developer/scripts.md
 
