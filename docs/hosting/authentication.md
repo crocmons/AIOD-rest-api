@@ -5,7 +5,7 @@ so that proper authorization over the endpoints can take place.
 In many cases, you will likely not host the keycloak service yourself, but instead connect to a 
 preconfigured keycloak server (such as the one hosted by [EGI](https://www.egi.eu)).
 
-## Connecting to Keycloak
+## Configuring Keycloak
 To connect the metadata catalogue to a pre-existing keycloak service set the following environment 
 variables (preferably through the `override.env` file):
 
@@ -62,16 +62,20 @@ Note that some roles may be used for services other than the metadata catalogue.
 
 === "Postman"
 
-      If you edit a collection, you can use OAuth 2.0 authorization. See image:
+    !!! warning
 
-      ![Postman Authentication](../media/postman_authentication.png)
+        Instructions for Postman not updated.
 
-      - As `auth url`, use https://test.openml.org/aiod-auth/realms/dev/protocol/openid-connect/auth
-      - As `Access token url`, use https://test.openml.org/aiod-auth/realms/dev/protocol/openid-connect/token
-      - As `client id`, use `aiod-api`
-      - As `client secret`, use `7qpbFTGpONBPIn9nBovgd2843BK8Khjg`
+    If you edit a collection, you can use OAuth 2.0 authorization. See image:
 
-      Then, you should be able to send a `GET` to `localhost:8000/authorization_test`.
+    ![Postman Authentication](../media/postman_authentication.png)
+
+    - As `auth url`, use https://test.openml.org/aiod-auth/realms/dev/protocol/openid-connect/auth
+    - As `Access token url`, use https://test.openml.org/aiod-auth/realms/dev/protocol/openid-connect/token
+    - As `client id`, use `aiod-api`
+    - As `client secret`, use `7qpbFTGpONBPIn9nBovgd2843BK8Khjg`
+
+    Then, you should be able to send a `GET` to `localhost:8000/authorization_test`.
 
 
 A successful response to the `/authorization_test` endpoints should result in a response like:
