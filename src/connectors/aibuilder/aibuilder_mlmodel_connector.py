@@ -178,9 +178,7 @@ class AIBuilderMLModelConnector(ResourceConnectorByDate[MLModel]):
             same_as=url,  # TODO: Review the concept of having the TOKEN inside the url!!!
             is_accessible_for_free=True,
             version=version,
-            aiod_entry=AIoDEntryCreate(
-                status="published",
-            ),
+            aiod_entry=AIoDEntryCreate(),
             description=description,
             distribution=distribution,
             keyword=tags,
