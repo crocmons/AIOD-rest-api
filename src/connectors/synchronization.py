@@ -12,6 +12,7 @@ from sqlmodel import select, Session
 from connectors.abstract.resource_connector import ResourceConnector, RESOURCE
 from connectors.record_error import RecordError
 from connectors.resource_with_relations import ResourceWithRelations
+from database.model.concept.aiod_entry import EntryStatus
 from database.model.concept.concept import AIoDConcept
 from database.model.platform.platform_names import PlatformName
 from database.session import DbSession
@@ -102,7 +103,8 @@ def save_to_database(
         )
         # TODO: if not None, update (https://github.com/aiondemand/AIOD-rest-api/issues/131)
         if existing is None:
-            router.create_resource(session, resource_create_instance)
+            resource = router.create_resource(session, resource_create_instance)
+            publish_resource(session, resource)
 
     except Exception as e:
         session.rollback()
@@ -150,6 +152,7 @@ def _create_or_fetch_related_objects(session: Session, item: ResourceWithRelatio
                 existing = _get_existing_resource(session, resource, router.resource_class)
                 if existing is None:
                     created_resource = router.create_resource(session, resource)
+                    publish_resource(session, created_resource)
                     identifiers.append(created_resource.identifier)
                 else:
                     identifiers.append(existing.identifier)
@@ -159,6 +162,13 @@ def _create_or_fetch_related_objects(session: Session, item: ResourceWithRelatio
             item.resource.__setattr__(field_name, id_)  # E.g. Dataset.license_identifier = 1
         else:
             item.resource.__setattr__(field_name, identifiers)  # E.g. Dataset.keywords = [1, 4]
+
+
+def publish_resource(session: Session, item: AIoDConcept):
+    item.aiod_entry.status = EntryStatus.PUBLISHED
+    session.add(item)
+    session.commit()
+    return item
 
 
 def main():
