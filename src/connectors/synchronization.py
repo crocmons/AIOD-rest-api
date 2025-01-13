@@ -13,8 +13,9 @@ from connectors.abstract.resource_connector import ResourceConnector, RESOURCE
 from connectors.record_error import RecordError
 from connectors.resource_with_relations import ResourceWithRelations
 from database.model.concept.concept import AIoDConcept
+from database.model.platform.platform_names import PlatformName
 from database.session import DbSession
-from database.setup import _create_or_fetch_related_objects, _get_existing_resource
+from database.setup import _get_existing_resource
 from routers import ResourceRouter, resource_routers, enum_routers
 from setup_logger import setup_logger
 
@@ -117,6 +118,49 @@ def save_to_database(
     return None
 
 
+def _create_or_fetch_related_objects(session: Session, item: ResourceWithRelations):
+    """
+    For all resources in the `related_resources`, get the identifier, by either
+    inserting them in the database, or retrieving the existing values, and put the identifiers
+    into the item.resource.[field_name]
+    """
+    for field_name, related_resource_or_list in item.related_resources.items():
+        if isinstance(related_resource_or_list, AIoDConcept):
+            resources = [related_resource_or_list]
+        else:
+            resources = related_resource_or_list
+        identifiers = []
+        for resource in resources:
+            if (
+                resource.platform is not None
+                and resource.platform != PlatformName.aiod
+                and resource.platform_resource_identifier is not None
+            ):
+                # Get the router of this resource. The difficulty is, that the resource will be a
+                # ResourceRead (e.g. a DatasetRead). So we search for the router for which the
+                # resource name starts with the research-read-name
+
+                resource_read_str = type(resource).__name__  # E.g. DatasetRead
+                (router,) = [
+                    router
+                    for router in resource_routers.router_list
+                    if resource_read_str.startswith(router.resource_class.__name__)
+                    # E.g. "DatasetRead".startswith("Dataset")
+                ]
+                existing = _get_existing_resource(session, resource, router.resource_class)
+                if existing is None:
+                    created_resource = router.create_resource(session, resource)
+                    identifiers.append(created_resource.identifier)
+                else:
+                    identifiers.append(existing.identifier)
+
+        if isinstance(related_resource_or_list, AIoDConcept):
+            (id_,) = identifiers
+            item.resource.__setattr__(field_name, id_)  # E.g. Dataset.license_identifier = 1
+        else:
+            item.resource.__setattr__(field_name, identifiers)  # E.g. Dataset.keywords = [1, 4]
+
+
 def main():
     args = _parse_args()
 
@@ -177,7 +221,7 @@ def main():
                         error_cleaned = "".join(
                             c if c.isalnum() or c == "" else "_" for c in str(error.error)
                         )
-                        f.write(f'"{error.identifier}","{error_cleaned}"\n')
+                        f.write(f'"{error.identifier}","{error_cleaned}"\n')  # noqa: E231
             if args.save_every and i > 0 and i % args.save_every == 0:
                 logging.info(f"Saving state after handling {i}th result: {json.dumps(state)}")
                 with open(state_path, "w") as f:
