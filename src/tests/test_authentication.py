@@ -1,6 +1,5 @@
 """Unittests for the behaviour of get_user_or_raise()."""
 
-import inspect
 from unittest.mock import Mock
 
 import pytest
@@ -9,7 +8,8 @@ from keycloak import KeycloakError
 from starlette import status
 
 
-from authentication import get_user_or_raise, keycloak_openid, KeycloakUser
+from authentication import get_user_or_raise, keycloak_openid
+from tests.authorization.test_authorization import logged_in_user, ALICE
 from tests.testutils.mock_keycloak import MockedKeycloak, TestUserType
 
 
@@ -34,16 +34,17 @@ async def test_happy_path_privileged():
     }
 
 
-def test_get_user_or_none_leaks_no_information():
+def test_get_user_or_none_leaks_no_information(client):
     """
     Make sure an error is thrown if you change the fields on KeycloakUser. There may be good reasons
     to make a change, but please be very careful: we don't want to expose sensitive information to
     our application if it is not necessary. Moreover, the KeycloakUser class is returned by the
     authorization_test endpoint.
     """
-    assert inspect.signature(get_user_or_raise).return_annotation == KeycloakUser
-    user = KeycloakUser(name="Alice", roles={"reviewer"}, _subject_identifier="some-identifier")
-    assert set(user.dict()) == {"name", "roles"}
+    with logged_in_user(*ALICE):
+        response = client.get("/authorization_test", headers={"Authorization": "Bearer mocked"})
+    assert response.status_code == status.HTTP_200_OK, response.json()
+    assert set(response.json().keys()) == {"name", "roles"}
 
 
 @pytest.mark.asyncio

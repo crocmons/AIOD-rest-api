@@ -15,8 +15,9 @@ from starlette.responses import JSONResponse
 from authentication import KeycloakUser, get_user_or_none, get_user_or_raise
 from config import KEYCLOAK_CONFIG
 from converters.schema_converters.schema_converter import SchemaConverter
+from database.authorization import user_can_administer, add_administrator, register_user
 from database.model.ai_resource.resource import AbstractAIResource
-from database.model.concept.aiod_entry import AIoDEntryORM
+from database.model.concept.aiod_entry import AIoDEntryORM, EntryStatus
 from database.model.concept.concept import AIoDConcept
 from database.model.platform.platform import Platform
 from database.model.platform.platform_names import PlatformName
@@ -130,6 +131,14 @@ class ResourceRouter(abc.ABC):
             response_model=int | dict[str, int],
             name=f"Count of {self.resource_name_plural}",
             description=f"Retrieve the number of {self.resource_name_plural}.",
+            **default_kwargs,
+        )
+        router.add_api_route(
+            path=f"{url_prefix}/{self.resource_name_plural}/submit/{version}/{{identifier}}",
+            methods={"POST"},
+            endpoint=self.get_submit_func(),
+            name=self.resource_name,
+            description=f"Submit a {self.resource_name} for review.",
             **default_kwargs,
         )
         router.add_api_route(
@@ -402,6 +411,9 @@ class ResourceRouter(abc.ABC):
                 with DbSession() as session:
                     try:
                         resource = self.create_resource(session, resource_create)
+                        register_user(user, session)
+                        add_administrator(user, resource, session)
+                        session.commit()
                         return self._wrap_with_headers({"identifier": resource.identifier})
                     except Exception as e:
                         self._raise_clean_http_exception(e, session, resource_create)
@@ -504,6 +516,37 @@ class ResourceRouter(abc.ABC):
                     raise as_http_exception(e)
 
         return delete_resource
+
+    def get_submit_func(self):
+        """
+        Return a function that can be used to retrieve a single resource.
+        This function returns a function (instead of being that function directly) because the
+        docstring and the variables are dynamic, and used in Swagger.
+        """
+
+        def submit_resource(
+            identifier: str,
+            user: KeycloakUser = Depends(get_user_or_raise),
+        ):
+            with DbSession() as session:
+                resource = self._retrieve_resource(
+                    identifier=identifier, session=session
+                )  # type: ignore
+
+                if not resource.aiod_entry.status == EntryStatus.DRAFT:
+                    msg = (
+                        f"Cannot submit {self.resource_name} {identifier} "
+                        f"since it has '{resource.aiod_entry.status}' status."
+                    )
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
+
+                if not user_can_administer(user, resource.aiod_entry):
+                    # Could choose to instead give same error as if resource does not exist.
+                    msg = f"You do not have permission to submit {self.resource_name} {identifier}."
+                    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=msg)
+            return self._wrap_with_headers(resource)
+
+        return submit_resource
 
     def _retrieve_resource(
         self,

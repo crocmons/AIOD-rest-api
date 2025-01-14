@@ -2,10 +2,11 @@ import enum
 
 import sqlalchemy
 from sqlalchemy import Column
-from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel import SQLModel, Field, Relationship, select, Session
 
 from authentication import KeycloakUser
 from database.model.concept.aiod_entry import AIoDEntryORM
+from database.model.concept.concept import AIoDConcept
 
 
 class User(SQLModel, table=True):  # type: ignore [call-arg]
@@ -22,17 +23,23 @@ class PermissionType(enum.StrEnum):
 
 
 class Permission(SQLModel, table=True):  # type: ignore [call-arg]
+    __tablename__ = "permission"
+    # ondelete="CASCADE" signifies the Permission will be deleted if the referred row is deleted
+    aiod_entry_identifier: int = Field(
+        foreign_key="aiod_entry.identifier", primary_key=True, ondelete="CASCADE"
+    )
+    user_identifier: str = Field(
+        foreign_key="user.subject_identifier", primary_key=True, ondelete="CASCADE"
+    )
     # - [ ] Add group reference:
     #   - [ ] expand primary key to triplet
     #   - [ ] either group or user needs to be None
-    aiod_entry_identifier: int = Field(foreign_key="aiod_entry.identifier", primary_key=True)
-    aiod_entry: AIoDEntryORM = Relationship(
-        back_populates="permissions",
-    )
-    user_identifier: str = Field(foreign_key="user.subject_identifier", primary_key=True)
 
     type_: PermissionType = Field(
         sa_column=Column(sqlalchemy.Enum(PermissionType)), default=PermissionType.READ
+    )
+    aiod_entry: AIoDEntryORM = Relationship(
+        back_populates="permissions",
     )
 
 
@@ -48,6 +55,24 @@ def user_can_write(user: KeycloakUser, aiod_entry) -> bool:
     return False
 
 
-def user_can_administer(user: KeycloakUser, aiod_entry) -> bool:
-    # TODO: check for write or admin permission
-    return False
+def register_user(user: KeycloakUser, session: Session):
+    query = select(User).where(User.subject_identifier == user._subject_identifier)
+    if session.execute(query).first() is None:
+        session.add(User(subject_identifier=user._subject_identifier))
+
+
+def add_administrator(user: KeycloakUser, resource: AIoDConcept, session: Session):
+    permission = Permission(
+        type_=PermissionType.ADMIN,
+        user_identifier=user._subject_identifier,
+        aiod_entry=resource.aiod_entry,
+    )
+    session.add(permission)
+
+
+def user_can_administer(user: KeycloakUser, aiod_entry: AIoDEntryORM) -> bool:
+    return any(
+        permission.user_identifier == user._subject_identifier
+        and permission.type_ == PermissionType.ADMIN
+        for permission in aiod_entry.permissions
+    )

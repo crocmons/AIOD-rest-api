@@ -18,6 +18,7 @@ performs a separate authorization request. The only downside is the overhead of 
 keycloak requests - if that becomes prohibitive in the future, we should reevaluate this design.
 """
 
+import dataclasses
 import logging
 import os
 
@@ -25,7 +26,6 @@ from dotenv import load_dotenv
 from fastapi import HTTPException, Security, status
 from fastapi.security import OpenIdConnect
 from keycloak import KeycloakOpenID
-from pydantic import BaseModel, Field
 
 from config import KEYCLOAK_CONFIG
 
@@ -45,19 +45,17 @@ keycloak_openid = KeycloakOpenID(
 )
 
 
-class KeycloakUser(BaseModel):
-    name: str = Field(description="The username.")
-    roles: set[str] = Field(description="The roles.")
-    _subject_identifier: str = Field(description="Unique user identifier.")
+@dataclasses.dataclass
+class KeycloakUser:
+    name: str
+    roles: set[str]
+    _subject_identifier: str
 
     def has_role(self, role: str) -> bool:
         return role in self.roles
 
     def has_any_role(self, *roles: str) -> bool:
         return bool(set(roles) & self.roles)
-
-    def dict(self, *args, **kwargs):
-        return super().dict(exclude={"_subject_identifier"})
 
 
 async def _get_user(token) -> KeycloakUser:
@@ -84,7 +82,6 @@ async def _get_user(token) -> KeycloakUser:
         # query the authorization server to determine the active state of this token and to
         # determine meta-information.
         userinfo = keycloak_openid.introspect(token)
-
         if not userinfo.get("active", False):
             logging.error("Invalid userinfo or inactive user.")
             raise InvalidUserError("Invalid userinfo or inactive user")  # caught below
