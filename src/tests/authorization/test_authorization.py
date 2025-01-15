@@ -86,14 +86,10 @@ def test_user_can_submit_draft_for_review(client, publication):
 
         submission = client.post(
             f"/publications/submit/v1/{identifier}",
-            content=EntryStatusChangeRequest(
-                concept_identifier=int(identifier),
-                requested_status=EntryStatus.SUBMITTED,
-                comment=None,
-            ).json(),
             headers={"Authorization": "Fake token"},
         )
         assert submission.status_code == HTTPStatus.OK, response.json()
+        assert submission.json()["aiod_entry"]["status"] == EntryStatus.SUBMITTED
 
 
 def test_user_can_not_submit_other_for_review(client, publication):
@@ -117,29 +113,35 @@ def test_user_can_not_submit_other_for_review(client, publication):
         assert submission.status_code == HTTPStatus.FORBIDDEN, response.json()
 
 
+@pytest.mark.skip()
 def test_user_can_revoke_submission():
     ...  # Test revoke transitions from "submitted" status to "draft"
 
 
+@pytest.mark.skip()
 @pytest.mark.parametrize("status", EntryStatus)
 def test_user_can_always_delete_asset(status: EntryStatus):
     assert ..., f"User should be able to delete their asset in '{status}' status"
 
 
+@pytest.mark.skip()
 def test_user_can_edit_asset_in_draft():
     assert ..., "Users should be able to edit their asset while in draft."
 
 
+@pytest.mark.skip()
 def test_user_cannot_edit_asset_in_submission():
     assert ..., "Users can not edit assets under submission."
     # This is the avoid race conditions with the reviewer workflow
 
 
+@pytest.mark.skip()
 def test_only_reviewer_can_approve_submission():
     assert ..., "Only reviewers should be able to approve a submission"
     assert ..., "Reviewers should be able to approve submissions"
     assert ..., "An accepted submission should result in 'published' status."
 
 
+@pytest.mark.skip()
 def test_reviewer_cannot_approve_own_submission():
     assert ..., "A user cannot approve their own submission."

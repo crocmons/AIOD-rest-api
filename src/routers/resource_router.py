@@ -544,7 +544,10 @@ class ResourceRouter(abc.ABC):
                     # Could choose to instead give same error as if resource does not exist.
                     msg = f"You do not have permission to submit {self.resource_name} {identifier}."
                     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=msg)
-            return self._wrap_with_headers(resource)
+
+                resource.aiod_entry.status = EntryStatus.SUBMITTED
+                session.commit()
+                return self._wrap_with_headers(self.resource_class_read.from_orm(resource))
 
         return submit_resource
 
