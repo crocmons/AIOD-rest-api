@@ -616,6 +616,11 @@ class ResourceRouter(abc.ABC):
                 resource = self._retrieve_resource(
                     identifier=identifier, session=session
                 )  # type: ignore
+                if user_can_administer(user, resource.aiod_entry):
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="You do not have permission to review your own assets.",
+                    )
                 resource.aiod_entry.status = new_status
                 session.commit()
                 return self._wrap_with_headers(self.resource_class_read.from_orm(resource))

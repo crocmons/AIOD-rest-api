@@ -225,6 +225,13 @@ def test_reviewer_can_reject_submission(publication, client):
     assert response.json()["aiod_entry"]["status"] == EntryStatus.DRAFT
 
 
-@pytest.mark.skip()
-def test_reviewer_cannot_approve_own_submission():
-    assert ..., "A user cannot approve their own submission."
+def test_reviewer_cannot_approve_own_submission(publication, client):
+    identifier = register_asset(publication, owner=REVIEWER, status=EntryStatus.SUBMITTED)
+
+    with logged_in_user(REVIEWER):
+        response = client.post(
+            f"/publications/review/v1/{identifier}",
+            content='{"accept": false}',
+            headers={"Authorization": "Fake token"},
+        )
+        assert response.status_code == HTTPStatus.FORBIDDEN, response.json()
