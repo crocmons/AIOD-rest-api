@@ -26,7 +26,7 @@ from database.model.resource_read_and_create import (
     resource_read,
 )
 from database.model.serializers import deserialize_resource_relationships
-from database.review import Decision, ReviewStatus
+from database.review import Decision, ReviewStatus, Review
 from database.session import DbSession
 from dependencies.filtering import ResourceFilters, ResourceFiltersParams
 from dependencies.pagination import Pagination, PaginationParams
@@ -564,6 +564,11 @@ class ResourceRouter(abc.ABC):
                     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=msg)
 
                 resource.aiod_entry.status = EntryStatus.SUBMITTED
+                review_request = Review(
+                    requestee_identifier=user._subject_identifier,
+                    aiod_entry_identifier=resource.aiod_entry.identifier,
+                )
+                session.add(review_request)
                 session.commit()
                 return self._wrap_with_headers(self.resource_class_read.from_orm(resource))
 

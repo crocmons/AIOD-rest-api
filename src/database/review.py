@@ -19,12 +19,12 @@ class Review(SQLModel, table=True):  # type: ignore [call-arg]
 
     __tablename__ = "review"
 
-    identifier: int = Field(primary_key=True)
+    identifier: int = Field(primary_key=True, default=None)
     request_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     # We do not want the review to be deleted when the original requestee is deleted,
     # there could be e.g., shared ownership in which case the review data should be preserved.
-    requestee_identifier: int | None = Field(
+    requestee_identifier: str | None = Field(
         foreign_key="user.subject_identifier", ondelete="SET NULL"
     )
 
@@ -41,8 +41,8 @@ class Review(SQLModel, table=True):  # type: ignore [call-arg]
     decision_date: datetime | None = Field()
 
     # Not sure if size should be limited, especially if we want to use this for structured data.
-    comment: str = Field()
-    change: str = Field()
+    comment: str | None = Field()
+    change: str | None = Field()
 
 
 class Decision(BaseModel):
