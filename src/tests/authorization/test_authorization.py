@@ -4,19 +4,24 @@ from unittest.mock import Mock
 
 import pytest
 
-from authentication import keycloak_openid
-from database.authorization import User
+from authentication import keycloak_openid, KeycloakUser
+from database.authorization import (
+    User,
+    register_user,
+    add_administrator,
+)
 from database.model.concept.aiod_entry import EntryStatus
+from database.session import DbSession
 from main import EntryStatusChangeRequest
 
 # "default-roles-aiod"
-ALICE = (User(subject_identifier="Alice"), ["edit_aiod_resources"])
-BOB = (User(subject_identifier="Bob"), ["edit_aiod_resources"])
-REVIEWER = (User(subject_identifier="Reviewer"), ["reviewer", "edit_aiod_resources"])
+ALICE = (User(subject_identifier="Alice"), {"edit_aiod_resources"})
+BOB = (User(subject_identifier="Bob"), {"edit_aiod_resources"})
+REVIEWER = (User(subject_identifier="Reviewer"), {"reviewer", "edit_aiod_resources"})
 
 
 @contextlib.contextmanager
-def logged_in_user(user: User, roles: list[str]):
+def logged_in_user(user: User, roles: set[str]):
     original = keycloak_openid.introspect
     keycloak_openid.introspect = Mock(
         return_value={
@@ -147,10 +152,24 @@ def test_other_user_can_not_retract_assets(client, publication):
         assert response.status_code == HTTPStatus.FORBIDDEN, response.json()
 
 
-@pytest.mark.skip()
 @pytest.mark.parametrize("status", EntryStatus)
-def test_user_can_always_delete_asset(status: EntryStatus):
-    assert ..., f"User should be able to delete their asset in '{status}' status"
+def test_user_can_always_delete_asset(status: EntryStatus, publication, client):
+    alice, roles = ALICE
+    kc_alice = KeycloakUser("alice", roles, alice.subject_identifier)
+    with DbSession() as session:
+        publication.aiod_entry.status = status
+        session.add(publication)
+        register_user(kc_alice, session)
+        add_administrator(kc_alice, publication, session)
+        session.commit()
+        identifier = publication.identifier
+
+    with logged_in_user(*ALICE):
+        response = client.delete(
+            f"/publications/v1/{identifier}",
+            headers={"Authorization": "Fake token"},
+        )
+        assert response.status_code == HTTPStatus.OK, response.json()
 
 
 @pytest.mark.skip()
