@@ -7,6 +7,7 @@ from wsgiref.handlers import format_date_time
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Path
 from fastapi.encoders import jsonable_encoder
+from pydantic.main import BaseModel
 from sqlalchemy import and_, func
 from sqlalchemy.sql.operators import is_
 from sqlmodel import SQLModel, Session, select
@@ -35,6 +36,10 @@ RESOURCE = TypeVar("RESOURCE", bound=AbstractAIResource)
 RESOURCE_CREATE = TypeVar("RESOURCE_CREATE", bound=SQLModel)
 RESOURCE_READ = TypeVar("RESOURCE_READ", bound=SQLModel)
 RESOURCE_MODEL = TypeVar("RESOURCE_MODEL", bound=SQLModel)
+
+
+class Review(BaseModel):
+    accept: bool
 
 
 class ResourceRouter(abc.ABC):
@@ -147,6 +152,14 @@ class ResourceRouter(abc.ABC):
             endpoint=self.get_retract_func(),
             name=self.resource_name,
             description=f"Retract a {self.resource_name}, setting its status to 'draft'.",
+            **default_kwargs,
+        )
+        router.add_api_route(
+            path=f"{url_prefix}/{self.resource_name_plural}/review/{version}/{{identifier}}",
+            methods={"POST"},
+            endpoint=self.get_review_func(),
+            name=self.resource_name,
+            description=f"Review a {self.resource_name}. Only for reviewers.",
             **default_kwargs,
         )
         router.add_api_route(
@@ -583,6 +596,31 @@ class ResourceRouter(abc.ABC):
                 return self._wrap_with_headers(self.resource_class_read.from_orm(resource))
 
         return retract_resource
+
+    def get_review_func(self):
+        """Return a function that can be used to review a single resource."""
+
+        def review_resource(
+            identifier: str,
+            review: Review,
+            user: KeycloakUser = Depends(get_user_or_raise),
+        ):
+            if "reviewer" not in user.roles:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You must have reviewing privileges to use this endpoint.",
+                )
+            new_status = EntryStatus.PUBLISHED if review.accept else EntryStatus.DRAFT
+
+            with DbSession() as session:
+                resource = self._retrieve_resource(
+                    identifier=identifier, session=session
+                )  # type: ignore
+                resource.aiod_entry.status = new_status
+                session.commit()
+                return self._wrap_with_headers(self.resource_class_read.from_orm(resource))
+
+        return review_resource
 
     def _retrieve_resource(
         self,

@@ -185,11 +185,44 @@ def test_user_cannot_edit_asset_in_submission(publication, client):
         assert response.status_code == HTTPStatus.FORBIDDEN, response.json()
 
 
-@pytest.mark.skip()
-def test_only_reviewer_can_approve_submission():
-    assert ..., "Only reviewers should be able to approve a submission"
-    assert ..., "Reviewers should be able to approve submissions"
-    assert ..., "An accepted submission should result in 'published' status."
+def test_only_reviewer_can_approve_submission(publication, client):
+    identifier = register_asset(publication, owner=ALICE, status=EntryStatus.SUBMITTED)
+
+    with logged_in_user(ALICE):
+        response = client.post(
+            f"/publications/review/v1/{identifier}",
+            content='{"accept": true}',
+            headers={"Authorization": "Fake token"},
+        )
+        assert response.status_code == HTTPStatus.FORBIDDEN, response.json()
+
+    with logged_in_user(REVIEWER):
+        response = client.post(
+            f"/publications/review/v1/{identifier}",
+            content='{"accept": true}',
+            headers={"Authorization": "Fake token"},
+        )
+        assert response.status_code == HTTPStatus.OK, response.json()
+
+    response = client.get(f"/publications/v1/{identifier}")
+    assert response.status_code == HTTPStatus.OK, response.json()
+    assert response.json()["aiod_entry"]["status"] == EntryStatus.PUBLISHED
+
+
+def test_reviewer_can_reject_submission(publication, client):
+    identifier = register_asset(publication, owner=ALICE, status=EntryStatus.SUBMITTED)
+
+    with logged_in_user(REVIEWER):
+        response = client.post(
+            f"/publications/review/v1/{identifier}",
+            content='{"accept": false}',
+            headers={"Authorization": "Fake token"},
+        )
+        assert response.status_code == HTTPStatus.OK, response.json()
+
+    response = client.get(f"/publications/v1/{identifier}")
+    assert response.status_code == HTTPStatus.OK, response.json()
+    assert response.json()["aiod_entry"]["status"] == EntryStatus.DRAFT
 
 
 @pytest.mark.skip()
