@@ -585,6 +585,7 @@ class ResourceRouter(abc.ABC):
                 resource = self._retrieve_resource(
                     identifier=identifier, session=session
                 )  # type: ignore
+
                 if not user_can_administer(user, resource.aiod_entry):
                     # Could choose to instead give same error as if resource does not exist.
                     msg = (
@@ -592,6 +593,23 @@ class ResourceRouter(abc.ABC):
                     )
                     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=msg)
 
+                query = (
+                    select(Review)
+                    .where(
+                        Review.aiod_entry_identifier == resource.aiod_entry.identifier,
+                    )
+                    .order_by(Review.request_date.desc())  # type: ignore [attr-defined]
+                )
+                (current_request,) = session.execute(query).first()
+                if current_request is None or current_request.decision != ReviewStatus.PENDING:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Cannot retract this asset, as it is not under review.",
+                    )
+
+                current_request.decision = ReviewStatus.RETRACTED
+                current_request.reviewer_identifier = user._subject_identifier
+                current_request.decision_date = datetime.datetime.now(datetime.timezone.utc)
                 resource.aiod_entry.status = EntryStatus.DRAFT
                 session.commit()
                 return self._wrap_with_headers(self.resource_class_read.from_orm(resource))

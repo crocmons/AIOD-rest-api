@@ -12,6 +12,7 @@ from database.authorization import (
 )
 from database.model.concept.aiod_entry import EntryStatus
 from database.model.concept.concept import AIoDConcept
+from database.review import Review, ReviewStatus
 from database.session import DbSession
 from main import EntryStatusChangeRequest
 
@@ -147,12 +148,30 @@ def test_user_can_always_delete_asset(status: EntryStatus, publication, client):
 
 
 def register_asset(asset: AIoDConcept, /, *, owner: TestUser, status: EntryStatus):
-    kc_alice = KeycloakUser(owner.name, owner.roles, f"{owner.name}-sub")
+    owner_sub = f"{owner.name}-sub"
+    kc_alice = KeycloakUser(owner.name, owner.roles, owner_sub)
     with DbSession() as session:
-        asset.aiod_entry.status = status
         session.add(asset)
+        session.commit()
+
+        asset.aiod_entry.status = status
         register_user(kc_alice, session)
         add_administrator(kc_alice, asset, session)
+        if status == EntryStatus.SUBMITTED:
+            fake_review = Review(
+                requestee_identifier=owner_sub,
+                aiod_entry_identifier=asset.aiod_entry.identifier,
+            )
+            session.add(fake_review)
+        if status == EntryStatus.PUBLISHED:
+            register_user(KeycloakUser("reviewer", {"reviewer"}, "reviewer-sub"), session)
+            fake_review = Review(
+                requestee_identifier=owner_sub,
+                aiod_entry_identifier=asset.aiod_entry.identifier,
+                decision=ReviewStatus.ACCEPTED,
+                reviewer_identifier="reviewer-sub",
+            )
+            session.add(fake_review)
         session.commit()
         return asset.identifier
 

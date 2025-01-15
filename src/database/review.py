@@ -12,6 +12,7 @@ class ReviewStatus(enum.StrEnum):
     ACCEPTED = enum.auto()
     REJECTED = enum.auto()
     PENDING = enum.auto()
+    RETRACTED = enum.auto()
 
 
 class Review(SQLModel, table=True):  # type: ignore [call-arg]
@@ -35,7 +36,7 @@ class Review(SQLModel, table=True):  # type: ignore [call-arg]
     decision: ReviewStatus = Field(
         sa_column=Column(sqlalchemy.Enum(ReviewStatus)), default=ReviewStatus.PENDING
     )
-    reviewer_identifier: int | None = Field(
+    reviewer_identifier: str | None = Field(
         foreign_key="user.subject_identifier", ondelete="SET NULL"
     )
     decision_date: datetime | None = Field()
