@@ -7,7 +7,6 @@ from wsgiref.handlers import format_date_time
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Path
 from fastapi.encoders import jsonable_encoder
-from pydantic.main import BaseModel
 from sqlalchemy import and_, func
 from sqlalchemy.sql.operators import is_
 from sqlmodel import SQLModel, Session, select
@@ -27,6 +26,7 @@ from database.model.resource_read_and_create import (
     resource_read,
 )
 from database.model.serializers import deserialize_resource_relationships
+from database.review import Decision, ReviewStatus
 from database.session import DbSession
 from dependencies.filtering import ResourceFilters, ResourceFiltersParams
 from dependencies.pagination import Pagination, PaginationParams
@@ -36,10 +36,6 @@ RESOURCE = TypeVar("RESOURCE", bound=AbstractAIResource)
 RESOURCE_CREATE = TypeVar("RESOURCE_CREATE", bound=SQLModel)
 RESOURCE_READ = TypeVar("RESOURCE_READ", bound=SQLModel)
 RESOURCE_MODEL = TypeVar("RESOURCE_MODEL", bound=SQLModel)
-
-
-class Review(BaseModel):
-    accept: bool
 
 
 class ResourceRouter(abc.ABC):
@@ -602,7 +598,7 @@ class ResourceRouter(abc.ABC):
 
         def review_resource(
             identifier: str,
-            review: Review,
+            review: Decision,
             user: KeycloakUser = Depends(get_user_or_raise),
         ):
             if "reviewer" not in user.roles:
@@ -610,7 +606,11 @@ class ResourceRouter(abc.ABC):
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="You must have reviewing privileges to use this endpoint.",
                 )
-            new_status = EntryStatus.PUBLISHED if review.accept else EntryStatus.DRAFT
+
+            if review.decision == ReviewStatus.ACCEPTED:
+                new_status = EntryStatus.PUBLISHED
+            else:
+                new_status = EntryStatus.DRAFT
 
             with DbSession() as session:
                 resource = self._retrieve_resource(
