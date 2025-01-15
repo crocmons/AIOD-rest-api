@@ -142,6 +142,14 @@ class ResourceRouter(abc.ABC):
             **default_kwargs,
         )
         router.add_api_route(
+            path=f"{url_prefix}/{self.resource_name_plural}/retract/{version}/{{identifier}}",
+            methods={"POST"},
+            endpoint=self.get_retract_func(),
+            name=self.resource_name,
+            description=f"Retract a {self.resource_name}, setting its status to 'draft'.",
+            **default_kwargs,
+        )
+        router.add_api_route(
             path=f"{url_prefix}/{self.resource_name_plural}/{version}",
             methods={"POST"},
             endpoint=self.register_resource_func(),
@@ -518,11 +526,7 @@ class ResourceRouter(abc.ABC):
         return delete_resource
 
     def get_submit_func(self):
-        """
-        Return a function that can be used to retrieve a single resource.
-        This function returns a function (instead of being that function directly) because the
-        docstring and the variables are dynamic, and used in Swagger.
-        """
+        """Return a function that can be used to submit a single resource for review."""
 
         def submit_resource(
             identifier: str,
@@ -550,6 +554,30 @@ class ResourceRouter(abc.ABC):
                 return self._wrap_with_headers(self.resource_class_read.from_orm(resource))
 
         return submit_resource
+
+    def get_retract_func(self):
+        """Return a function that can be used to retract a single resource."""
+
+        def retract_resource(
+            identifier: str,
+            user: KeycloakUser = Depends(get_user_or_raise),
+        ):
+            with DbSession() as session:
+                resource = self._retrieve_resource(
+                    identifier=identifier, session=session
+                )  # type: ignore
+                if not user_can_administer(user, resource.aiod_entry):
+                    # Could choose to instead give same error as if resource does not exist.
+                    msg = (
+                        f"You do not have permission to retract {self.resource_name} {identifier}."
+                    )
+                    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=msg)
+
+                resource.aiod_entry.status = EntryStatus.DRAFT
+                session.commit()
+                return self._wrap_with_headers(self.resource_class_read.from_orm(resource))
+
+        return retract_resource
 
     def _retrieve_resource(
         self,

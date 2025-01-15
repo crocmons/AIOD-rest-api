@@ -113,9 +113,38 @@ def test_user_can_not_submit_other_for_review(client, publication):
         assert submission.status_code == HTTPStatus.FORBIDDEN, response.json()
 
 
-@pytest.mark.skip()
-def test_user_can_revoke_submission():
-    ...  # Test revoke transitions from "submitted" status to "draft"
+def test_user_can_retract_assets(client, publication):
+    with logged_in_user(*ALICE):
+        response = client.post(
+            "/publications/v1", content=publication.json(), headers={"Authorization": "Fake token"}
+        )
+        identifier = response.json()["identifier"]
+        response = client.post(
+            f"/publications/submit/v1/{identifier}", headers={"Authorization": "Fake token"}
+        )
+        assert response.json()["aiod_entry"]["status"] == EntryStatus.SUBMITTED
+        response = client.post(
+            f"/publications/retract/v1/{identifier}", headers={"Authorization": "Fake token"}
+        )
+        assert response.json()["aiod_entry"]["status"] == EntryStatus.DRAFT
+
+
+def test_other_user_can_not_retract_assets(client, publication):
+    with logged_in_user(*ALICE):
+        response = client.post(
+            "/publications/v1", content=publication.json(), headers={"Authorization": "Fake token"}
+        )
+        identifier = response.json()["identifier"]
+        response = client.post(
+            f"/publications/submit/v1/{identifier}", headers={"Authorization": "Fake token"}
+        )
+        assert response.json()["aiod_entry"]["status"] == EntryStatus.SUBMITTED
+
+    with logged_in_user(*BOB):
+        response = client.post(
+            f"/publications/retract/v1/{identifier}", headers={"Authorization": "Fake token"}
+        )
+        assert response.status_code == HTTPStatus.FORBIDDEN, response.json()
 
 
 @pytest.mark.skip()
