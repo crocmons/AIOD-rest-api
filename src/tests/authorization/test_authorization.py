@@ -157,15 +157,32 @@ def register_asset(asset: AIoDConcept, /, *, owner: TestUser, status: EntryStatu
         return asset.identifier
 
 
-@pytest.mark.skip()
-def test_user_can_edit_asset_in_draft():
-    assert ..., "Users should be able to edit their asset while in draft."
+def test_user_can_edit_asset_in_draft(publication, client):
+    identifier = register_asset(publication, owner=ALICE, status=EntryStatus.DRAFT)
+    new_name = "Alice in Wonderland"
+
+    with logged_in_user(ALICE):
+        response = client.put(
+            f"/publications/v1/{identifier}",
+            content=f'{{"name": "{new_name}"}}',
+            headers={"Authorization": "Fake token"},
+        )
+        assert response.status_code == HTTPStatus.OK, response.json()
+        updated_publication = client.get(f"/publications/v1/{identifier}").json()
+        assert updated_publication["name"] == new_name
 
 
-@pytest.mark.skip()
-def test_user_cannot_edit_asset_in_submission():
-    assert ..., "Users can not edit assets under submission."
-    # This is the avoid race conditions with the reviewer workflow
+def test_user_cannot_edit_asset_in_submission(publication, client):
+    identifier = register_asset(publication, owner=ALICE, status=EntryStatus.SUBMITTED)
+    new_name = "Alice in Wonderland"
+
+    with logged_in_user(ALICE):
+        response = client.put(
+            f"/publications/v1/{identifier}",
+            content=f'{{"name": "{new_name}"}}',
+            headers={"Authorization": "Fake token"},
+        )
+        assert response.status_code == HTTPStatus.FORBIDDEN, response.json()
 
 
 @pytest.mark.skip()

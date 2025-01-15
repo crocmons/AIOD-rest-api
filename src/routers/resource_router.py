@@ -466,6 +466,11 @@ class ResourceRouter(abc.ABC):
             with DbSession() as session:
                 try:
                     resource: Any = self._retrieve_resource(session, identifier)
+                    if resource.aiod_entry.status == EntryStatus.SUBMITTED:
+                        raise HTTPException(
+                            status_code=status.HTTP_403_FORBIDDEN,
+                            detail="You cannot edit an asset under submission.",
+                        )
                     for attribute_name in resource.schema()["properties"]:
                         if hasattr(resource_create_instance, attribute_name):
                             new_value = getattr(resource_create_instance, attribute_name)
