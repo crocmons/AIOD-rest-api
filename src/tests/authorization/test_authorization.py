@@ -1,39 +1,46 @@
 import contextlib
 from http import HTTPStatus
+from typing import NamedTuple
 from unittest.mock import Mock
 
 import pytest
 
 from authentication import keycloak_openid, KeycloakUser
 from database.authorization import (
-    User,
     register_user,
     add_administrator,
 )
 from database.model.concept.aiod_entry import EntryStatus
+from database.model.concept.concept import AIoDConcept
 from database.session import DbSession
 from main import EntryStatusChangeRequest
 
+
 # "default-roles-aiod"
-ALICE = (User(subject_identifier="Alice"), {"edit_aiod_resources"})
-BOB = (User(subject_identifier="Bob"), {"edit_aiod_resources"})
-REVIEWER = (User(subject_identifier="Reviewer"), {"reviewer", "edit_aiod_resources"})
+class TestUser(NamedTuple):
+    name: str
+    roles: set[str]
+
+
+ALICE = TestUser("Alice", {"edit_aiod_resources"})
+BOB = TestUser("Bob", {"edit_aiod_resources"})
+REVIEWER = TestUser("Reviewer", {"reviewer", "edit_aiod_resources"})
 
 
 @contextlib.contextmanager
-def logged_in_user(user: User, roles: set[str]):
+def logged_in_user(user: TestUser):
     original = keycloak_openid.introspect
     keycloak_openid.introspect = Mock(
         return_value={
-            "realm_access": {"roles": roles},
+            "realm_access": {"roles": user.roles},
             "resource_access": {
                 "account": {"roles": ["manage-account", "manage-account-links", "view-profile"]}
             },
             "scope": "openid profile email",
-            "username": user.subject_identifier,
+            "username": user.name,
             "token_type": "Bearer",
             "active": True,
-            "sub": f"{user.subject_identifier}-sub",
+            "sub": f"{user.name}-sub",
         }
     )
     yield
@@ -44,7 +51,7 @@ def test_user_must_be_logged_in_to_publish(client, publication):
     response = client.post("/publications/v1", content=publication.json(), headers=None)
     assert response.status_code == HTTPStatus.UNAUTHORIZED
 
-    with logged_in_user(*ALICE):
+    with logged_in_user(ALICE):
         response = client.post(
             "/publications/v1", content=publication.json(), headers={"Authorization": "Fake token"}
         )
@@ -52,7 +59,7 @@ def test_user_must_be_logged_in_to_publish(client, publication):
 
 
 def test_new_asset_is_draft(client, publication, mocked_privileged_token: Mock):
-    with logged_in_user(*ALICE):
+    with logged_in_user(ALICE):
         response = client.post(
             "/publications/v1", content=publication.json(), headers={"Authorization": "Fake token"}
         )
@@ -67,7 +74,7 @@ def test_drafts_are_private(
     publication,
     mocked_privileged_token: Mock,
 ):
-    with logged_in_user(*ALICE):
+    with logged_in_user(ALICE):
         response = client.post(
             "/publications/v1", content=publication.json(), headers={"Authorization": "Fake token"}
         )
@@ -82,30 +89,20 @@ def test_drafts_are_private(
 
 
 def test_user_can_submit_draft_for_review(client, publication):
-    with logged_in_user(*ALICE):
-        response = client.post(
-            "/publications/v1", content=publication.json(), headers={"Authorization": "Fake token"}
-        )
-        assert response.status_code == HTTPStatus.OK, response.json()
-        identifier = response.json()["identifier"]
-
+    identifier = register_asset(publication, owner=ALICE, status=EntryStatus.DRAFT)
+    with logged_in_user(ALICE):
         submission = client.post(
             f"/publications/submit/v1/{identifier}",
             headers={"Authorization": "Fake token"},
         )
-        assert submission.status_code == HTTPStatus.OK, response.json()
+        assert submission.status_code == HTTPStatus.OK, submission.json()
         assert submission.json()["aiod_entry"]["status"] == EntryStatus.SUBMITTED
 
 
 def test_user_can_not_submit_other_for_review(client, publication):
-    with logged_in_user(*ALICE):
-        response = client.post(
-            "/publications/v1", content=publication.json(), headers={"Authorization": "Fake token"}
-        )
-        assert response.status_code == HTTPStatus.OK, response.json()
-        identifier = response.json()["identifier"]
+    identifier = register_asset(publication, owner=ALICE, status=EntryStatus.DRAFT)
 
-    with logged_in_user(*BOB):
+    with logged_in_user(BOB):
         submission = client.post(
             f"/publications/submit/v1/{identifier}",
             content=EntryStatusChangeRequest(
@@ -115,19 +112,12 @@ def test_user_can_not_submit_other_for_review(client, publication):
             ).json(),
             headers={"Authorization": "Fake token"},
         )
-        assert submission.status_code == HTTPStatus.FORBIDDEN, response.json()
+        assert submission.status_code == HTTPStatus.FORBIDDEN, submission.json()
 
 
 def test_user_can_retract_assets(client, publication):
-    with logged_in_user(*ALICE):
-        response = client.post(
-            "/publications/v1", content=publication.json(), headers={"Authorization": "Fake token"}
-        )
-        identifier = response.json()["identifier"]
-        response = client.post(
-            f"/publications/submit/v1/{identifier}", headers={"Authorization": "Fake token"}
-        )
-        assert response.json()["aiod_entry"]["status"] == EntryStatus.SUBMITTED
+    identifier = register_asset(publication, owner=ALICE, status=EntryStatus.SUBMITTED)
+    with logged_in_user(ALICE):
         response = client.post(
             f"/publications/retract/v1/{identifier}", headers={"Authorization": "Fake token"}
         )
@@ -135,17 +125,9 @@ def test_user_can_retract_assets(client, publication):
 
 
 def test_other_user_can_not_retract_assets(client, publication):
-    with logged_in_user(*ALICE):
-        response = client.post(
-            "/publications/v1", content=publication.json(), headers={"Authorization": "Fake token"}
-        )
-        identifier = response.json()["identifier"]
-        response = client.post(
-            f"/publications/submit/v1/{identifier}", headers={"Authorization": "Fake token"}
-        )
-        assert response.json()["aiod_entry"]["status"] == EntryStatus.SUBMITTED
+    identifier = register_asset(publication, owner=ALICE, status=EntryStatus.SUBMITTED)
 
-    with logged_in_user(*BOB):
+    with logged_in_user(BOB):
         response = client.post(
             f"/publications/retract/v1/{identifier}", headers={"Authorization": "Fake token"}
         )
@@ -154,22 +136,25 @@ def test_other_user_can_not_retract_assets(client, publication):
 
 @pytest.mark.parametrize("status", EntryStatus)
 def test_user_can_always_delete_asset(status: EntryStatus, publication, client):
-    alice, roles = ALICE
-    kc_alice = KeycloakUser("alice", roles, alice.subject_identifier)
-    with DbSession() as session:
-        publication.aiod_entry.status = status
-        session.add(publication)
-        register_user(kc_alice, session)
-        add_administrator(kc_alice, publication, session)
-        session.commit()
-        identifier = publication.identifier
+    identifier = register_asset(publication, owner=ALICE, status=status)
 
-    with logged_in_user(*ALICE):
+    with logged_in_user(ALICE):
         response = client.delete(
             f"/publications/v1/{identifier}",
             headers={"Authorization": "Fake token"},
         )
         assert response.status_code == HTTPStatus.OK, response.json()
+
+
+def register_asset(asset: AIoDConcept, /, *, owner: TestUser, status: EntryStatus):
+    kc_alice = KeycloakUser(owner.name, owner.roles, f"{owner.name}-sub")
+    with DbSession() as session:
+        asset.aiod_entry.status = status
+        session.add(asset)
+        register_user(kc_alice, session)
+        add_administrator(kc_alice, asset, session)
+        session.commit()
+        return asset.identifier
 
 
 @pytest.mark.skip()

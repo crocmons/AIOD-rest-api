@@ -41,7 +41,7 @@ def test_get_user_or_none_leaks_no_information(client):
     our application if it is not necessary. Moreover, the KeycloakUser class is returned by the
     authorization_test endpoint.
     """
-    with logged_in_user(*ALICE):
+    with logged_in_user(ALICE):
         response = client.get("/authorization_test", headers={"Authorization": "Bearer mocked"})
     assert response.status_code == status.HTTP_200_OK, response.json()
     assert set(response.json().keys()) == {"name", "roles"}
