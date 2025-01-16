@@ -55,10 +55,13 @@ def user_can_write(user: KeycloakUser, aiod_entry) -> bool:
     return False
 
 
-def register_user(user: KeycloakUser, session: Session):
-    query = select(User).where(User.subject_identifier == user._subject_identifier)
-    if session.execute(query).first() is None:
-        session.add(User(subject_identifier=user._subject_identifier))
+def register_user(kc_user: KeycloakUser, session: Session) -> User:
+    query = select(User).where(User.subject_identifier == kc_user._subject_identifier)
+    user = session.scalars(query).first()
+    if user is None:
+        user = User(subject_identifier=kc_user._subject_identifier)
+        session.add(user)
+    return user
 
 
 def add_administrator(user: KeycloakUser, resource: AIoDConcept, session: Session):

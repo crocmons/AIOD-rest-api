@@ -47,6 +47,7 @@ class Review(SQLModel, table=True):  # type: ignore [call-arg]
 
 
 class Decision(BaseModel):
+    """Auxiliary dataclass for defining the review endpoint input. """
     review_identifier: int = Field(description="The identifier of the review request.")
     decision: Literal[ReviewStatus.REJECTED, ReviewStatus.ACCEPTED] = Field()
     comment: str = Field()

@@ -600,7 +600,7 @@ class ResourceRouter(abc.ABC):
                     )
                     .order_by(Review.request_date.desc())  # type: ignore [attr-defined]
                 )
-                (current_request,) = session.execute(query).first()
+                current_request = session.scalars(query).first()
                 if current_request is None or current_request.decision != ReviewStatus.PENDING:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
@@ -621,7 +621,7 @@ class ResourceRouter(abc.ABC):
 
         def review_resource(
             identifier: str,
-            review: Decision,
+            decision: Decision,
             user: KeycloakUser = Depends(get_user_or_raise),
         ):
             if "reviewer" not in user.roles:
@@ -629,11 +629,6 @@ class ResourceRouter(abc.ABC):
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="You must have reviewing privileges to use this endpoint.",
                 )
-
-            if review.decision == ReviewStatus.ACCEPTED:
-                new_status = EntryStatus.PUBLISHED
-            else:
-                new_status = EntryStatus.DRAFT
 
             with DbSession() as session:
                 resource = self._retrieve_resource(
@@ -644,7 +639,30 @@ class ResourceRouter(abc.ABC):
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail="You do not have permission to review your own assets.",
                     )
+
+                query = select(Review).where(Review.identifier == decision.review_identifier)
+                review_request = session.scalars(query).first()
+                if review_request is None:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"No review with identifier {decision.review_identifier} found.",
+                    )
+
+                if review_request.decision != ReviewStatus.PENDING:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Review is no longer pending, no new decision may be made.",
+                    )
+
+                if decision.decision == ReviewStatus.ACCEPTED:
+                    new_status = EntryStatus.PUBLISHED
+                else:
+                    new_status = EntryStatus.DRAFT
                 resource.aiod_entry.status = new_status
+                review_request.reviewer_identifier = user._subject_identifier
+                review_request.comment = decision.comment
+                review_request.decision_date = datetime.datetime.now(datetime.timezone.utc)
+                review_request.decision = decision.decision
                 session.commit()
                 return self._wrap_with_headers(self.resource_class_read.from_orm(resource))
 
