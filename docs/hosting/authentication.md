@@ -2,17 +2,16 @@
 
 When running the metadata catalogue in production, you want to ensure that users can authenticate
 so that proper authorization over the endpoints can take place.
-In many cases, you will likely not host the keycloak service yourself, but instead connect to a 
-preconfigured keycloak server (such as the one hosted by [EGI](https://www.egi.eu)).
+Keycloak is typically configured to allow users to sign on with credentials from other services,
+such as a Google account or an institutional one.
 
 ## Configuring Keycloak
-To connect the metadata catalogue to a pre-existing keycloak service set the following environment 
-variables (preferably through the `override.env` file):
+To configure Keycloak, set the following environment variables (preferably through the `override.env` file):
 
- * `HOSTNAME`: E.g., auth.aiod.eu
- * `AIOD_KEYCLOAK_PORT`: E.g., 8081
- * `REDIRECT_URIS`: URI a successful login action should redirect back to. E.g., https://${HOSTNAME}/docs/oauth2-redirect
- * `POST_LOGOUT_REDIRECT_URIS`: URI a successful logout action should redirect back to. E.g., https://${HOSTNAME}/aiod-auth/realms/aiod/protocol/openid-connect/logout
+ * `HOSTNAME`: URL for issued tokens ([documentation](https://www.keycloak.org/server/hostname)). For example: `auth.aiod.eu`.
+ * `AIOD_KEYCLOAK_PORT`: The port at which the Keycloak server should be available in the host machine, e.g., `8081`.
+ * `REDIRECT_URIS`: URI a successful login action should redirect back to. E.g., `https://${HOSTNAME}/docs/oauth2-redirect`.
+ * `POST_LOGOUT_REDIRECT_URIS`: URI a successful logout action should redirect back to. E.g., `https://${HOSTNAME}/aiod-auth/realms/aiod/protocol/openid-connect/logout`.
 
 As well as the `openid_connect_url` in `./src/config.override.toml` (for authentication on the Swagger page):
 ```toml
@@ -20,10 +19,10 @@ As well as the `openid_connect_url` in `./src/config.override.toml` (for authent
 openid_connect_url = "https://auth.aiod.eu/aiod-auth/realms/aiod/.well-known/openid-configuration"
 ```
 
-## Hosting Keycloak Locally
+## Hosting and External Identity Providers 
 
-Running locally is possible, but is not recommended when you wish to use external identity providers.
-The problem is that the dockerized API thinks that the keycloak is located at host `keycloak` (the name of the keycloak docker), 
+Using external identity providers locally is hard.
+The problem is that the dockerized API thinks that the keycloak is located at host `keycloak` (the name of the keycloak docker container), 
 while our keycloak console thinks that it's hosted at `localhost`. This is a problem for the authentication. 
 The url of the keycloak is embedded in the token (the `iss` field), 
 and must be the same as the url that the API uses, otherwise the API cannot authenticate the user. 
