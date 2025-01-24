@@ -202,7 +202,7 @@ Checkin is strict - as it should be. On our development keycloak, any redirectio
 accepted, so that it works on local host or wherever you deploy. This should never be the case 
 for a production instance.
 
-See [authentication README](developer/auth.md) for more information.
+See [authentication README](authentication.md) for more information.
 
 ### Creating the Database
 
@@ -243,4 +243,4 @@ Updating the database schema is done using [Alembic](schema/migration.md).
 
 ## Backups and Restoration
 
-We provide several scripts to facilitate the scheduling of backups and the manual restoration of files. For details on these scripts and others, please see [scripts/README.md](scripts/README.md).
+We provide several scripts to facilitate the scheduling of backups and the manual restoration of files. For details on these scripts and others, please see [scripts/README.md](scripts.md).

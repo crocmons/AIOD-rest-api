@@ -51,19 +51,19 @@ This means that for using the url of the `same_as` field of the AIBuilder models
 
 **Profile**: `huggingface-datasets`
 
-Indexes datasets in the [Hugging Face](www.huggingface.co) repository.
+Indexes datasets in the [Hugging Face](https://www.huggingface.co) repository.
 
 ## OpenML
 
 **Profile**: `openml`
 
-Indexes datasets and models (OpenML flows) in the [OpenML](www.openml.org) repository.
+Indexes datasets and models (OpenML flows) in the [OpenML](https://www.openml.org) repository.
 
 ## Zenodo
 
 **Profile**: `zenodo-datasets`
 
-Indexes datasets in the [Zenodo](www.zenodo.org) repository.
+Indexes datasets in the [Zenodo](https://www.zenodo.org) repository.
 
 ## Examples
 

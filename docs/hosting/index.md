@@ -1,6 +1,6 @@
 # Getting Started
 This page has information on how to host your own metadata catalogue.
-If you plan to locally develop the REST API, please follow the installation procedure in ["Contributing"](../contributing) 
+If you plan to locally develop the REST API, please follow the installation procedure in ["Contributing"](../contributing.md) 
 after following the instructions on this page.
 
 ## Prerequisites
@@ -19,7 +19,7 @@ However, we do need to fetch files the latest release of the repository:
     ```
 
     It is also possible to clone using [SSH](https://docs.github.com/en/authentication/connecting-to-github-with-ssh).
-    If you plan to develop the metadata catalogue, check the ["Contributing"](Contributing.md#cloning) page
+    If you plan to develop the metadata catalogue, check the ["Contributing"](../contributing.md#cloning) page
     for more information on this step.  
 
 === "UI (browser)"

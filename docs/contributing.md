@@ -57,7 +57,7 @@ Without it, it may be very hard for contributors to solve the issue (or may not 
 ## Setting up a development environment
 
 ### Cloning
-First, make sure you can get the local metadata catalogue up and running by following the ["Hosting" instructions](Hosting.md).
+First, make sure you can get the local metadata catalogue up and running by following the ["Hosting" instructions](hosting/index.md).
 During the installation step, use `git` to clone the repository.
 If you have write access to this repository, you can follow the instruction as-is.
 If you do not have write access to this repository, you must [fork it](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo).

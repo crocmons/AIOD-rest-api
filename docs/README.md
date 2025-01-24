@@ -17,7 +17,7 @@ For documentation on how to use the REST API directly, visit the ["Using the API
 To use the metadata catalogue from your service, use the [Python SDK](https://github.com/aiondemand/aiondemand)
 or use the REST API directly as detailed in the ["Using the API"](Using.md) documentation.
 
-**🌍 Hosting:** For information on how to host the metadata catalogue, see the ["Hosting" documentation](Hosting.md).
+**🌍 Hosting:** For information on how to host the metadata catalogue, see the ["Hosting" documentation](hosting/index.md).
 
 **🧑‍🔧 API Development:** The ["Developer Guide"](developer/index.md) has information about the code in this repository and how to make contributions.
 

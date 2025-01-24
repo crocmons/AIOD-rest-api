@@ -23,7 +23,8 @@ nav:
           - 'Objects': developer/schema/objects.md
           - 'Schema Migration': developer/schema/migration.md
       - 'Scripts': developer/scripts.md
-  - 'Contributing': Contributing.md
+      - 'Release Workflow': developer/releases.md
+  - 'Contributing': contributing.md
 
 markdown_extensions:
   - pymdownx.snippets:
