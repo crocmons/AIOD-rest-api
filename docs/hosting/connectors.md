@@ -7,13 +7,16 @@ Their configuration, if any, is through environment variables which can be set i
 For example, you can use the following commands when starting the connectors for OpenML and Zenodo.
 
 === "Shorthand"
-```commandline
-./scripts/up.sh openml zenodo-datasets
-```
+
+    ```commandline
+    ./scripts/up.sh openml zenodo-datasets
+    ```
+
 === "Docker Compose"
-```commandline
-docker compose --profile openml --profile zenodo-datasets --env-file=.env --env-file=override.env up -d
-```
+
+    ```commandline
+    docker compose --profile openml --profile zenodo-datasets --env-file=.env --env-file=override.env up -d
+    ```
 
 !!! warning "Connectors and Syncing Nodes"
 
