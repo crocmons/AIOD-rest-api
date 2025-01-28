@@ -22,6 +22,7 @@ nav:
           - 'Relationships': developer/schema/relationships.md
           - 'Objects': developer/schema/objects.md
           - 'Schema Migration': developer/schema/migration.md
+      - 'Elastic Search': developer/elastic_search.md
       - 'Scripts': developer/scripts.md
       - 'Release Workflow': developer/releases.md
   - 'Contributing': contributing.md
