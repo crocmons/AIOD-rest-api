@@ -14,7 +14,7 @@ from database.model.agent.contact import Contact
 from database.model.agent.organisation import Organisation
 from database.model.agent.person import Person
 from database.model.annotations import datatype_of_field
-from database.model.concept.aiod_entry import AIoDEntryORM
+from database.model.concept.aiod_entry import AIoDEntryORM, EntryStatus
 from database.model.dataset.dataset import Dataset
 from database.model.knowledge_asset.publication import Publication
 from database.model.news.news import News
@@ -37,7 +37,6 @@ def test_happy_path(
 
     body = copy.deepcopy(body_asset)
     body["aiod_entry"]["editor"] = [1]
-    body["aiod_entry"]["status"] = "published"
     body["contact"] = [1]
     body["creator"] = [1]
     body["citation"] = [1]
@@ -60,7 +59,7 @@ def test_happy_path(
     assert response_json["platform"] == "example"
     assert response_json["platform_resource_identifier"] == "1"
     assert response_json["aiod_entry"]["editor"] == [1]
-    assert response_json["aiod_entry"]["status"] == "published"
+    assert response_json["aiod_entry"]["status"] == EntryStatus.DRAFT
     date_created = dateutil.parser.parse(response_json["aiod_entry"]["date_created"] + "Z")
     date_modified = dateutil.parser.parse(response_json["aiod_entry"]["date_modified"] + "Z")
     assert 0 < (date_created - datetime_create_request).total_seconds() < 0.2
@@ -246,7 +245,7 @@ def test_post_editors(
             "platform": "example",
             "platform_resource_identifier": id_,
             "name": "How user evaluation changed in times of COVID-19",
-            "aiod_entry": {"editor": editors, "status": "published"},
+            "aiod_entry": {"editor": editors},
         }
         response = client.post("/events/v1", json=body, headers=headers)
         assert response.status_code == 200, response.json()
@@ -278,14 +277,23 @@ def test_create_aiod_entry(client: TestClient, mocked_privileged_token: Mock):
     assert resource_json["ai_resource_identifier"] == 1
 
 
-def test_update_aiod_entry(client: TestClient, mocked_privileged_token: Mock):
+def test_update_aiod_entry(
+    client: TestClient,
+    mocked_privileged_token: Mock,
+    person: Person,
+):
+    with DbSession() as session:
+        session.add(person)
+        session.commit()
+        identifier = person.identifier
+
     body = {"name": "news"}
     start = datetime.now(pytz.utc)
     response = client.post("/news/v1", json=body, headers={"Authorization": "Fake token"})
     end = datetime.now(pytz.utc)
     assert response.status_code == 200, response.json()
 
-    put_body = {"name": "news", "aiod_entry": {"status": "published"}}
+    put_body = {"name": "news", "aiod_entry": {"editor": [identifier]}}
     response = client.put("/news/v1/1", json=put_body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
 
@@ -298,10 +306,10 @@ def test_update_aiod_entry(client: TestClient, mocked_privileged_token: Mock):
     assert start < date_created < end
     assert end < date_modified
 
-    assert resource_json["aiod_entry"]["status"] == "published"
+    assert resource_json["aiod_entry"]["editor"] == [identifier]
     with DbSession() as session:
         entries = session.scalars(select(AIoDEntryORM)).all()
-        assert len(entries) == 1
+        assert len(entries) == 2
 
 
 def assert_distributions(client: TestClient, *content_urls: str):

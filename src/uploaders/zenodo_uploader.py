@@ -58,7 +58,7 @@ class ZenodoUploader(Uploader):
                 repo_id = platform_resource_id.split(":")[-1]
                 zenodo_metadata = self._get_metadata_from_zenodo(repo_id, token)
 
-                if dataset.aiod_entry.status and dataset.aiod_entry.status == "published":
+                if dataset.aiod_entry.status == EntryStatus.PUBLISHED:
                     raise HTTPException(
                         status_code=status.HTTP_409_CONFLICT,
                         detail=(

@@ -7,6 +7,7 @@ from datetime import datetime
 from unittest.mock import Mock
 
 from fastapi import HTTPException, status
+from sqlalchemy import select
 from starlette.testclient import TestClient
 
 from database.model.agent.contact import Contact
@@ -14,6 +15,8 @@ from database.model.agent.person import Person
 
 from database.model.platform.platform_names import PlatformName
 from database.session import DbSession
+from database.model.concept.aiod_entry import AIoDEntryORM, EntryStatus
+from database.model.dataset.dataset import Dataset
 
 from tests.testutils.paths import path_test_resources
 
@@ -272,15 +275,15 @@ def test_attempt_to_upload_published_resource(
     person: Person,
 ):
     """
-    Test attempt to upload a file to a resource that has already been published.
-    This must raise an conflict error 409 and return a message stating
-    that the process can't be concluded.
+    Test attempt to upload a file to a resource that has already been published in Zenodo.
+    This must raise a conflict error 409 and return a message stating that the process can't
+    be concluded, since content already on Zenodo must be edited there and not on AIoD.
     """
     body = copy.deepcopy(body_no_dist)
     body["distribution"] = distribution_from_zenodo(FILE1, is_published=True)
-    body["aiod_entry"]["status"] = "published"
 
     with DbSession() as session:
+        # Needed because `body_no_dist` references a Person.
         person.name = "Alice Lewis"
         contact.person = person
         session.add(contact)
@@ -288,6 +291,14 @@ def test_attempt_to_upload_published_resource(
 
     response = client.post("/datasets/v1", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == status.HTTP_200_OK, response.json()
+
+    with DbSession() as session:
+        dataset = session.scalars(select(Dataset)).first()
+        entry = session.scalars(
+            select(AIoDEntryORM).where(AIoDEntryORM.identifier == dataset.aiod_entry_identifier)
+        ).first()
+        entry.status = EntryStatus.PUBLISHED
+        session.commit()
 
     with responses.RequestsMock() as mocked_requests:
         zenodo.mock_get_repo_metadata(mocked_requests, is_published=True)

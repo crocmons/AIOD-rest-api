@@ -200,7 +200,7 @@ class ZenodoDatasetConnector(ResourceConnectorByDate[Dataset]):
 
         pydantic_class = resource_create(Dataset)
         dataset = pydantic_class(
-            aiod_entry=AIoDEntryCreate(status="published"),
+            aiod_entry=AIoDEntryCreate(),
             platform="zenodo",
             platform_resource_identifier=identifier,
             name=title,

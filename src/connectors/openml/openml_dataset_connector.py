@@ -80,9 +80,7 @@ class OpenMlDatasetConnector(ResourceConnectorById[Dataset]):
         if "NumberOfInstances" in qualities_json:
             size = DatasetSize(value=_as_int(qualities_json["NumberOfInstances"]), unit="instances")
         return pydantic_class(
-            aiod_entry=AIoDEntryCreate(
-                status="published",
-            ),
+            aiod_entry=AIoDEntryCreate(),
             platform_resource_identifier=identifier,
             platform=self.platform_name,
             name=dataset_json["name"],

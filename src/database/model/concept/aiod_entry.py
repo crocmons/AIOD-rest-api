@@ -21,6 +21,9 @@ class AIoDEntryBase(SQLModel):
     """Metadata of the metadata: when was the metadata last updated, with what identifiers is it
     known on other platforms, etc."""
 
+    class Config:
+        extra = "forbid"
+
 
 class EntryStatus(enum.StrEnum):
     DRAFT = enum.auto()
@@ -56,11 +59,6 @@ class AIoDEntryCreate(AIoDEntryBase):
         description="Links to identifiers of persons responsible for maintaining the entry.",
         default_factory=list,
         schema_extra={"example": []},
-    )
-    status: EntryStatus = Field(
-        description="Status of the entry. One of {', '.join(EntryStatus)}.",
-        default=EntryStatus.DRAFT,
-        schema_extra={"example": EntryStatus.DRAFT},
     )
 
 
