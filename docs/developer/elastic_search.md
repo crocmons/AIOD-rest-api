@@ -17,7 +17,7 @@ to process the data from our database and export it to Elastic Search.
 This happens through two container services: 
 
  * `es_logstash_setup`: Generates the common scripts for use by logstash, and creates the Elastic Search indices if necessary.
-    This is a short-running services that only runs on startup, exiting when its done.
+    This is a short-running service that only runs on startup, exiting when its done.
  * `logstash`: Continually monitors the database and updates the Elastic Search indices.
 
 ### Logstash Setup
