@@ -2,7 +2,7 @@
 
 This repository contains code and configurations for the AI-on-Demand Metadata Catalogue.
 The metadata catalogue provides a unified view of AI assets and resources stored across the AI landscape.
-It collects metadata from platforms such as [_Zendodo_](https://zenodo.org) and [_OpenML_](https://openml.org),
+It collects metadata from platforms such as [_Zendodo_](https://zenodo.org), [_Hugging Face_](https://huggingface.co) and [_OpenML_](https://openml.org),
 and is connected to European projects like [Bonsapps](https://bonsapps.eu) and [AIDA](https://www.i-aida.org).
 Metadata of datasets, models, papers, news, and more from all of these sources is available through a REST API at [api.aiod.eu](https://api.aiod.eu/).
 
