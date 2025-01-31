@@ -81,6 +81,14 @@ The `resource_class` property contains a direct reference to the object it index
 
 ```python
     @property
+    def extra_indexed_fields(self) -> set[str]:
+        return {"headline", "alternative_headline"}
+```
+
+The `extra_indexed_fields` property contains the fields of the entity that should be included in the index other than the `global_indexed_fields` found in the `SearchRouter` class.
+
+```python
+    @property
     def linked_fields(self) -> set[str]:
         return {
             "alternate_name",
