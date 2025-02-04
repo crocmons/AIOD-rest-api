@@ -26,7 +26,7 @@ from database.model.resource_read_and_create import (
     resource_read,
 )
 from database.model.serializers import deserialize_resource_relationships
-from database.review import Decision, ReviewStatus, Review
+from database.review import Decision, Review, Submission, ReviewCreate
 from database.session import DbSession
 from dependencies.filtering import ResourceFilters, ResourceFiltersParams
 from dependencies.pagination import Pagination, PaginationParams
@@ -564,7 +564,7 @@ class ResourceRouter(abc.ABC):
                     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=msg)
 
                 resource.aiod_entry.status = EntryStatus.SUBMITTED
-                review_request = Review(
+                review_request = Submission(
                     requestee_identifier=user._subject_identifier,
                     aiod_entry_identifier=resource.aiod_entry.identifier,
                 )
@@ -594,23 +594,26 @@ class ResourceRouter(abc.ABC):
                     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=msg)
 
                 query = (
-                    select(Review)
+                    select(Submission)
                     .where(
-                        Review.aiod_entry_identifier == resource.aiod_entry.identifier,
+                        Submission.aiod_entry_identifier == resource.aiod_entry.identifier,
                     )
-                    .order_by(Review.request_date.desc())  # type: ignore [attr-defined]
+                    .order_by(Submission.request_date.desc())  # type: ignore [attr-defined]
                 )
                 current_request = session.scalars(query).first()
-                if current_request is None or current_request.decision != ReviewStatus.PENDING:
+                if current_request is None or not current_request.is_pending:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail="Cannot retract this asset, as it is not under review.",
                     )
 
-                current_request.decision = ReviewStatus.RETRACTED
-                current_request.reviewer_identifier = user._subject_identifier
-                current_request.decision_date = datetime.datetime.now(datetime.timezone.utc)
+                retraction = Review(
+                    decision=Decision.RETRACTED,
+                    reviewer_identifier=user._subject_identifier,
+                    submission_identifier=current_request.identifier,
+                )
                 resource.aiod_entry.status = EntryStatus.DRAFT
+                session.add(retraction)
                 session.commit()
                 return self._wrap_with_headers(self.resource_class_read.from_orm(resource))
 
@@ -621,7 +624,7 @@ class ResourceRouter(abc.ABC):
 
         def review_resource(
             identifier: str,
-            decision: Decision,
+            review: ReviewCreate,
             user: KeycloakUser = Depends(get_user_or_raise),
         ):
             if "reviewer" not in user.roles:
@@ -640,29 +643,35 @@ class ResourceRouter(abc.ABC):
                         detail="You do not have permission to review your own assets.",
                     )
 
-                query = select(Review).where(Review.identifier == decision.review_identifier)
-                review_request = session.scalars(query).first()
-                if review_request is None:
+                query = select(Submission).where(
+                    Submission.identifier == review.submission_identifier
+                )
+                submission = session.scalars(query).first()
+                if submission is None:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"No review with identifier {decision.review_identifier} found.",
+                        detail=f"No review with identifier {review.submission_identifier} found.",
                     )
 
-                if review_request.decision != ReviewStatus.PENDING:
+                if not submission.is_pending:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail="Review is no longer pending, no new decision may be made.",
                     )
 
-                if decision.decision == ReviewStatus.ACCEPTED:
+                if review.decision == Decision.ACCEPTED:
                     new_status = EntryStatus.PUBLISHED
                 else:
                     new_status = EntryStatus.DRAFT
                 resource.aiod_entry.status = new_status
-                review_request.reviewer_identifier = user._subject_identifier
-                review_request.comment = decision.comment
-                review_request.decision_date = datetime.datetime.now(datetime.timezone.utc)
-                review_request.decision = decision.decision
+
+                review = Review(
+                    reviewer_identifier=user._subject_identifier,
+                    comment=review.comment,
+                    decision=review.decision,
+                    submission_identifier=submission.identifier,
+                )
+                session.add(review)
                 session.commit()
                 return self._wrap_with_headers(self.resource_class_read.from_orm(resource))
 

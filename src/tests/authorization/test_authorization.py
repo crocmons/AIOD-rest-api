@@ -11,9 +11,8 @@ from database.authorization import (
 )
 from database.model.concept.aiod_entry import EntryStatus
 from database.model.concept.concept import AIoDConcept
-from database.review import Review, ReviewStatus
+from database.review import Review, Decision, ReviewCreate, Submission
 from database.session import DbSession
-from main import EntryStatusChangeRequest
 
 
 ALICE = KeycloakUser("Alice", {"edit_aiod_resources"}, "alice-sub")
@@ -106,11 +105,6 @@ def test_user_can_not_submit_other_for_review(client, publication):
     with logged_in_user(BOB):
         submission = client.post(
             f"/publications/submit/v1/{identifier}",
-            content=EntryStatusChangeRequest(
-                concept_identifier=int(identifier),
-                requested_status=EntryStatus.SUBMITTED,
-                comment=None,
-            ).json(),
             headers={"Authorization": "Fake token"},
         )
         assert submission.status_code == HTTPStatus.FORBIDDEN, submission.json()
@@ -156,21 +150,20 @@ def register_asset(asset: AIoDConcept, /, *, owner: KeycloakUser, status: EntryS
         add_administrator(owner, asset, session)
 
         asset.aiod_entry.status = status
-        if status == EntryStatus.SUBMITTED:
-            fake_review = Review(
+        if status in [EntryStatus.SUBMITTED, EntryStatus.PUBLISHED, EntryStatus.REJECTED]:
+            submission = Submission(
                 requestee_identifier=owner._subject_identifier,
                 aiod_entry_identifier=asset.aiod_entry.identifier,
             )
-            session.add(fake_review)
-        if status == EntryStatus.PUBLISHED:
-            register_user(REVIEWER, session)
-            fake_review = Review(
-                requestee_identifier=owner._subject_identifier,
-                aiod_entry_identifier=asset.aiod_entry.identifier,
-                decision=ReviewStatus.ACCEPTED,
-                reviewer_identifier=REVIEWER._subject_identifier,
-            )
-            session.add(fake_review)
+            session.add(submission)
+            if status == EntryStatus.PUBLISHED:
+                register_user(REVIEWER, session)
+                review = Review(
+                    decision=Decision.ACCEPTED,
+                    reviewer_identifier=REVIEWER._subject_identifier,
+                )
+                review.submission = submission
+                session.add(review)
         session.commit()
         return asset.identifier
 
@@ -210,7 +203,10 @@ def test_only_reviewer_can_approve_submission(publication, client):
     with logged_in_user(ALICE):
         response = client.post(
             f"/publications/review/v1/{identifier}",
-            content='{"decision": "accepted", "review_identifier": 1, "comment":""}',
+            # content='{"decision": "accepted", "review_identifier": 1, "comment":""}',
+            content=str(
+                ReviewCreate(decision=Decision.ACCEPTED, submission_identifier=1, comment="").json()
+            ),
             headers={"Authorization": "Fake token"},
         )
         assert response.status_code == HTTPStatus.FORBIDDEN, response.json()
@@ -218,7 +214,10 @@ def test_only_reviewer_can_approve_submission(publication, client):
     with logged_in_user(REVIEWER):
         response = client.post(
             f"/publications/review/v1/{identifier}",
-            content='{"decision": "accepted", "review_identifier": 1, "comment":""}',
+            # content='{"decision": "accepted", "review_identifier": 1, "comment":""}',
+            content=str(
+                ReviewCreate(decision=Decision.ACCEPTED, submission_identifier=1, comment="").json()
+            ),
             headers={"Authorization": "Fake token"},
         )
         assert response.status_code == HTTPStatus.OK, response.json()
@@ -235,7 +234,10 @@ def test_reviewer_can_reject_submission(publication, client):
     with logged_in_user(REVIEWER):
         response = client.post(
             f"/publications/review/v1/{identifier}",
-            content='{"decision": "rejected", "review_identifier": 1, "comment":""}',
+            # content='{"decision": "rejected", "review_identifier": 1, "comment":""}',
+            content=str(
+                ReviewCreate(decision=Decision.REJECTED, submission_identifier=1, comment="").json()
+            ),
             headers={"Authorization": "Fake token"},
         )
         assert response.status_code == HTTPStatus.OK, response.json()
@@ -252,7 +254,10 @@ def test_reviewer_cannot_approve_own_submission(publication, client):
     with logged_in_user(REVIEWER):
         response = client.post(
             f"/publications/review/v1/{identifier}",
-            content='{"decision": "accepted", "review_identifier": 1, "comment":""}',
+            content=str(
+                ReviewCreate(decision=Decision.ACCEPTED, submission_identifier=1, comment="").json()
+            ),
+            # content='{"decision": "accepted", "review_identifier": 1, "comment":""}',
             headers={"Authorization": "Fake token"},
         )
         assert response.status_code == HTTPStatus.FORBIDDEN, response.json()
