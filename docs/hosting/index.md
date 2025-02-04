@@ -11,7 +11,7 @@ Additionally, it needs [Docker](https://docs.docker.com/get-docker/) and
 ## Installation
 Starting the metadata catalogue is as simple as spinning up the docker containers through docker compose.
 This means that other than the prerequisites, no installation steps are necessary.
-However, we do need to fetch files the latest release of the repository:
+However, we do need to fetch files from the latest release of the repository:
 
 === "CLI (git)"
     ```commandline
