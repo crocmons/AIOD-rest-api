@@ -98,6 +98,11 @@ def test_user_can_submit_draft_for_review(client, publication):
         assert submission.status_code == HTTPStatus.OK, submission.json()
         assert "submission_identifier" in submission.json()
 
+    with logged_in_user(REVIEWER):
+        queue = client.get("/submissions/v1", headers={"Authorization": "Fake token"})
+        assert queue.status_code == HTTPStatus.OK, queue.json()
+        assert len(queue.json()) == 1, queue.json()
+
 
 def test_user_can_not_submit_other_for_review(client, publication):
     identifier = register_asset(publication, owner=ALICE, status=EntryStatus.DRAFT)
