@@ -19,75 +19,42 @@ As well as the `openid_connect_url` in `./src/config.override.toml` (for authent
 openid_connect_url = "https://auth.aiod.eu/aiod-auth/realms/aiod/.well-known/openid-configuration"
 ```
 
-## Hosting and External Identity Providers 
+## Using External Identity Providers 
 
-Using external identity providers locally is hard.
-The problem is that the dockerized API thinks that the keycloak is located at host `keycloak` (the name of the keycloak docker container), 
-while our keycloak console thinks that it's hosted at `localhost`. This is a problem for the authentication. 
-The url of the keycloak is embedded in the token (the `iss` field), 
-and must be the same as the url that the API uses, otherwise the API cannot authenticate the user. 
-But when accessing e.g., the Google Identity Provider, Google requires the redirect-url to be localhost.
+There are two ways to integrate external identity providers (e.g. Google, [EGI Check-in](https://docs.egi.eu/users/aai/check-in/)). 
 
+Create both a private and a public client in the external provider (this step is required for both options below).
+
+### Option 1: Update the configuration files
+   - Replace `KEYCLOAK_CLIENT_SECRET` in `.env.override` with the value provided by the external IdP.
+   - Update `server_url`, `client_idr`, `client_id_swagger` `openid_connect_url` and `scopes` in `./src/config.override.toml`.
+   - In this setup, the Keycloak container is not required and can be shut down.
+### Option 2: use keycloak as an identity broker
+   - Details can be found in the Keycloak documentation: [Integrating identity providers](https://www.keycloak.org/docs/latest/server_admin/index.html#_identity_broker). 
+   - This method allows to configure multiple IdPs.
+  
 [//]: # (Should include information on how to run it locally then...)
 
 ## Roles
 
-The table below gives an overview of the different roles which are used in AI-on-Demand:
-
-| Role                | Comment                                       |
-|---------------------|-----------------------------------------------|
-| edit_aiod_resources | Allows the user to upload and edit resources. |
-| default-roles-aiod  | ???                                           |
-| offline_access      | ???                                           |
-| uma_authorization   | ???                                           |
-
-Note that some roles may be used for services other than the metadata catalogue.
+Roles identify a type or category of user and determine their access and permissions within applications.
+Currently, only the ` edit_aiod_resources` role is defined, granting users the ability to upload and edit resources.
+Note that roles may be used for services other than the metadata catalogue.
 
 [//]: # ( Are we missing roles? Check admin console. Are all roles still relevant? delete if not)
 
 ## Verifying Keycloak is Working
 
-=== "Swagger"
+To verify the Keycloak service is configured correctly using the Swagger interface, follows these steps:
 
-      To verify the Keycloak service is configured correctly (in production), 
-      - Go to http://localhost:8000/docs in your favourite browser
-      - Go to `/authorization_test`, click on `try it out` and `execute`. You should get an `Error: Unauthorized`
-      - Log in
-          - using `Authorize` button in the top right
-          - Use `OpenIdConnect (OAuth2, authorization_code with PKCE)`
-          - click `Authorize`
-          - Use any identity provider. 
-      - Go to `/authorization_test`, click on `try it out` and `execute`. 
+ 1. Open your browser and go to `http://$HOSTNAME`
+ 2. Go to `/authorization_test`, click on `try it out` and `execute`. 
+    - You should get an `Error: Unauthorized`
+ 3. Log in:
+    - Click the `Authorize` button in the top-right corner.
+    - Select `OpenIdConnect (OAuth2, authorization_code with PKCE)`.
+    - Click `Authorize` and log in using any available identity provider. 
+ 4. Return to `/authorization_test`, click `try it out` and then `execute` again.
 
-=== "Postman"
-
-    !!! warning
-
-        Instructions for Postman not updated.
-
-    If you edit a collection, you can use OAuth 2.0 authorization. See image:
-
-    ![Postman Authentication](../media/postman_authentication.png)
-
-    - As `auth url`, use https://test.openml.org/aiod-auth/realms/dev/protocol/openid-connect/auth
-    - As `Access token url`, use https://test.openml.org/aiod-auth/realms/dev/protocol/openid-connect/token
-    - As `client id`, use `aiod-api`
-    - As `client secret`, use `7qpbFTGpONBPIn9nBovgd2843BK8Khjg`
-
-    Then, you should be able to send a `GET` to `localhost:8000/authorization_test`.
-
-
-A successful response to the `/authorization_test` endpoints should result in a response like:
-
-```json
-{
-  "name": "user",
-  "roles": [
-    "edit_aiod_resources",
-    "default-roles-aiod",
-    "offline_access",
-    "uma_authorization"
-  ]
-}
-```
+If authentication is succesful, the request should now be authtorised. 
 
