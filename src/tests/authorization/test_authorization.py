@@ -232,10 +232,7 @@ def register_asset(asset: AIoDConcept, /, *, owner: KeycloakUser, status: EntryS
         session.commit()
 
         register_user(owner, session)
-        try:
-            add_administrator(owner, asset, session)
-        except:  # noqa: E722
-            pass
+        add_administrator(owner, asset, session)
 
         asset.aiod_entry.status = status
         if status in [EntryStatus.SUBMITTED, EntryStatus.PUBLISHED, EntryStatus.REJECTED]:
