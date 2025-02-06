@@ -1,11 +1,11 @@
 import enum
-from typing import Sequence
+from typing import Sequence, Literal
 
 from fastapi import APIRouter
 from sqlmodel import select
 
 from database.session import DbSession
-from database.review import Submission
+from database.review import Submission, Review
 
 
 def create(url_prefix: str) -> APIRouter:
@@ -29,23 +29,34 @@ class ListMode(enum.StrEnum):
     COMPLETED = enum.auto()
 
 
-def list_submissions(mode: ListMode = ListMode.NEWEST) -> Sequence[Submission]:
+def _get_single_submission(
+    *, which: Literal[ListMode.NEWEST, ListMode.OLDEST]
+) -> Submission | None:
     with DbSession() as session:
-        submissions = select(Submission).order_by(Submission.request_date)
-        match mode:
-            case ListMode.OLDEST:
-                rval = session.scalars(submissions).first()
-            case ListMode.ALL:
-                rval = session.scalars(submissions).all()
-            case ListMode.PENDING:
-                raise NotImplementedError()
-            case ListMode.COMPLETED:
-                raise NotImplementedError()
-            case _:
-                rval = session.scalars(submissions).first()
+        order = Submission.request_date
+        if which == ListMode.NEWEST:
+            order = Submission.request_date.desc()  # type: ignore[attr-defined]
+        query = select(Submission).order_by(order)
+        return session.scalars(query).first()
 
-    if rval is None:
-        return []
-    if not isinstance(rval, Sequence):
-        return [rval]
-    return rval
+
+def _get_submissions_by_state(
+    *, which: Literal[ListMode.COMPLETED, ListMode.PENDING]
+) -> Sequence[Submission]:
+    with DbSession() as session:
+        has_review = select(1).where(Submission.identifier == Review.submission_identifier).exists()
+        if which == ListMode.PENDING:
+            submissions = select(Submission).where(~has_review)
+        if which == ListMode.COMPLETED:
+            submissions = select(Submission).where(has_review)
+        return session.scalars(submissions).all()
+
+
+def list_submissions(mode: ListMode = ListMode.NEWEST) -> Sequence[Submission]:
+    # mypy does not do type narrowing properly: https://github.com/python/mypy/issues/12535
+    if mode in [ListMode.NEWEST, ListMode.OLDEST]:
+        submission = _get_single_submission(which=mode)  # type: ignore[arg-type]
+        return [submission] if submission else []
+    if mode in [ListMode.PENDING, ListMode.COMPLETED]:
+        return _get_submissions_by_state(which=mode)  # type: ignore[arg-type]
+    raise ValueError(f"`mode` should be one of {ListMode!r} but is {mode!r}.")
