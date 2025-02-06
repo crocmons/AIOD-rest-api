@@ -101,7 +101,8 @@ def test_user_can_submit_draft_for_review(client, publication):
     with logged_in_user(REVIEWER):
         queue = client.get("/submissions/v1", headers={"Authorization": "Fake token"})
         assert queue.status_code == HTTPStatus.OK, queue.json()
-        assert len(queue.json()) == 1, queue.json()
+        assert len(queue.json()) == 1, "A successful request should result in a submission."
+        assert "requestee_identifier" not in queue.json()
 
 
 def test_user_can_not_submit_other_for_review(client, publication):
@@ -114,9 +115,15 @@ def test_user_can_not_submit_other_for_review(client, publication):
         )
         assert submission.status_code == HTTPStatus.FORBIDDEN, submission.json()
 
+    with logged_in_user(REVIEWER):
+        queue = client.get("/submissions/v1", headers={"Authorization": "Fake token"})
+        assert queue.status_code == HTTPStatus.OK, queue.json()
+        assert len(queue.json()) == 0, "A rejected request should not result in a submission."
+
 
 def test_user_can_retract_assets(client, publication):
     identifier = register_asset(publication, owner=ALICE, status=EntryStatus.SUBMITTED)
+
     with logged_in_user(ALICE):
         response = client.post(
             f"/publications/retract/v1/{identifier}", headers={"Authorization": "Fake token"}

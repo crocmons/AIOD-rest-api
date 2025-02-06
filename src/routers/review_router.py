@@ -34,12 +34,18 @@ def list_submissions(mode: ListMode = ListMode.NEWEST) -> Sequence[Submission]:
         submissions = select(Submission).order_by(Submission.request_date)
         match mode:
             case ListMode.OLDEST:
-                return [session.scalars(submissions).first()]
+                rval = session.scalars(submissions).first()
             case ListMode.ALL:
-                return session.scalars(submissions).all()
+                rval = session.scalars(submissions).all()
             case ListMode.PENDING:
                 raise NotImplementedError()
             case ListMode.COMPLETED:
                 raise NotImplementedError()
             case _:
-                return [session.scalars(submissions).first()]
+                rval = session.scalars(submissions).first()
+
+    if rval is None:
+        return []
+    if not isinstance(rval, Sequence):
+        return [rval]
+    return rval
