@@ -6,6 +6,8 @@ This way you have easy access to, for instance, an AIoDDataset filled with defau
 
 import copy
 import json
+from functools import partial
+from typing import Callable
 
 import pytest
 from sqlalchemy.engine import Engine
@@ -56,14 +58,23 @@ def body_agent(body_resource: dict) -> dict:
     return body
 
 
-@pytest.fixture
-def publication(body_asset: dict) -> Publication:
+def make_publication(body_asset: dict) -> Publication:
     body = copy.copy(body_asset)
     body["permanent_identifier"] = "http://dx.doi.org/10.1093/ajae/aaq063"
     body["isbn"] = "9783161484100"
     body["issn"] = "20493630"
     body["type"] = "journal"
     return _create_class_with_body(Publication, body)
+
+
+@pytest.fixture
+def publication(body_asset: dict) -> Publication:
+    return make_publication(body_asset)
+
+
+@pytest.fixture
+def publication_factory(body_asset: dict) -> Callable[[], Publication]:
+    return partial(make_publication, body_asset)
 
 
 @pytest.fixture

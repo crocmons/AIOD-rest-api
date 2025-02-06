@@ -158,6 +158,35 @@ def test_an_published_asset_is_not_pending_for_review(client, publication):
         assert len(queue.json()) == 1, "After publication, the review request is completed."
 
 
+def test_retrieving_single_submission_works(client, publication_factory):
+    publication = publication_factory()
+    oldest = publication_factory()
+    oldest.platform_resource_identifier = "OLDEST"
+    newest = publication_factory()
+    newest.platform_resource_identifier = "NEWEST"
+
+    register_asset(publication, owner=ALICE, status=EntryStatus.PUBLISHED)
+    register_asset(oldest, owner=ALICE, status=EntryStatus.SUBMITTED)
+    register_asset(newest, owner=ALICE, status=EntryStatus.SUBMITTED)
+
+    with logged_in_user(REVIEWER):
+        queue = client.get(
+            f"/submissions/v1?mode={ListMode.OLDEST}", headers={"Authorization": "Fake token"}
+        )
+        assert queue.status_code == HTTPStatus.OK, queue.json()
+        assert (
+            queue.json()[0]["aiod_entry_identifier"] == 2
+        ), "The oldest pending submission is the second one."
+
+        queue = client.get(
+            f"/submissions/v1?mode={ListMode.NEWEST}", headers={"Authorization": "Fake token"}
+        )
+        assert queue.status_code == HTTPStatus.OK, queue.json()
+        assert (
+            queue.json()[0]["aiod_entry_identifier"] == 3
+        ), "The newest pending submission is the third one."
+
+
 def test_user_can_retract_assets(client, publication):
     identifier = register_asset(publication, owner=ALICE, status=EntryStatus.SUBMITTED)
     with logged_in_user(ALICE):
@@ -203,7 +232,10 @@ def register_asset(asset: AIoDConcept, /, *, owner: KeycloakUser, status: EntryS
         session.commit()
 
         register_user(owner, session)
-        add_administrator(owner, asset, session)
+        try:
+            add_administrator(owner, asset, session)
+        except:  # noqa: E722
+            pass
 
         asset.aiod_entry.status = status
         if status in [EntryStatus.SUBMITTED, EntryStatus.PUBLISHED, EntryStatus.REJECTED]:

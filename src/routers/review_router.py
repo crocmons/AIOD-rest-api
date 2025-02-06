@@ -33,10 +33,11 @@ def _get_single_submission(
     *, which: Literal[ListMode.NEWEST, ListMode.OLDEST]
 ) -> Submission | None:
     with DbSession() as session:
+        has_review = select(1).where(Submission.identifier == Review.submission_identifier).exists()
         order = Submission.request_date
         if which == ListMode.NEWEST:
             order = Submission.request_date.desc()  # type: ignore[attr-defined]
-        query = select(Submission).order_by(order)
+        query = select(Submission).order_by(order).where(~has_review)
         return session.scalars(query).first()
 
 
