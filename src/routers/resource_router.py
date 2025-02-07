@@ -1,7 +1,9 @@
 import abc
 import datetime
+import logging
 import traceback
 from functools import partial
+from http import HTTPStatus
 from typing import Annotated, Any, Literal, Sequence, Type, TypeVar, Union
 from wsgiref.handlers import format_date_time
 
@@ -30,10 +32,44 @@ from dependencies.filtering import ResourceFilters, ResourceFiltersParams
 from dependencies.pagination import Pagination, PaginationParams
 from error_handling import as_http_exception
 
+
+from typing import Callable
+
+from fastapi import Request, Response
+from fastapi.routing import APIRoute
+
+import uuid
+
 RESOURCE = TypeVar("RESOURCE", bound=AbstractAIResource)
 RESOURCE_CREATE = TypeVar("RESOURCE_CREATE", bound=SQLModel)
 RESOURCE_READ = TypeVar("RESOURCE_READ", bound=SQLModel)
 RESOURCE_MODEL = TypeVar("RESOURCE_MODEL", bound=SQLModel)
+
+
+class ValidationErrorLoggingRoute(APIRoute):
+    def get_route_handler(self) -> Callable:
+        original_route_handler = super().get_route_handler()
+
+        async def custom_route_handler(request: Request) -> Response:
+            try:
+                return await original_route_handler(request)
+            except HTTPException as exc:
+                body = await request.body()
+                log_level = (
+                    logging.WARNING
+                    if exc.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+                    else logging.DEBUG
+                )
+                reference = uuid.uuid4().hex
+                msg = (
+                    f"Error {reference}: {exc!r} for path '{request.scope['method']!r}'"
+                    f" {request.scope['path']!r} and body {body.decode()!r}."
+                )
+                logging.log(log_level, msg)
+                #     exc.detail += f" Reference {reference}."
+                raise exc
+
+        return custom_route_handler
 
 
 class ResourceRouter(abc.ABC):
@@ -104,6 +140,7 @@ class ResourceRouter(abc.ABC):
 
     def create(self, url_prefix: str) -> APIRouter:
         router = APIRouter()
+        router.route_class = ValidationErrorLoggingRoute
         version = f"v{self.version}"
         default_kwargs = {
             "response_model_exclude_none": True,
