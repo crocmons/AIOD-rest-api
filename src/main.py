@@ -22,7 +22,7 @@ from database.model.platform.platform import Platform
 from database.model.platform.platform_names import PlatformName
 from database.session import EngineSingleton, DbSession
 from database.setup import create_database, database_exists
-from routers.resource_router import http_exception_handler
+from error_handling import http_exception_handler
 from routers import resource_routers, parent_routers, enum_routers, uploader_routers
 from routers import search_routers
 from setup_logger import setup_logger

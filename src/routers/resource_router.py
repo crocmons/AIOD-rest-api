@@ -1,16 +1,12 @@
 import abc
 import datetime
-import json
-import logging
 import traceback
 from functools import partial
-from http import HTTPStatus
 from typing import Annotated, Any, Literal, Sequence, Type, TypeVar, Union
 from wsgiref.handlers import format_date_time
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Path
 from fastapi.encoders import jsonable_encoder
-from pydantic import BaseModel
 from sqlalchemy import and_, func
 from sqlalchemy.sql.operators import is_
 from sqlmodel import SQLModel, Session, select
@@ -34,39 +30,10 @@ from dependencies.filtering import ResourceFilters, ResourceFiltersParams
 from dependencies.pagination import Pagination, PaginationParams
 from error_handling import as_http_exception
 
-import uuid
-
 RESOURCE = TypeVar("RESOURCE", bound=AbstractAIResource)
 RESOURCE_CREATE = TypeVar("RESOURCE_CREATE", bound=SQLModel)
 RESOURCE_READ = TypeVar("RESOURCE_READ", bound=SQLModel)
 RESOURCE_MODEL = TypeVar("RESOURCE_MODEL", bound=SQLModel)
-
-
-class ErrorSchema(BaseModel):
-    detail: str
-    reference: str
-
-
-async def http_exception_handler(request, exc):
-    reference = uuid.uuid4().hex
-    error = ErrorSchema(detail=exc.detail, reference=reference)
-    content = error.dict()
-
-    body = await request.body()
-    log_level = logging.DEBUG
-    if exc.status_code == HTTPStatus.INTERNAL_SERVER_ERROR:
-        log_level = logging.WARNING
-    log_message = str(
-        dict(
-            reference=reference,
-            exception=f"{str(exc)!r}",
-            method=request.scope["method"],
-            path=request.scope["path"],
-            body=json.dumps(json.loads(body)),
-        )
-    )
-    logging.log(log_level, log_message)
-    return JSONResponse(content, status_code=exc.status_code)
 
 
 class ResourceRouter(abc.ABC):
