@@ -10,7 +10,7 @@ import logging
 
 import pkg_resources
 import uvicorn
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from sqlmodel import select
 
@@ -22,6 +22,7 @@ from database.model.platform.platform import Platform
 from database.model.platform.platform_names import PlatformName
 from database.session import EngineSingleton, DbSession
 from database.setup import create_database, database_exists
+from routers.resource_router import http_exception_handler
 from routers import resource_routers, parent_routers, enum_routers, uploader_routers
 from routers import search_routers
 from setup_logger import setup_logger
@@ -120,6 +121,7 @@ def create_app() -> FastAPI:
             "scopes": KEYCLOAK_CONFIG.get("scopes"),
         },
     )
+    app.add_exception_handler(HTTPException, http_exception_handler)
     if args.build_db == "never":
         if not database_exists():
             logging.warning(
