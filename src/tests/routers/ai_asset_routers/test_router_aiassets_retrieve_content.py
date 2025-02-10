@@ -160,11 +160,11 @@ def test_endpoints_when_two_distributions(
 
     response = client.get(SAMPLE_ENDPOINT, allow_redirects=False)
     assert response.status_code == status.HTTP_409_CONFLICT, response.content
-    assert response.json()["detail"] == [
+    assert response.json()["detail"] == (
         "Multiple distributions encountered. "
         "Use another endpoint indicating the distribution index `distribution_idx` "
         "at the end of the url for a specific distribution."
-    ], response.content
+    ), response.content
 
     response0 = client.get(SAMPLE_ENDPOINT + "/0", allow_redirects=False)
     assert response0.status_code == status.HTTP_303_SEE_OTHER, response0.content

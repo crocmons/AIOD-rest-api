@@ -72,7 +72,7 @@ class ResourceAIAssetRouter(ResourceRouter):
                     detail=(
                         "Multiple distributions encountered. "
                         "Use another endpoint indicating the distribution index `distribution_idx` "
-                        "at the end of the url for a specific distribution.",
+                        "at the end of the url for a specific distribution."
                     ),
                 )
             elif distribution_idx >= len(distributions):
