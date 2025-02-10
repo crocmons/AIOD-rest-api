@@ -311,10 +311,10 @@ def test_attempt_to_upload_published_resource(
             )
 
         assert response.status_code == status.HTTP_409_CONFLICT, response.json()
-        assert response.json()["detail"] == [
+        assert response.json()["detail"] == (
             "This resource is already public and can't be edited with this endpoint. "
             f"You can access and modify it at {zenodo.HTML_URL}/{zenodo.RESOURCE_ID}"
-        ], response.json()
+        ), response.json()
 
     response_json = client.get("datasets/v1/1").json()
     assert response_json["distribution"] == body["distribution"], response_json
