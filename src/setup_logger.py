@@ -1,5 +1,8 @@
+# ruff: noqa: S101  # We want early fail on startup if logging is not configured correctly
 import logging
 from importlib.metadata import version
+
+from config import CONFIG
 
 format_string = (
     f"v{version('aiod_metadata_catalogue')}"
@@ -7,9 +10,21 @@ format_string = (
 )
 
 
-def setup_logger():
+def setup_logger(config: dict | None = None):
+    config = config or CONFIG
+    assert "dev" in config, "There should be a [dev] section in the configuration.toml file."
+    assert (
+        "log_level" in config["dev"]
+    ), "Missing `log_level` setting in the [dev] section of the configuration.toml file."
+
+    log_level: str = config["dev"]["log_level"]
+    levels = logging.getLevelNamesMapping()
+    assert (
+        isinstance(log_level, str) and log_level.upper() in levels
+    ), f"The `dev.log_level` is set to {log_level!r} but should be one of {set(levels)!r}."
+
     logging.basicConfig(
-        level=logging.INFO,
+        level=levels[log_level],
         format=format_string,
         datefmt="%Y-%m-%d %H:%M:%S",
     )
