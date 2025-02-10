@@ -36,7 +36,7 @@ async def http_exception_handler(request, exc):
     if not request._stream_consumed:
         body = await request.body()
         body_content = json.dumps(json.loads(body)) if body else ""
-        
+
     log_message = str(
         dict(
             reference=reference,
