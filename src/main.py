@@ -102,26 +102,6 @@ def create_app() -> FastAPI:
     """Create the FastAPI application, complete with routes."""
     setup_logger()
     args = _parse_args()
-    pyproject_toml = pkg_resources.get_distribution("aiod_metadata_catalogue")
-    app = FastAPI(
-        openapi_url=f"{args.url_prefix}/openapi.json",
-        docs_url=f"{args.url_prefix}/docs",
-        title="AIoD Metadata Catalogue",
-        description="This is the Swagger documentation of the AIoD Metadata Catalogue. For the "
-        "Changelog, refer to "
-        '<a href="https://github.com/aiondemand/AIOD-rest-api/releases">https'
-        "://github.com/aiondemand/AIOD-rest-api/releases</a>.",
-        version=pyproject_toml.version,
-        swagger_ui_oauth2_redirect_url=f"{args.url_prefix}/docs/oauth2-redirect",
-        swagger_ui_init_oauth={
-            "clientId": KEYCLOAK_CONFIG.get("client_id_swagger"),
-            "realm": KEYCLOAK_CONFIG.get("realm"),
-            "appName": "AIoD Metadata Catalogue",
-            "usePkceWithAuthorizationCodeGrant": True,
-            "scopes": KEYCLOAK_CONFIG.get("scopes"),
-        },
-    )
-    app.add_exception_handler(HTTPException, http_exception_handler)
     if args.build_db == "never":
         if not database_exists():
             logging.warning(
@@ -131,21 +111,49 @@ def create_app() -> FastAPI:
                 "this likely means that you will get errors or undefined behavior."
             )
     else:
+        build_database(args)
 
-        drop_database = args.build_db == "drop-then-build"
-        create_database(delete_first=drop_database)
-        AIoDConcept.metadata.create_all(EngineSingleton().engine, checkfirst=True)
-        with DbSession() as session:
-            triggers = create_delete_triggers(AIoDConcept)
-            for trigger in triggers:
-                session.execute(trigger)
-            existing_platforms = session.scalars(select(Platform)).all()
-            if not any(existing_platforms):
-                session.add_all([Platform(name=name) for name in PlatformName])
-                session.commit()
-
-    add_routes(app, url_prefix=args.url_prefix)
+    pyproject_toml = pkg_resources.get_distribution("aiod_metadata_catalogue")
+    app = build_app(args.url_prefix, pyproject_toml.version)
     return app
+
+
+def build_app(url_prefix: str = "", version: str = "dev"):
+    app = FastAPI(
+        openapi_url=f"{url_prefix}/openapi.json",
+        docs_url=f"{url_prefix}/docs",
+        title="AIoD Metadata Catalogue",
+        description="This is the Swagger documentation of the AIoD Metadata Catalogue. For the "
+        "Changelog, refer to "
+        '<a href="https://github.com/aiondemand/AIOD-rest-api/releases">https'
+        "://github.com/aiondemand/AIOD-rest-api/releases</a>.",
+        version=version,
+        swagger_ui_oauth2_redirect_url=f"{url_prefix}/docs/oauth2-redirect",
+        swagger_ui_init_oauth={
+            "clientId": KEYCLOAK_CONFIG.get("client_id_swagger"),
+            "realm": KEYCLOAK_CONFIG.get("realm"),
+            "appName": "AIoD Metadata Catalogue",
+            "usePkceWithAuthorizationCodeGrant": True,
+            "scopes": KEYCLOAK_CONFIG.get("scopes"),
+        },
+    )
+    add_routes(app, url_prefix=url_prefix)
+    app.add_exception_handler(HTTPException, http_exception_handler)
+    return app
+
+
+def build_database(args):
+    drop_database = args.build_db == "drop-then-build"
+    create_database(delete_first=drop_database)
+    AIoDConcept.metadata.create_all(EngineSingleton().engine, checkfirst=True)
+    with DbSession() as session:
+        triggers = create_delete_triggers(AIoDConcept)
+        for trigger in triggers:
+            session.execute(trigger)
+        existing_platforms = session.scalars(select(Platform)).all()
+        if not any(existing_platforms):
+            session.add_all([Platform(name=name) for name in PlatformName])
+            session.commit()
 
 
 def main():
