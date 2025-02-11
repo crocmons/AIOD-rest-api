@@ -40,6 +40,7 @@ Create both a private and a public client in the external provider (this step is
 Roles identify a type or category of user and determine their access and permissions within applications.
 Currently, only the ` edit_aiod_resources` role is defined, granting users the ability to upload and edit resources.
 Note that roles may be used for services other than the metadata catalogue.
+New roles can be created from the admin console, see ["Creating a realm role"](https://www.keycloak.org/docs/latest/server_admin/index.html#proc-creating-realm-roles_server_administration_guide).
 
 [//]: # ( Are we missing roles? Check admin console. Are all roles still relevant? delete if not)
 
@@ -57,4 +58,21 @@ To verify the Keycloak service is configured correctly using the Swagger interfa
  4. Return to `/authorization_test`, click `try it out` and then `execute` again.
 
 If authentication is succesful, the request should now be authtorised. 
+
+## Importing and Exporting Realm and User Files
+See also ["Importing and Exporting Realms"](https://www.keycloak.org/server/importExport) in the Keycloak documentation.
+
+Keycloak has "realm" configurations (e.g., roles that exist for AIoD),
+as well as "user" configurations (e.g., user Alice with password X is a Reviewer).
+We advise to export these separately, so you can share the non-sensitive realm configuration
+without sharing sensitive user information.
+
+To **export** run the following command while the keycloak container is running:
+```bash
+docker exec -it keycloak /opt/keycloak/bin/kc.sh export --dir /opt/keycloak/data/export  --realm aiod
+```
+
+This puts the exported files in the `${DATA_PATH}/keycloak/data/export` directory.
+
+To **import**, just place the export files into the `{DATA_PATH}/keycloak/data/import` directory.
 
