@@ -9,7 +9,7 @@ DIR_MYSQL=$DIR_DATA/mysql
 DIR_CONNECTORS=$DIR_DATA/connectors
 DIR_DELETION=$DIR_DATA/deletion
 DIR_ELASTIC=$DIR_DATA/elasticsearch
-DIR_KEYCLOAK=$DIR_DATA/keycloak
+DIR_KEYCLOAK=$DIR_DATA/keycloak/data
 
 sudo find $DIR_CONNECTORS -type f ! -name .gitkeep -delete
 sudo find $DIR_DELETION -type f ! -name .gitkeep -delete
