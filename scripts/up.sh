@@ -10,6 +10,7 @@ CYAN='\033[1;36m'
 GREEN='\033[0;32m'
 
 source .env
+touch -r override.env override.env
 source override.env
 
 if [[ "${USE_LOCAL_DEV}" == "true" ]]; then
