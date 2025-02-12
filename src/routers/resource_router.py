@@ -615,7 +615,13 @@ class ResourceRouter(abc.ABC):
                 resource.aiod_entry.status = EntryStatus.DRAFT
                 session.add(retraction)
                 session.commit()
-                return self._wrap_with_headers(self.resource_class_read.from_orm(resource))
+                return self._wrap_with_headers(
+                    {
+                        "review_identifier": retraction.identifier,
+                        "submission_identifier": current_request.identifier,
+                        "decision": retraction.decision,
+                    }
+                )
 
         return retract_resource
 

@@ -116,7 +116,8 @@ def test_user_can_retract_assets(client, publication):
         response = client.post(
             f"/publications/retract/v1/{identifier}", headers={"Authorization": "Fake token"}
         )
-        assert response.json()["aiod_entry"]["status"] == EntryStatus.DRAFT
+        assert "review_identifier" in response.json()
+        assert Decision.RETRACTED == response.json()["decision"]
 
 
 def test_other_user_can_not_retract_assets(client, publication):
