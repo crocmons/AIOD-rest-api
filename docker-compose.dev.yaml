@@ -23,6 +23,9 @@ services:
       - ./connectors/huggingface/:/opt/connectors/script:ro
 
   keycloak:
+    environment:
+      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
     command: >
       start
       --hostname-url http://${HOSTNAME}/aiod-auth
