@@ -26,6 +26,7 @@ nav:
       - 'Elastic Search': developer/elastic_search.md
       - 'Scripts': developer/scripts.md
       - 'Release Workflow': developer/releases.md
+      - 'Troubleshooting': developer/troubleshooting.md
   - 'Contributing': contributing.md
 
 markdown_extensions:
