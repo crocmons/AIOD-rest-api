@@ -96,7 +96,7 @@ def test_user_can_submit_draft_for_review(client, publication):
             headers={"Authorization": "Fake token"},
         )
         assert submission.status_code == HTTPStatus.OK, submission.json()
-        assert submission.json()["aiod_entry"]["status"] == EntryStatus.SUBMITTED
+        assert "submission_identifier" in submission.json()
 
 
 def test_user_can_not_submit_other_for_review(client, publication):

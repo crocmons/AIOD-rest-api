@@ -570,7 +570,7 @@ class ResourceRouter(abc.ABC):
                 )
                 session.add(review_request)
                 session.commit()
-                return self._wrap_with_headers(self.resource_class_read.from_orm(resource))
+                return self._wrap_with_headers({"submission_identifier": review_request.identifier})
 
         return submit_resource
 
