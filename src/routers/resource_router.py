@@ -653,6 +653,7 @@ class ResourceRouter(abc.ABC):
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail="Review is no longer pending, no new decision may be made.",
                     )
+                register_user(user, session)
 
                 resource = self._retrieve_resource(
                     identifier=submission.aiod_entry_identifier,
