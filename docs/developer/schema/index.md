@@ -35,7 +35,7 @@ On a high level, changes to the metadata schema implementation consist of three 
  
  * updating the schema implementation in [`src/database/model`](https://github.com/aiondemand/AIOD-rest-api/tree/develop/src/database/model),
  * updating or adding tests which test those changes, and
- * adding a [database migration script]() which updates the database accordingly.
+ * adding a [database migration script](migration.md) which updates the database accordingly.
 
 This last step isn't needed during development, where you may recreate a database anytime to model changes.
 However, to deploy the changed schema in production we need to be able to change the database,

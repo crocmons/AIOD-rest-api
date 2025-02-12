@@ -17,7 +17,7 @@ from database.model.concept.concept import AIoDConcept
 from database.model.platform.platform import Platform
 from database.model.platform.platform_names import PlatformName
 from database.session import EngineSingleton
-from main import add_routes
+from main import build_app
 from tests.testutils.test_resource import RouterTestResource, factory
 
 
@@ -92,9 +92,8 @@ def client(engine: Engine) -> TestClient:
     """
     Create a TestClient that can be used to mock sending requests to our application
     """
-    app = FastAPI()
-    add_routes(app)
-    return TestClient(app, base_url="http://localhost")
+    app = build_app(version="unittest")
+    yield TestClient(app, base_url="http://localhost")
 
 
 @pytest.fixture(scope="session")

@@ -4,24 +4,30 @@ theme:
   name: material
   features:
     - content.code.copy
+    - navigation.footer
 
 nav:
   - Home: README.md
   - Using the API: Using.md
-  - Hosting the API: Hosting.md
+  - Hosting the API:
+      - hosting/index.md
+      - 'Authentication': hosting/authentication.md
+      - 'Connectors': hosting/connectors.md
+      - 'Synchronization': hosting/synchronization.md
   - 'Developer Resources':
       - developer/index.md
+      - 'Authentication': developer/authentication.md
       - 'Metadata Schema':
           - developer/schema/index.md
           - 'Attributes': developer/schema/attributes.md
           - 'Relationships': developer/schema/relationships.md
           - 'Objects': developer/schema/objects.md
-  - 'Contributing': Contributing.md
-  - 'Unorganized Docs':
-      - 'Code Advice': developer/code.md
-      - 'Keycloak': developer/auth.md
-      - 'DB Schema Migration': developer/migration.md
+          - 'Schema Migration': developer/schema/migration.md
+      - 'Elastic Search': developer/elastic_search.md
       - 'Scripts': developer/scripts.md
+      - 'Release Workflow': developer/releases.md
+      - 'Troubleshooting': developer/troubleshooting.md
+  - 'Contributing': contributing.md
 
 markdown_extensions:
   - pymdownx.snippets:
@@ -34,3 +40,4 @@ markdown_extensions:
 
 plugins:
   - section-index
+  - search
