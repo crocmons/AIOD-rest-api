@@ -151,7 +151,7 @@ class ResourceRouter(abc.ABC):
             **default_kwargs,
         )
         router.add_api_route(
-            path=f"{url_prefix}/{self.resource_name_plural}/review/{version}/{{identifier}}",
+            path=f"{url_prefix}/{self.resource_name_plural}/review/{version}",
             methods={"POST"},
             endpoint=self.get_review_func(),
             name=self.resource_name,
@@ -623,7 +623,6 @@ class ResourceRouter(abc.ABC):
         """Return a function that can be used to review a single resource."""
 
         def review_resource(
-            identifier: str,
             review: ReviewCreate,
             user: KeycloakUser = Depends(get_user_or_raise),
         ):
@@ -634,15 +633,6 @@ class ResourceRouter(abc.ABC):
                 )
 
             with DbSession() as session:
-                resource = self._retrieve_resource(
-                    identifier=identifier, session=session
-                )  # type: ignore
-                if user_can_administer(user, resource.aiod_entry):
-                    raise HTTPException(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        detail="You do not have permission to review your own assets.",
-                    )
-
                 query = select(Submission).where(
                     Submission.identifier == review.submission_identifier
                 )
@@ -652,11 +642,21 @@ class ResourceRouter(abc.ABC):
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail=f"No review with identifier {review.submission_identifier} found.",
                     )
-
                 if not submission.is_pending:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail="Review is no longer pending, no new decision may be made.",
+                    )
+
+                resource = self._retrieve_resource(
+                    identifier=submission.aiod_entry_identifier,
+                    session=session,
+                    is_entry_identifier=True,
+                )  # type: ignore
+                if user_can_administer(user, resource.aiod_entry):
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="You do not have permission to review your own assets.",
                     )
 
                 if review.decision == Decision.ACCEPTED:
@@ -673,7 +673,13 @@ class ResourceRouter(abc.ABC):
                 )
                 session.add(review)
                 session.commit()
-                return self._wrap_with_headers(self.resource_class_read.from_orm(resource))
+                return self._wrap_with_headers(
+                    {
+                        "review_identifier": review.identifier,
+                        "submission_identifier": submission.identifier,
+                        "decision": review.decision,
+                    }
+                )
 
         return review_resource
 
@@ -682,13 +688,22 @@ class ResourceRouter(abc.ABC):
         session: Session,
         identifier: int | str,
         platform: str | None = None,
+        *,
+        is_entry_identifier: bool = False,
     ) -> type[RESOURCE_MODEL]:
         """
         Retrieve a resource from the database based on the provided identifier
         and platform (if applicable).
         """
         if platform is None:
-            query = select(self.resource_class).where(self.resource_class.identifier == identifier)
+            if is_entry_identifier:
+                query = select(self.resource_class).where(
+                    self.resource_class.aiod_entry_identifier == identifier
+                )
+            else:
+                query = select(self.resource_class).where(
+                    self.resource_class.identifier == identifier
+                )
         else:
             if platform not in {n.name for n in PlatformName}:
                 raise HTTPException(
@@ -711,7 +726,7 @@ class ResourceRouter(abc.ABC):
             msg = (
                 "not found in the database."
                 if not resource
-                else "not found in the database, " "because it was deleted."
+                else "not found in the database, because it was deleted."
             )
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"{name} {msg}")
         return resource

@@ -202,8 +202,7 @@ def test_only_reviewer_can_approve_submission(publication, client):
 
     with logged_in_user(ALICE):
         response = client.post(
-            f"/publications/review/v1/{identifier}",
-            # content='{"decision": "accepted", "review_identifier": 1, "comment":""}',
+            "/publications/review/v1",
             content=str(
                 ReviewCreate(decision=Decision.ACCEPTED, submission_identifier=1, comment="").json()
             ),
@@ -213,8 +212,7 @@ def test_only_reviewer_can_approve_submission(publication, client):
 
     with logged_in_user(REVIEWER):
         response = client.post(
-            f"/publications/review/v1/{identifier}",
-            # content='{"decision": "accepted", "review_identifier": 1, "comment":""}',
+            "/publications/review/v1",
             content=str(
                 ReviewCreate(decision=Decision.ACCEPTED, submission_identifier=1, comment="").json()
             ),
@@ -233,8 +231,7 @@ def test_reviewer_can_reject_submission(publication, client):
 
     with logged_in_user(REVIEWER):
         response = client.post(
-            f"/publications/review/v1/{identifier}",
-            # content='{"decision": "rejected", "review_identifier": 1, "comment":""}',
+            "/publications/review/v1",
             content=str(
                 ReviewCreate(decision=Decision.REJECTED, submission_identifier=1, comment="").json()
             ),
@@ -248,16 +245,15 @@ def test_reviewer_can_reject_submission(publication, client):
 
 
 def test_reviewer_cannot_approve_own_submission(publication, client):
-    identifier = register_asset(publication, owner=REVIEWER, status=EntryStatus.SUBMITTED)
+    register_asset(publication, owner=REVIEWER, status=EntryStatus.SUBMITTED)
     _register_user_in_db(REVIEWER)
 
     with logged_in_user(REVIEWER):
         response = client.post(
-            f"/publications/review/v1/{identifier}",
+            "/publications/review/v1",
             content=str(
                 ReviewCreate(decision=Decision.ACCEPTED, submission_identifier=1, comment="").json()
             ),
-            # content='{"decision": "accepted", "review_identifier": 1, "comment":""}',
             headers={"Authorization": "Fake token"},
         )
         assert response.status_code == HTTPStatus.FORBIDDEN, response.json()

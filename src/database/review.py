@@ -6,6 +6,7 @@ from pydantic.main import BaseModel
 from sqlalchemy import Column
 from sqlmodel import SQLModel, Field, Relationship
 
+
 REQUIRED_NUMBER_OF_REVIEWS = 1
 
 
