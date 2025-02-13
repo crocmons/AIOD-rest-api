@@ -24,8 +24,14 @@ from database.model.platform.platform_names import PlatformName
 from database.session import EngineSingleton, DbSession
 from database.setup import create_database, database_exists
 from error_handling import http_exception_handler
-from routers import resource_routers, parent_routers, enum_routers, uploader_routers
-from routers import search_routers
+from routers import (
+    resource_routers,
+    parent_routers,
+    enum_routers,
+    uploader_routers,
+    search_routers,
+    review_router,
+)
 from setup_logger import setup_logger
 
 
@@ -95,6 +101,7 @@ def add_routes(app: FastAPI, url_prefix=""):
         + enum_routers.router_list
         + search_routers.router_list
         + uploader_routers.router_list
+        + [review_router]
     ):
         app.include_router(router.create(url_prefix))
 
