@@ -139,6 +139,31 @@ def test_a_submitted_asset_is_pending_for_review(client, publication):
         assert len(queue.json()) == 1, "A submitted asset should be pending until a review is done."
 
 
+def test_get_submission_by_id(client, publication):
+    register_asset(publication, owner=ALICE, status=EntryStatus.PUBLISHED)
+
+    with logged_in_user(REVIEWER):
+        queue = client.get("/submissions/v1/1", headers={"Authorization": "Fake token"})
+        assert queue.status_code == HTTPStatus.OK, queue.json()
+        assert queue.json()["identifier"] == 1
+
+
+def test_unknown_submission_raises_404(client):
+    with logged_in_user(REVIEWER):
+        queue = client.get("/submissions/v1/1", headers={"Authorization": "Fake token"})
+        assert queue.status_code == HTTPStatus.NOT_FOUND
+
+
+@pytest.mark.skip("Requiring reviewer role to be added through middleware")
+def test_getting_submission_requires_review_role(client):
+    queue = client.get("/submissions/v1/1")
+    assert queue.status_code == HTTPStatus.UNAUTHORIZED
+
+    with logged_in_user(ALICE):
+        queue = client.get("/submissions/v1/1", headers={"Authorization": "Fake token"})
+        assert queue.status_code == HTTPStatus.FORBIDDEN
+
+
 def test_an_published_asset_is_not_pending_for_review(client, publication):
     register_asset(publication, owner=ALICE, status=EntryStatus.PUBLISHED)
 

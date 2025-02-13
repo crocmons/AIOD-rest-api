@@ -1,7 +1,8 @@
 import enum
+from http import HTTPStatus
 from typing import Sequence, Literal
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from sqlmodel import select
 
 from database.session import DbSession
@@ -18,6 +19,13 @@ def create(url_prefix: str) -> APIRouter:
         description="List all assets submitted for review.",
     )(list_submissions)
 
+    router.get(
+        f"{url_prefix}/submissions/{version}/{{identifier}}",
+        tags=["Reviewing"],
+        description="Retrieve a specific submission.",
+    )(get_submission)
+
+    # Add MiddleWare which requires authentication as reviewer role
     return router
 
 
@@ -61,3 +69,15 @@ def list_submissions(mode: ListMode = ListMode.NEWEST) -> Sequence[Submission]:
     if mode in [ListMode.PENDING, ListMode.COMPLETED]:
         return _get_submissions_by_state(which=mode)  # type: ignore[arg-type]
     raise ValueError(f"`mode` should be one of {ListMode!r} but is {mode!r}.")
+
+
+def get_submission(identifier: int) -> Submission:
+    with DbSession() as session:
+        query = select(Submission).where(Submission.identifier == identifier)
+        submission = session.scalars(query).first()
+    if submission:
+        return submission
+    raise HTTPException(
+        status_code=HTTPStatus.NOT_FOUND,
+        detail=f"No submission with identifier {identifier} found.",
+    )
