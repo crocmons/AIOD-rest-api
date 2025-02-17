@@ -22,4 +22,4 @@ or use the REST API directly as detailed in the ["Using the API"](https://aionde
 **🧑‍🔧 API Development:** The ["Developer Guide"](https://aiondemand.github.io/AIOD-rest-api/developer/) has information about the code in this repository and how to make contributions.
 
 ### Acknowledgement
-Funded by EU’s Horizon Europe research and innovation program under grant agreement No. 101070000 (AI4EUROPE).
+Funded by EU’s Horizon Europe research and innovation program under grant agreement [No. 101070000 (AI4EUROPE)](https://cordis.europa.eu/project/id/101070000).
