@@ -12,11 +12,12 @@ from sqlalchemy.sql.operators import is_
 from sqlmodel import SQLModel, Session, select
 from starlette.responses import JSONResponse
 
-from authentication import User, get_user_or_none, get_user_or_raise
+from authentication import KeycloakUser, get_user_or_none, get_user_or_raise
 from config import KEYCLOAK_CONFIG
 from converters.schema_converters.schema_converter import SchemaConverter
+from database.authorization import user_can_administer, add_administrator, register_user
 from database.model.ai_resource.resource import AbstractAIResource
-from database.model.concept.aiod_entry import AIoDEntryORM
+from database.model.concept.aiod_entry import AIoDEntryORM, EntryStatus
 from database.model.concept.concept import AIoDConcept
 from database.model.platform.platform import Platform
 from database.model.platform.platform_names import PlatformName
@@ -25,6 +26,7 @@ from database.model.resource_read_and_create import (
     resource_read,
 )
 from database.model.serializers import deserialize_resource_relationships
+from database.review import Decision, Review, Submission, ReviewCreate
 from database.session import DbSession
 from dependencies.filtering import ResourceFilters, ResourceFiltersParams
 from dependencies.pagination import Pagination, PaginationParams
@@ -133,6 +135,30 @@ class ResourceRouter(abc.ABC):
             **default_kwargs,
         )
         router.add_api_route(
+            path=f"{url_prefix}/{self.resource_name_plural}/submit/{version}/{{identifier}}",
+            methods={"POST"},
+            endpoint=self.get_submit_func(),
+            name=self.resource_name,
+            description=f"Submit a {self.resource_name} for review.",
+            **default_kwargs,
+        )
+        router.add_api_route(
+            path=f"{url_prefix}/{self.resource_name_plural}/retract/{version}/{{identifier}}",
+            methods={"POST"},
+            endpoint=self.get_retract_func(),
+            name=self.resource_name,
+            description=f"Retract a {self.resource_name}, setting its status to 'draft'.",
+            **default_kwargs,
+        )
+        router.add_api_route(
+            path=f"{url_prefix}/{self.resource_name_plural}/review/{version}",
+            methods={"POST"},
+            endpoint=self.get_review_func(),
+            name=self.resource_name,
+            description=f"Review a {self.resource_name}. Only for reviewers.",
+            **default_kwargs,
+        )
+        router.add_api_route(
             path=f"{url_prefix}/{self.resource_name_plural}/{version}",
             methods={"POST"},
             endpoint=self.register_resource_func(),
@@ -192,7 +218,7 @@ class ResourceRouter(abc.ABC):
         schema: str,
         pagination: Pagination,
         resource_filters: ResourceFilters,
-        user: User | None = None,
+        user: KeycloakUser | None = None,
         platform: str | None = None,
     ):
         """Fetch all resources of this platform in given schema, using pagination"""
@@ -212,7 +238,11 @@ class ResourceRouter(abc.ABC):
                 raise as_http_exception(e)
 
     def get_resource(
-        self, identifier: str, schema: str, user: User | None = None, platform: str | None = None
+        self,
+        identifier: str,
+        schema: str,
+        user: KeycloakUser | None = None,
+        platform: str | None = None,
     ):
         """
         Get the resource identified by AIoD identifier (if platform is None) or by platform AND
@@ -241,7 +271,7 @@ class ResourceRouter(abc.ABC):
             pagination: PaginationParams,
             resource_filters: ResourceFiltersParams,
             schema: self._possible_schemas_type = "aiod",  # type:ignore
-            user: User | None = Depends(get_user_or_none),
+            user: KeycloakUser | None = Depends(get_user_or_none),
         ):
             resources = self.get_resources(
                 schema=schema,
@@ -311,7 +341,7 @@ class ResourceRouter(abc.ABC):
             pagination: PaginationParams,
             resource_filters: ResourceFiltersParams,
             schema: self._possible_schemas_type = "aiod",  # type:ignore
-            user: User | None = Depends(get_user_or_none),
+            user: KeycloakUser | None = Depends(get_user_or_none),
         ):
             resources = self.get_resources(
                 schema=schema,
@@ -334,7 +364,7 @@ class ResourceRouter(abc.ABC):
         def get_resource(
             identifier: str,
             schema: self._possible_schemas_type = "aiod",  # type: ignore
-            user: User | None = Depends(get_user_or_none),
+            user: KeycloakUser | None = Depends(get_user_or_none),
         ):
             resource = self.get_resource(
                 identifier=identifier, schema=schema, user=user, platform=None
@@ -365,7 +395,7 @@ class ResourceRouter(abc.ABC):
                 ),
             ],
             schema: self._possible_schemas_type = "aiod",  # type:ignore
-            user: User | None = Depends(get_user_or_none),
+            user: KeycloakUser | None = Depends(get_user_or_none),
         ):
             return self.get_resource(
                 identifier=identifier, schema=schema, user=user, platform=platform
@@ -383,7 +413,7 @@ class ResourceRouter(abc.ABC):
 
         def register_resource(
             resource_create: clz_create,  # type: ignore
-            user: User = Depends(get_user_or_raise),
+            user: KeycloakUser = Depends(get_user_or_raise),
         ):
             if not user.has_any_role(
                 KEYCLOAK_CONFIG.get("role"),
@@ -398,6 +428,9 @@ class ResourceRouter(abc.ABC):
                 with DbSession() as session:
                     try:
                         resource = self.create_resource(session, resource_create)
+                        register_user(user, session)
+                        add_administrator(user, resource, session)
+                        session.commit()
                         return self._wrap_with_headers({"identifier": resource.identifier})
                     except Exception as e:
                         self._raise_clean_http_exception(e, session, resource_create)
@@ -427,7 +460,7 @@ class ResourceRouter(abc.ABC):
         def put_resource(
             identifier: int,
             resource_create_instance: clz_create,  # type: ignore
-            user: User = Depends(get_user_or_raise),
+            user: KeycloakUser = Depends(get_user_or_raise),
         ):
             if not user.has_any_role(
                 KEYCLOAK_CONFIG.get("role"),
@@ -442,6 +475,11 @@ class ResourceRouter(abc.ABC):
             with DbSession() as session:
                 try:
                     resource: Any = self._retrieve_resource(session, identifier)
+                    if resource.aiod_entry.status == EntryStatus.SUBMITTED:
+                        raise HTTPException(
+                            status_code=status.HTTP_403_FORBIDDEN,
+                            detail="You cannot edit an asset under submission.",
+                        )
                     for attribute_name in resource.schema()["properties"]:
                         if hasattr(resource_create_instance, attribute_name):
                             new_value = getattr(resource_create_instance, attribute_name)
@@ -471,7 +509,7 @@ class ResourceRouter(abc.ABC):
 
         def delete_resource(
             identifier: str,
-            user: User = Depends(get_user_or_raise),
+            user: KeycloakUser = Depends(get_user_or_raise),
         ):
             with DbSession() as session:
                 if not user.has_any_role(
@@ -501,18 +539,178 @@ class ResourceRouter(abc.ABC):
 
         return delete_resource
 
+    def get_submit_func(self):
+        """Return a function that can be used to submit a single resource for review."""
+
+        def submit_resource(
+            identifier: str,
+            user: KeycloakUser = Depends(get_user_or_raise),
+        ):
+            with DbSession() as session:
+                resource = self._retrieve_resource(
+                    identifier=identifier, session=session
+                )  # type: ignore
+
+                if not resource.aiod_entry.status == EntryStatus.DRAFT:
+                    msg = (
+                        f"Cannot submit {self.resource_name} {identifier} "
+                        f"since it has '{resource.aiod_entry.status}' status."
+                    )
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
+
+                if not user_can_administer(user, resource.aiod_entry):
+                    # Could choose to instead give same error as if resource does not exist.
+                    msg = f"You do not have permission to submit {self.resource_name} {identifier}."
+                    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=msg)
+
+                resource.aiod_entry.status = EntryStatus.SUBMITTED
+                review_request = Submission(
+                    requestee_identifier=user._subject_identifier,
+                    aiod_entry_identifier=resource.aiod_entry.identifier,
+                )
+                session.add(review_request)
+                session.commit()
+                return self._wrap_with_headers({"submission_identifier": review_request.identifier})
+
+        return submit_resource
+
+    def get_retract_func(self):
+        """Return a function that can be used to retract a single resource."""
+
+        def retract_resource(
+            identifier: str,
+            user: KeycloakUser = Depends(get_user_or_raise),
+        ):
+            with DbSession() as session:
+                resource = self._retrieve_resource(
+                    identifier=identifier, session=session
+                )  # type: ignore
+
+                if not user_can_administer(user, resource.aiod_entry):
+                    # Could choose to instead give same error as if resource does not exist.
+                    msg = (
+                        f"You do not have permission to retract {self.resource_name} {identifier}."
+                    )
+                    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=msg)
+
+                query = (
+                    select(Submission)
+                    .where(
+                        Submission.aiod_entry_identifier == resource.aiod_entry.identifier,
+                    )
+                    .order_by(Submission.request_date.desc())  # type: ignore [attr-defined]
+                )
+                current_request = session.scalars(query).first()
+                if current_request is None or not current_request.is_pending:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Cannot retract this asset, as it is not under review.",
+                    )
+
+                retraction = Review(
+                    decision=Decision.RETRACTED,
+                    reviewer_identifier=user._subject_identifier,
+                    submission_identifier=current_request.identifier,
+                )
+                resource.aiod_entry.status = EntryStatus.DRAFT
+                session.add(retraction)
+                session.commit()
+                return self._wrap_with_headers(
+                    {
+                        "review_identifier": retraction.identifier,
+                        "submission_identifier": current_request.identifier,
+                        "decision": retraction.decision,
+                    }
+                )
+
+        return retract_resource
+
+    def get_review_func(self):
+        """Return a function that can be used to review a single resource."""
+
+        def review_resource(
+            review: ReviewCreate,
+            user: KeycloakUser = Depends(get_user_or_raise),
+        ):
+            if "reviewer" not in user.roles:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You must have reviewing privileges to use this endpoint.",
+                )
+
+            with DbSession() as session:
+                query = select(Submission).where(
+                    Submission.identifier == review.submission_identifier
+                )
+                submission = session.scalars(query).first()
+                if submission is None:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"No review with identifier {review.submission_identifier} found.",
+                    )
+                if not submission.is_pending:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Review is no longer pending, no new decision may be made.",
+                    )
+                register_user(user, session)
+
+                resource = self._retrieve_resource(
+                    identifier=submission.aiod_entry_identifier,
+                    session=session,
+                    is_entry_identifier=True,
+                )  # type: ignore
+                if user_can_administer(user, resource.aiod_entry):
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="You do not have permission to review your own assets.",
+                    )
+
+                if review.decision == Decision.ACCEPTED:
+                    new_status = EntryStatus.PUBLISHED
+                else:
+                    new_status = EntryStatus.DRAFT
+                resource.aiod_entry.status = new_status
+
+                review = Review(
+                    reviewer_identifier=user._subject_identifier,
+                    comment=review.comment,
+                    decision=review.decision,
+                    submission_identifier=submission.identifier,
+                )
+                session.add(review)
+                session.commit()
+                return self._wrap_with_headers(
+                    {
+                        "review_identifier": review.identifier,
+                        "submission_identifier": submission.identifier,
+                        "decision": review.decision,
+                    }
+                )
+
+        return review_resource
+
     def _retrieve_resource(
         self,
         session: Session,
         identifier: int | str,
         platform: str | None = None,
+        *,
+        is_entry_identifier: bool = False,
     ) -> type[RESOURCE_MODEL]:
         """
         Retrieve a resource from the database based on the provided identifier
         and platform (if applicable).
         """
         if platform is None:
-            query = select(self.resource_class).where(self.resource_class.identifier == identifier)
+            if is_entry_identifier:
+                query = select(self.resource_class).where(
+                    self.resource_class.aiod_entry_identifier == identifier
+                )
+            else:
+                query = select(self.resource_class).where(
+                    self.resource_class.identifier == identifier
+                )
         else:
             if platform not in {n.name for n in PlatformName}:
                 raise HTTPException(
@@ -535,7 +733,7 @@ class ResourceRouter(abc.ABC):
             msg = (
                 "not found in the database."
                 if not resource
-                else "not found in the database, " "because it was deleted."
+                else "not found in the database, because it was deleted."
             )
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"{name} {msg}")
         return resource
@@ -575,7 +773,7 @@ class ResourceRouter(abc.ABC):
         self,
         session: Session,
         identifier: int | str,
-        user: User | None = None,
+        user: KeycloakUser | None = None,
         platform: str | None = None,
     ) -> type[RESOURCE_MODEL]:
         """
@@ -592,7 +790,7 @@ class ResourceRouter(abc.ABC):
         session: Session,
         pagination: Pagination,
         resource_filters: ResourceFilters,
-        user: User | None = None,
+        user: KeycloakUser | None = None,
         platform: str | None = None,
     ) -> Sequence[type[RESOURCE_MODEL]]:
         """
@@ -607,7 +805,7 @@ class ResourceRouter(abc.ABC):
 
     @staticmethod
     def _mask_or_filter(
-        resources: Sequence[type[RESOURCE_MODEL]], session: Session, user: User | None
+        resources: Sequence[type[RESOURCE_MODEL]], session: Session, user: KeycloakUser | None
     ) -> Sequence[type[RESOURCE_MODEL]]:
         """
         Can be implemented in children to post process resources based on user roles
