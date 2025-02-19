@@ -12,14 +12,12 @@ import pkg_resources
 import uvicorn
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
-from pydantic import BaseModel
 from sqlmodel import select, SQLModel
 
 from authentication import get_user_or_raise, KeycloakUser
 from config import KEYCLOAK_CONFIG
 from database.deletion.triggers import create_delete_triggers
 import database.authorization  # noqa  # Trigger registration of User, Permission -> likely obsolete when couple with aiod_entry is done
-from database.model.concept.aiod_entry import EntryStatus
 from database.model.concept.concept import AIoDConcept
 from database.model.platform.platform import Platform
 from database.model.platform.platform_names import PlatformName
@@ -29,14 +27,6 @@ from error_handling import http_exception_handler
 from routers import resource_routers, parent_routers, enum_routers, uploader_routers
 from routers import search_routers
 from setup_logger import setup_logger
-
-
-class EntryStatusChangeRequest(BaseModel):
-    """Used for"""
-
-    concept_identifier: int
-    requested_status: EntryStatus
-    comment: str | None = None
 
 
 def _parse_args() -> argparse.Namespace:
