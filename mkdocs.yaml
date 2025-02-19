@@ -17,6 +17,7 @@ nav:
   - 'Developer Resources':
       - developer/index.md
       - 'Authentication': developer/authentication.md
+      - 'User Model': developer/users.md
       - 'Metadata Schema':
           - developer/schema/index.md
           - 'Attributes': developer/schema/attributes.md
