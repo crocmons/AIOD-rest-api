@@ -1,5 +1,19 @@
 
 repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0  # Use the ref you want to point at
+    hooks:
+      - id: no-commit-to-branch
+      - id: check-added-large-files
+      - id: check-illegal-windows-names
+      - id: trailing-whitespace
+      - id: mixed-line-ending
+      - id: end-of-file-fixer
+      - id: check-executables-have-shebangs
+      - id: debug-statements
+      - id: check-json
+      - id: check-toml
+      - id: check-yaml
   - repo: https://github.com/codespell-project/codespell
     rev: v2.2.4
     hooks:
