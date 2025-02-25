@@ -159,8 +159,9 @@ def build_database(args):
         for trigger in triggers:
             session.execute(trigger)
         existing_platforms = session.scalars(select(Platform)).all()
-        if not any(existing_platforms):
-            session.add_all([Platform(name=name) for name in PlatformName])
+        missing_platforms = set(PlatformName) - {p.name for p in existing_platforms}
+        if any(missing_platforms):
+            session.add_all([Platform(name=name) for name in missing_platforms])
             session.commit()
 
 
