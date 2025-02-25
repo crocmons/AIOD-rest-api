@@ -65,11 +65,14 @@ def register_user(kc_user: KeycloakUser, session: Session) -> User:
 
 
 def add_administrator(user: KeycloakUser, resource: AIoDConcept, session: Session):
-    permission = Permission(
-        type_=PermissionType.ADMIN,
-        user_identifier=user._subject_identifier,
-        aiod_entry=resource.aiod_entry,
-    )
+    query = select(Permission).where(User.subject_identifier == user._subject_identifier)
+    permission = session.scalars(query).first()
+    if permission is None:
+        permission = Permission(
+            user_identifier=user._subject_identifier,
+            aiod_entry=resource.aiod_entry,
+        )
+    permission.type_ = PermissionType.ADMIN
     session.add(permission)
 
 

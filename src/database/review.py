@@ -30,6 +30,7 @@ class Review(SQLModel, table=True):  # type: ignore [call-arg]
 
     reviewer_identifier: str = Field(
         foreign_key="user.subject_identifier",
+        exclude=True,
     )
     submission_identifier: int = Field(
         foreign_key="submission.identifier",
@@ -56,7 +57,9 @@ class Submission(SQLModel, table=True):  # type: ignore [call-arg]
     # We do not want the review to be deleted when the original requestee is deleted,
     # there could be e.g., shared ownership in which case the review data should be preserved.
     requestee_identifier: str | None = Field(
-        foreign_key="user.subject_identifier", ondelete="SET NULL"
+        foreign_key="user.subject_identifier",
+        ondelete="SET NULL",
+        exclude=True,
     )
 
     # On the other hand, if the entry corresponding to the thing it reviews is removed,

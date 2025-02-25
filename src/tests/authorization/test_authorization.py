@@ -13,7 +13,7 @@ from database.model.concept.aiod_entry import EntryStatus
 from database.model.concept.concept import AIoDConcept
 from database.review import Review, Decision, ReviewCreate, Submission
 from database.session import DbSession
-
+from routers.review_router import ListMode
 
 ALICE = KeycloakUser("Alice", {"edit_aiod_resources"}, "alice-sub")
 BOB = KeycloakUser("Bob", {"edit_aiod_resources"}, "bob-sub")
@@ -98,6 +98,12 @@ def test_user_can_submit_draft_for_review(client, publication):
         assert submission.status_code == HTTPStatus.OK, submission.json()
         assert "submission_identifier" in submission.json()
 
+    with logged_in_user(REVIEWER):
+        queue = client.get("/submissions/v1", headers={"Authorization": "Fake token"})
+        assert queue.status_code == HTTPStatus.OK, queue.json()
+        assert len(queue.json()) == 1, "A successful request should result in a submission."
+        assert "requestee_identifier" not in queue.json()
+
 
 def test_user_can_not_submit_other_for_review(client, publication):
     identifier = register_asset(publication, owner=ALICE, status=EntryStatus.DRAFT)
@@ -109,6 +115,102 @@ def test_user_can_not_submit_other_for_review(client, publication):
         )
         assert submission.status_code == HTTPStatus.FORBIDDEN, submission.json()
 
+    with logged_in_user(REVIEWER):
+        queue = client.get("/submissions/v1", headers={"Authorization": "Fake token"})
+        assert queue.status_code == HTTPStatus.OK, queue.json()
+        assert len(queue.json()) == 0, "A rejected request should not result in a submission."
+
+
+def test_a_draft_is_not_pending_for_review(client, publication):
+    register_asset(publication, owner=ALICE, status=EntryStatus.DRAFT)
+
+    with logged_in_user(REVIEWER):
+        queue = client.get("/submissions/v1", headers={"Authorization": "Fake token"})
+        assert queue.status_code == HTTPStatus.OK, queue.json()
+        assert len(queue.json()) == 0, "An asset is only pending for review after submission."
+
+
+def test_a_submitted_asset_is_pending_for_review(client, publication):
+    register_asset(publication, owner=ALICE, status=EntryStatus.SUBMITTED)
+
+    with logged_in_user(REVIEWER):
+        queue = client.get("/submissions/v1", headers={"Authorization": "Fake token"})
+        assert queue.status_code == HTTPStatus.OK, queue.json()
+        assert len(queue.json()) == 1, "A submitted asset should be pending until a review is done."
+
+
+def test_get_submission_by_id(client, publication):
+    register_asset(publication, owner=ALICE, status=EntryStatus.PUBLISHED)
+
+    with logged_in_user(REVIEWER):
+        queue = client.get("/submissions/v1/1", headers={"Authorization": "Fake token"})
+        assert queue.status_code == HTTPStatus.OK, queue.json()
+        assert queue.json()["identifier"] == 1
+
+
+def test_unknown_submission_raises_404(client):
+    with logged_in_user(REVIEWER):
+        queue = client.get("/submissions/v1/1", headers={"Authorization": "Fake token"})
+        assert queue.status_code == HTTPStatus.NOT_FOUND
+
+
+@pytest.mark.skip("Requiring reviewer role to be added through middleware")
+def test_getting_submission_requires_review_role(client):
+    queue = client.get("/submissions/v1/1")
+    assert queue.status_code == HTTPStatus.UNAUTHORIZED
+
+    with logged_in_user(ALICE):
+        queue = client.get("/submissions/v1/1", headers={"Authorization": "Fake token"})
+        assert queue.status_code == HTTPStatus.FORBIDDEN
+
+
+def test_an_published_asset_is_not_pending_for_review(client, publication):
+    register_asset(publication, owner=ALICE, status=EntryStatus.PUBLISHED)
+
+    with logged_in_user(REVIEWER):
+        queue = client.get(
+            f"/submissions/v1?mode={ListMode.PENDING}", headers={"Authorization": "Fake token"}
+        )
+        assert queue.status_code == HTTPStatus.OK, queue.json()
+        assert (
+            len(queue.json()) == 0
+        ), "After publication, the submission is no longer pending a review."
+
+        queue = client.get(
+            f"/submissions/v1?mode={ListMode.COMPLETED}", headers={"Authorization": "Fake token"}
+        )
+        assert queue.status_code == HTTPStatus.OK, queue.json()
+        assert len(queue.json()) == 1, "After publication, the review request is completed."
+
+
+def test_retrieving_single_submission_works(client, publication_factory):
+    publication = publication_factory()
+    oldest = publication_factory()
+    oldest.platform_resource_identifier = "OLDEST"
+    newest = publication_factory()
+    newest.platform_resource_identifier = "NEWEST"
+
+    register_asset(publication, owner=ALICE, status=EntryStatus.PUBLISHED)
+    register_asset(oldest, owner=ALICE, status=EntryStatus.SUBMITTED)
+    register_asset(newest, owner=ALICE, status=EntryStatus.SUBMITTED)
+
+    with logged_in_user(REVIEWER):
+        queue = client.get(
+            f"/submissions/v1?mode={ListMode.OLDEST}", headers={"Authorization": "Fake token"}
+        )
+        assert queue.status_code == HTTPStatus.OK, queue.json()
+        assert (
+            queue.json()[0]["aiod_entry_identifier"] == 2
+        ), "The oldest pending submission is the second one."
+
+        queue = client.get(
+            f"/submissions/v1?mode={ListMode.NEWEST}", headers={"Authorization": "Fake token"}
+        )
+        assert queue.status_code == HTTPStatus.OK, queue.json()
+        assert (
+            queue.json()[0]["aiod_entry_identifier"] == 3
+        ), "The newest pending submission is the third one."
+
 
 def test_user_can_retract_assets(client, publication):
     identifier = register_asset(publication, owner=ALICE, status=EntryStatus.SUBMITTED)
@@ -118,6 +220,13 @@ def test_user_can_retract_assets(client, publication):
         )
         assert "review_identifier" in response.json()
         assert Decision.RETRACTED == response.json()["decision"]
+
+    with logged_in_user(REVIEWER):
+        queue = client.get(
+            f"/submissions/v1?mode={ListMode.PENDING}", headers={"Authorization": "Fake token"}
+        )
+        assert queue.status_code == HTTPStatus.OK, queue.json()
+        assert len(queue.json()) == 0, "A retracted request should not remain pending."
 
 
 def test_other_user_can_not_retract_assets(client, publication):

@@ -19,6 +19,9 @@ following figure:
 
 ![AIoD Metadata model](../../media/AIoD_Metadata_Model.drawio.png)
 
+In addition to the implementation of the metadata schema, we maintain some metadata about that metadata.
+Specifically, a system which stores users, permissions, and reviews that relate to the metadata assets uploaded to AIoD.
+More on this can be found in the ["User Model"](../users.md) documentation.
 
 ## Reading the Conceptual Metadata Schema
 Tools and documentation on how to read the conceptual metadata model are currently being written.
