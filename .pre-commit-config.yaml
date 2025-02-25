@@ -1,13 +1,11 @@
 
 repos:
-  - repo: https://github.com/psf/black
-    rev: 22.12.0
-    hooks:
-      - id: black
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.7.1
+    rev: v0.9.7
     hooks:
-      - id: ruff  # only do linting for security for now
+      - id: ruff
+        args: [ --fix ]
+      - id: ruff-format
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v0.991
     hooks:
@@ -19,14 +17,6 @@ repos:
           - types-pytz
           - types-requests
           - types-setuptools
-  - repo: https://github.com/PyCQA/flake8
-    rev: 6.0.0
-    hooks:
-      - id: flake8
-        name: flake8 src
-        files: src/.*
-        additional_dependencies:
-          - flake8-print==5.0.0
   - repo: local
     hooks:
       - id: pytest-check
