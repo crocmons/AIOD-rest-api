@@ -67,6 +67,9 @@ exclude = [
     "src/tests",
 ]
 
+[tool.codespell]
+ignore-words-list = "checkin"
+
 [tool.ruff.lint]
 select = ["S"]
 

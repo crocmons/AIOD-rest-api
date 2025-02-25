@@ -57,7 +57,7 @@ To verify the Keycloak service is configured correctly using the Swagger interfa
     - Click `Authorize` and log in using any available identity provider. 
  4. Return to `/authorization_test`, click `try it out` and then `execute` again.
 
-If authentication is succesful, the request should now be authtorised. 
+If authentication is successful, the request should now be authtorised. 
 
 ## Importing and Exporting Realm and User Files
 See also ["Importing and Exporting Realms"](https://www.keycloak.org/server/importExport) in the Keycloak documentation.

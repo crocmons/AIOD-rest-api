@@ -38,7 +38,7 @@ with dependencies.
 Let's start by creating a model in `src/database/model`. Let's call our example model 
 Example. Create a separate directory with a new python file:
 `src/database/model/example/example.py`.  In it we start with a `ExampleBase`, in which we put 
-the fields that are not dependant on a separate table:
+the fields that are not dependent on a separate table:
 
 
 ```python

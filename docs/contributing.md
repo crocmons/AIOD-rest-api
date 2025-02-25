@@ -25,7 +25,7 @@ For big changes, we also recommend you to follow the instructions on ["Setting u
 so that you can render the changed documentation locally.
 
 ### Code
-For code changes, please first co-ordinate with the developers on what you will work on.
+For code changes, please first coordinate with the developers on what you will work on.
 You can do this by either leaving a comment on an existing issue that you would like to help with,
 or by opening a new issue proposing your change. By first communicating with the developers, they
 can let you know ahead of time whether or not the change is wanted, make sure they have time to
