@@ -9,6 +9,7 @@ sql sentences in logstash/pipelines/sql.
 
 Launched by the es_logstash_setup container in the docker-compose file.
 """
+
 import logging
 import os
 from pathlib import Path

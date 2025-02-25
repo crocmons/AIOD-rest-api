@@ -1,10 +1,10 @@
 # Using the REST API
 
-The REST API allows you to retrieve, update, or remove asset metadata in the metadata catalogue. 
+The REST API allows you to retrieve, update, or remove asset metadata in the metadata catalogue.
 The assets are indexed from many different platforms, such as educational resources from [AIDA](https://www.i-aida.org),
 datasets from [HuggingFace](https://huggingface.co), models from [OpenML](https://openml.org), and many more.
 
-The REST API is available at [`https://api.aiod.eu`](https://api.aiod.eu) and documentation on endpoints 
+The REST API is available at [`https://api.aiod.eu`](https://api.aiod.eu) and documentation on endpoints
 is available on complementary [Swagger](https://api.aiod.eu/docs) and [ReDoc](https://api.aiod.eu/redoc) pages.
 
 To use the REST API, simply make HTTP requests to the different endpoints.
@@ -25,14 +25,14 @@ Here are some examples on how to list datasets in different environments:
 
     This example uses [curl](https://curl.se/) to retrieve data from the command line.
 
-    ``` commandline 
+    ``` commandline
     curl -X 'GET' \
     'https://api.aiod.eu/datasets/v1?schema=aiod&offset=0&limit=10' \
     -H 'accept: application/json'
     ```
 
-Additionally, we also provide an [`aiondemand` package](https://aiondemand.github.io/aiondemand/) for Python 
-to simplify access to the REST API. You can see an example of that below, and we refer to their dedicated 
+Additionally, we also provide an [`aiondemand` package](https://aiondemand.github.io/aiondemand/) for Python
+to simplify access to the REST API. You can see an example of that below, and we refer to their dedicated
 documentation pages for full installation and usage instructions.
 
 ```python
@@ -45,8 +45,8 @@ aiod.datasets.get_list()
 By navigating to the [Swagger documentation](https://api.aiod.eu/docs), you can find information and examples on how to access the different endpoints.
 
 ### Retrieving Information
-For example, if we navigate to the [`GET /datasets/v1`](https://api.aiod.eu/docs#/datasets/List_datasets_datasets_v1_get) 
-endpoint and expand the documentation by clicking on the down chevron (`v`), we can see the different query parameters 
+For example, if we navigate to the [`GET /datasets/v1`](https://api.aiod.eu/docs#/datasets/List_datasets_datasets_v1_get)
+endpoint and expand the documentation by clicking on the down chevron (`v`), we can see the different query parameters
 and can execute a call directly on the API:
 
 ![The Swagger documentation allows you to directly query the REST API from your browser.](media/swagger.webp)
@@ -95,7 +95,7 @@ the `Example Value` tab of the `Request Body` section. To know what values are a
 ### Alternative Documentation (ReDoc)
 The [ReDoc documentation](https://api.aiod.eu/redoc) provides pretty similar functionality to the Swagger documentation.
 The main difference is that the Swagger page allows you to run queries against the REST API, whereas the ReDoc documentation does not.
-However, some people prefer the organisation of ReDoc, 
+However, some people prefer the organisation of ReDoc,
 especially with respect to documentation of the expected responses and the schema documentation.
 
 ## REST API using CURL

@@ -4,7 +4,7 @@
         ${msg("loginAccountTitle")}
     <#elseif section = "form">
         <div id="kc-form">
-            <hr>            
+            <hr>
             <#if social.providers??>
                 <h2 id="kc-form-toggle" class="kc-form-toggle">${msg("identity-provider-login-label")} </h2>
                 <div id="kc-form-wrapper" class="kc-form-wrapper">

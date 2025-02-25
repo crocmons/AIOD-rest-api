@@ -7,6 +7,7 @@ case is to enable a cross-data portal search for datasets and make public sector
 searchable across borders and sectors. This can be achieved by the exchange of descriptions of data
 sets among data portals
 """
+
 import datetime
 from abc import ABC
 from typing import Union

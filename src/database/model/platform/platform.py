@@ -2,7 +2,6 @@
 The external platform (e.g. openml).
 """
 
-
 import datetime
 
 from sqlmodel import Field, SQLModel

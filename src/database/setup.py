@@ -1,6 +1,7 @@
 """
 Utility functions for initializing the database and tables through SQLAlchemy.
 """
+
 from operator import and_
 
 import sqlmodel

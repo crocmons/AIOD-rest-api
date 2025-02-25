@@ -23,4 +23,3 @@ docker run \
 		--hostname-admin-url https://test.openml.org/aiod-auth \
 		--hostname-strict-backchannel=true \
 		--db mysql
-

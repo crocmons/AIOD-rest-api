@@ -7,6 +7,7 @@ so can be used to avoid indexing the same dataset twice under a different platfo
 
 To be run once (around sometime Nov 2024), likely not needed after that. See also #385, 392.
 """
+
 import logging
 import os
 import string

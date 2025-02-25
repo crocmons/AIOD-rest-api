@@ -5,6 +5,7 @@ Revises: d09ed8ad4533
 Create Date: 2024-12-17 09:02:30.480835
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -32,7 +33,7 @@ def upgrade() -> None:
         UPDATE aiod_entry
         INNER JOIN status
         ON status.identifier = aiod_entry.status_identifier
-        SET aiod_entry.status = status.name 
+        SET aiod_entry.status = status.name
         """
     )
     op.drop_constraint(

@@ -30,8 +30,7 @@ class ResourceConnectorById(ResourceConnector, Generic[RESOURCE]):
     ) -> Iterator[RESOURCE | ResourceWithRelations[RESOURCE] | RecordError]:
         if limit is not None:
             logging.warning(
-                "Limiting the results! Please remove the limit command line argument "
-                "in production."
+                "Limiting the results! Please remove the limit command line argument in production."
             )
 
         first_run = not state
@@ -47,8 +46,7 @@ class ResourceConnectorById(ResourceConnector, Generic[RESOURCE]):
             state["from_id"] = state["last_id"] + 1
 
         logging.info(
-            f"Starting synchronisation of records from id {state['from_id']} and"
-            f" offset {offset}"
+            f"Starting synchronisation of records from id {state['from_id']} and offset {offset}"
         )
 
         finished = False

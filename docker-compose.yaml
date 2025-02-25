@@ -42,7 +42,7 @@ services:
     depends_on:
       app:
         condition: service_healthy
-  
+
   deletion:
     build:
       context: deletion
@@ -195,7 +195,7 @@ services:
       interval: 5s
       timeout: 30s
       retries: 30
-  
+
   es_logstash_setup:
     image: aiod_metadata_catalogue
     container_name:  es_logstash_setup

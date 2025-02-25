@@ -7,7 +7,7 @@ The project loosely uses [Semantic Versions](https://semver.org) where the patch
 !!! note "Work in Progress"
 
     Guidelines in "Breaking Changes" are the desired workflow, but in practice we are not always following them
-    as 1) the metadata model wasn't yet matured and 2) the infrastructure for this needs to be 
+    as 1) the metadata model wasn't yet matured and 2) the infrastructure for this needs to be
     developed. For now, we make sure all URLs are at least under a version suffix, which makes
     support in the future possible.
 
@@ -60,4 +60,4 @@ To create a new release,
     - Update the code on the server by checking out the release
     - Merge configurations as necessary
     - Make sure the latest database migrations are applied: see ["Schema Migrations"](schema/migration.md#update-the-database)
-9. Notify everyone (e.g., in the API channel in Slack). 
+9. Notify everyone (e.g., in the API channel in Slack).

@@ -1,6 +1,6 @@
 # User Model
 
-The user model in AIoD allows users to maintain and share ownership over assets, 
+The user model in AIoD allows users to maintain and share ownership over assets,
 and to allow a review process for new assets.
 The components of this user model are defined in [src/database/authorization.py](https://github.com/aiondemand/AIOD-rest-api/blob/develop/src/database/authorization.py)
 and [src/database/review.py](https://github.com/aiondemand/AIOD-rest-api/blob/develop/src/database/review.py).
@@ -15,8 +15,8 @@ This avoids a scenario were data is kept twice and may desynchronize, and also r
 Currently, that is only the "sub", but in the future we may consider adding e.g., usernames.
 
 ## Permissions
-A user may have certain permissions for an asset, these are: 
- 
+A user may have certain permissions for an asset, these are:
+
  - read: a user may retrieve this metadata asset.
  - write: a user may modify this metadata asset.
  - admin: a user may delete this metadata asset, submit it for review, and grant other users permissions for the asset.
@@ -35,7 +35,7 @@ endpoint.
 Each asset may only have one concurrent review request, and the asset may not be modified while it is under review.
 
 Reviewers can find pending submissions using the `submissions/v1` endpoint,
-and get information on a particular submission with the `submissions/v1/{identifier}` endpoint, 
+and get information on a particular submission with the `submissions/v1/{identifier}` endpoint,
 where the identifier denotes the identifier of the submission (i.e., review request).
 Reviewers can submit a review using the `ASSET_TYPE/review/v1/{identifier}` endpoint.
 

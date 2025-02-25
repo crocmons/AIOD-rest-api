@@ -1,44 +1,44 @@
-!!! note 
+!!! note
 
     This information hasn't been updated yet.
 
-# AIoD API - adding a resource 
+# AIoD API - adding a resource
 
-This document describes the steps to perform to add a resource. 
+This document describes the steps to perform to add a resource.
 
 ## Model definition
 
-First we need to know what the model will look like. For the core AIoD API, we make use of a 
-spreadsheet with the name, type, cardinality, source (e.g. schema.org/Thing) and description of 
-each field. Many resources inherit from AIAsset, containing fields such as `name`, `description` 
+First we need to know what the model will look like. For the core AIoD API, we make use of a
+spreadsheet with the name, type, cardinality, source (e.g. schema.org/Thing) and description of
+each field. Many resources inherit from AIAsset, containing fields such as `name`, `description`
 etc.
 
 ## Model implementation
 
 ### Background
-For the model implementation we make use of [SQLModel](https://sqlmodel.tiangolo.com/), a layer 
-on top of the ORM framework [SQLAlchemy](https://www.sqlalchemy.org/) and the serialization, 
-validation and documentation (creating Swagger) framework [pydantic](https://docs.pydantic.dev/), 
+For the model implementation we make use of [SQLModel](https://sqlmodel.tiangolo.com/), a layer
+on top of the ORM framework [SQLAlchemy](https://www.sqlalchemy.org/) and the serialization,
+validation and documentation (creating Swagger) framework [pydantic](https://docs.pydantic.dev/),
 created by the developer of FASTApi, the framework we use for routing.
 
-SQLModel makes it possible to define only a single model instead of defining the database-layer 
+SQLModel makes it possible to define only a single model instead of defining the database-layer
 (SQLAlchemy) and the logic-layer (Pydantic) separately.
 
-We do want some separate model though, as described in 
-[SQLModel multiple models](https://sqlmodel.tiangolo.com/tutorial/fastapi/multiple-models/). We 
-might want to store an `ExampleEnum` in a separate table, to keep track of the possible values. 
+We do want some separate model though, as described in
+[SQLModel multiple models](https://sqlmodel.tiangolo.com/tutorial/fastapi/multiple-models/). We
+might want to store an `ExampleEnum` in a separate table, to keep track of the possible values.
 But the user should not be distracted by this: in Swagger, it should just show as a string value,
 not as a link to a separate table.
 
-We created some additional functionality for this, to minimize the work of creating new classes 
-with dependencies. 
+We created some additional functionality for this, to minimize the work of creating new classes
+with dependencies.
 
 ### Steps
 
-Let's start by creating a model in `src/database/model`. Let's call our example model 
+Let's start by creating a model in `src/database/model`. Let's call our example model
 Example. Create a separate directory with a new python file:
-`src/database/model/example/example.py`.  In it we start with a `ExampleBase`, in which we put 
-the fields that are not dependant on a separate table:
+`src/database/model/example/example.py`.  In it we start with a `ExampleBase`, in which we put
+the fields that are not dependent on a separate table:
 
 
 ```python
@@ -54,9 +54,9 @@ class ExampleBase(Resource):
     int_field: int | None = Field(default=None, schema_extra={"example": 22})
 ```
 
-We probably need some separate tables as well. For instance for "enum" types: where we store the  
-possible string values in a separate table. We put these in separate file, either 
-`src/database/model/example/example_enum.py` or, if it's used by multiple models, in  
+We probably need some separate tables as well. For instance for "enum" types: where we store the
+possible string values in a separate table. We put these in separate file, either
+`src/database/model/example/example_enum.py` or, if it's used by multiple models, in
 `src/database/model/general/example_enum.py`:
 
 ```python
@@ -78,7 +78,7 @@ class ExampleEnum(NamedRelation, table=True):  # type: ignore [call-arg]
     examples: List["Example"] = Relationship(back_populates="license")
 ```
 
-Next we create the `Example` in `src/database/model/example/example.py`, inheriting from 
+Next we create the `Example` in `src/database/model/example/example.py`, inheriting from
 `ExampleBase`.
 
 ```python
@@ -109,18 +109,18 @@ class Example(ExampleBase, table=True):  # type: ignore [call-arg]
 
 ### Types of relations
 #### One-to-one
-One-to-one relationships are the simplest. One (or both) of the tables can have a foreign key to 
+One-to-one relationships are the simplest. One (or both) of the tables can have a foreign key to
 the other table. Example: `AIAsset.ai_asset_identifier`.
 
 #### One-to-many
 See `AIAsset.distribution` as example.
 
 #### Many-to-one
-See `ExampleEnum` above. Example: `Dataset.license`: we keep a list of possible licenses. Each 
+See `ExampleEnum` above. Example: `Dataset.license`: we keep a list of possible licenses. Each
 license relates back to multiple datasets.
 
 #### Many-to-many.
-If, instead, we needed a many-to-many relation, we need a separate table linking them 
+If, instead, we needed a many-to-many relation, we need a separate table linking them
 together. Example: `Dataset.alternate_name`:
 
 In `src/database/model/example/example.py`:
@@ -128,7 +128,7 @@ In `src/database/model/example/example.py`:
 class Example(ExampleBase, table=True):  # type: ignore [call-arg]
     # [...]
     example_enums: List[ExampleEnum] = Relationship(
-        back_populates="examples", 
+        back_populates="examples",
         link_model=many_to_many_link_factory("example", ExampleEnum.__tablename__)
     )
 
@@ -142,22 +142,22 @@ class Example(ExampleBase, table=True):  # type: ignore [call-arg]
 ```
 ### Deletion
 
-Deletion of related entities is quite complex. For instance, if we delete a Dataset, we want the 
-related `AIAssetTable` entry to be deleted as well. Normally you'd implement a cascading delete at 
-the `AIAssetTable` that "listens" to deletions on the dataset. For that, we'd need a foreign key 
-at `AIAssetTable` though, which is difficult: it then needs a foreign key to all possible 
+Deletion of related entities is quite complex. For instance, if we delete a Dataset, we want the
+related `AIAssetTable` entry to be deleted as well. Normally you'd implement a cascading delete at
+the `AIAssetTable` that "listens" to deletions on the dataset. For that, we'd need a foreign key
+at `AIAssetTable` though, which is difficult: it then needs a foreign key to all possible
 different classes (`CaseStudy`, `Dataset`, `Publication` ...).
 
-To solve this problem, we're making use of deletion triggers. We define a trigger on `Dataset` 
-and other tables, so that the related entities are deleted as well. Those deletion triggers can 
-be defined on the relationship configuration as well. See `relationships.py` for information on 
-how those triggers can be configured. 
+To solve this problem, we're making use of deletion triggers. We define a trigger on `Dataset`
+and other tables, so that the related entities are deleted as well. Those deletion triggers can
+be defined on the relationship configuration as well. See `relationships.py` for information on
+how those triggers can be configured.
 
 
 ### Nested classes
 
-If you have nested classes in your model definition, you will need to define a link to a 
-separate class. We then have to define the separate ORM and logic classes ourselves. Let's say 
+If you have nested classes in your model definition, you will need to define a link to a
+separate class. We then have to define the separate ORM and logic classes ourselves. Let's say
 we want to describe this for our Example class:
 
 ```json
@@ -237,17 +237,16 @@ class ExampleRouter(ResourceRouter):
     def resource_class(self) -> type[Example]:
         return Example
 ```
-And add it to `src/routers/__init__.py`. 
+And add it to `src/routers/__init__.py`.
 
 ## Test
-A lot of the routing is generic, but we want to test our new files. It is easy to make mistakes 
+A lot of the routing is generic, but we want to test our new files. It is easy to make mistakes
 in the table relationships, for instance by mixing up a ORM model with a logic model.
 
-Run the application and go to swagger. Click on the POST request and copy the json. If some 
+Run the application and go to swagger. Click on the POST request and copy the json. If some
 fields are not correctly filled, improve the examples in your model.
 
-Create a test file `src/tests/routers/test_router_example.py`, using your json. Base it, for 
-instance, on `test_router_dataset.py`. Perform a POST and a GET, and test the fields that are 
-linked to other tables. If this is correct, the rest should be OK because it depends on generic 
-functionality. 
-
+Create a test file `src/tests/routers/test_router_example.py`, using your json. Base it, for
+instance, on `test_router_dataset.py`. Perform a POST and a GET, and test the fields that are
+linked to other tables. If this is correct, the rest should be OK because it depends on generic
+functionality.

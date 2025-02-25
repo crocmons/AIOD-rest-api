@@ -1,6 +1,6 @@
 # Elastic Search
 
-Elastic Search indexes the information in the database for quick retrieval, facilitating endpoints 
+Elastic Search indexes the information in the database for quick retrieval, facilitating endpoints
 that can search through assets with loosely matching queries and give relevancy-ranked suggestions.
 
 ## Indexing the Database using Logstash
@@ -14,7 +14,7 @@ Because the logic for these steps is very similar for the different assets, we g
 scripts to create and maintain the elastic search indices. We use [Logstash](https://www.elastic.co/logstash)
 to process the data from our database and export it to Elastic Search.
 
-This happens through two container services: 
+This happens through two container services:
 
  * `es_logstash_setup`: Generates the common scripts for use by logstash, and creates the Elastic Search indices if necessary.
     This is a short-running service that only runs on startup, exiting when its done.
@@ -56,7 +56,7 @@ It also avoids requiring the user to learn the Elastic Search query format.
 To extend  Elastic Search to a new asset type, create a search router, similar to those in `src/routers/search_routers/`.
 Simply inherit from the base `SearchRouter` class defined in `src/routers/search_router.py` and define a few properties:
 
-```python 
+```python
     @property
     def es_index(self) -> str:
         return "case_study"

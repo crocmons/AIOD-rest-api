@@ -1,11 +1,11 @@
 # Getting Started
 This page has information on how to host your own metadata catalogue.
-If you plan to locally develop the REST API, please follow the installation procedure in ["Contributing"](../contributing.md) 
+If you plan to locally develop the REST API, please follow the installation procedure in ["Contributing"](../contributing.md)
 after following the instructions on this page.
 
 ## Prerequisites
 The platform is tested on Linux, but should also work on Windows and MacOS.
-Additionally, it needs [Docker](https://docs.docker.com/get-docker/) and 
+Additionally, it needs [Docker](https://docs.docker.com/get-docker/) and
 [Docker Compose](https://docs.docker.com/compose/install/) (version 2.21.0 or higher).
 
 ## Installation
@@ -20,12 +20,12 @@ However, we do need to fetch files from the latest release of the repository:
 
     It is also possible to clone using [SSH](https://docs.github.com/en/authentication/connecting-to-github-with-ssh).
     If you plan to develop the metadata catalogue, check the ["Contributing"](../contributing.md#cloning) page
-    for more information on this step.  
+    for more information on this step.
 
 === "UI (browser)"
-    
-    * Navigate to the project page [aiondemand/AIOD-rest-api](https://github.com/aiondemand/AIOD-rest-api). 
-    * Click the green `<> Code` button and download the `ZIP` file. 
+
+    * Navigate to the project page [aiondemand/AIOD-rest-api](https://github.com/aiondemand/AIOD-rest-api).
+    * Click the green `<> Code` button and download the `ZIP` file.
     * Find the downloaded file on disk, and extract the content.
 
 ## Starting the Metadata Catalogue
@@ -47,7 +47,7 @@ This will start a number of services running within one docker network:
 
  * Database: a [MySQL](https://dev.mysql.com) database that contains the metadata.
  * Keycloak: an authentication service, provides login functionality.
- * Metadata Catalogue REST API: 
+ * Metadata Catalogue REST API:
  * Elastic Search: indexes metadata catalogue data for faster keyword searches.
  * Logstash: Loads data into Elastic Search.
  * Deletion: Takes care of cleaning up deleted data.
@@ -66,7 +66,7 @@ but is connected to your local database and services.
 For more information, see the ["Connectors"](connectors.md) page.
 
 ## Configuration
-There are two main places to configure the metadata catalogue services: 
+There are two main places to configure the metadata catalogue services:
 environment variables configured in `.env` files, and REST API configuration in a `.toml` file.
 The default files are `./.env` and `./src/config.default.toml` shown below.
 

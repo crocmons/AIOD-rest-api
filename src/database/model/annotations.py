@@ -2,6 +2,7 @@
 Helper functions for the annotations of python classes. This can for instance be used to get all
 fields of a class (e.g. identifier, name etc. for Dataset) and their datatype.
 """
+
 import inspect
 from collections import ChainMap
 from typing import Type, ForwardRef

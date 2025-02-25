@@ -16,7 +16,7 @@ Good examples for contributions that do not require any coding include:
 
 ### Documentation
 You can help improve our documentation by correcting mistakes, such as typos, adding clarifications,
-or even adding new sections. For small changes, documentation can be edited directly on GitHub by 
+or even adding new sections. For small changes, documentation can be edited directly on GitHub by
 finding the related markdown file and clicking the pencil icon in the top-right corner (✐).
 
 If you intend to make bigger changes, please first open a new issue the documents the suggested change.
@@ -25,7 +25,7 @@ For big changes, we also recommend you to follow the instructions on ["Setting u
 so that you can render the changed documentation locally.
 
 ### Code
-For code changes, please first co-ordinate with the developers on what you will work on.
+For code changes, please first coordinate with the developers on what you will work on.
 You can do this by either leaving a comment on an existing issue that you would like to help with,
 or by opening a new issue proposing your change. By first communicating with the developers, they
 can let you know ahead of time whether or not the change is wanted, make sure they have time to
@@ -46,7 +46,7 @@ As always, please be kind and patient with others.
 When you find a bug and want to report it, the first step is to check that it has not already been reported.
 Use the search functionality of the GitHub issue tracker to find identical or related issues.
 If your issue or bug has already been reported, please do not open a new issue.
-Instead, either "upvote" the original report by leaving a 👍 reaction or, 
+Instead, either "upvote" the original report by leaving a 👍 reaction or,
 if you have additional information which may be relevant to the discussion, leave a comment on that issue.
 
 If your bug isn't reported yet, create a new issue.
@@ -81,7 +81,7 @@ and then install the Python dependencies
 python -m pip install -e ".[dev, docs]"
 ```
 
-we install the optional `dev` (developer) and `docs` (documentation) dependencies so that we can 
+we install the optional `dev` (developer) and `docs` (documentation) dependencies so that we can
 build documentation and run tests locally.
 
 ### Configuration
