@@ -84,9 +84,9 @@ def runnable_distribution_factory(table_from: str, distribution_name="distributi
             sa_column=Column(Integer, ForeignKey(table_from + ".identifier", ondelete="CASCADE"))
         )
 
-    RunnableDistributionORM.__name__ = (
-        RunnableDistributionORM.__qualname__
-    ) = f"{distribution_name}_{table_from}"
+    RunnableDistributionORM.__name__ = RunnableDistributionORM.__qualname__ = (
+        f"{distribution_name}_{table_from}"
+    )
     return RunnableDistributionORM
 
 

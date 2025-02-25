@@ -49,7 +49,7 @@ cycle="$2"
 backup_dir="${BACKUP_PATH}/${data_to_restore}/${data_to_restore}_${cycle}"
 destination_dir="$DESTINATION_PATH"
 
-shift 2 
+shift 2
 level=-2
 
 while [ $# -gt 0 ]; do
@@ -90,8 +90,8 @@ fi
 echo "Proceeding..."
 concluded=false
 i=0
-# Checks that all partial files exist whether level is set or not. 
-# If it not set, it determines the level as the highest label of the available incremental files.   
+# Checks that all partial files exist whether level is set or not.
+# If it not set, it determines the level as the highest label of the available incremental files.
 while [ "$concluded" = false ]; do
     backup_file="${backup_dir}/${data_to_restore}${i}.tar.gz"
     if [ $i -le $level ] || [ $i -eq 0 ]; then

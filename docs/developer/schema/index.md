@@ -34,8 +34,8 @@ This section will be updated at a later date (as of 16-12-2024) and will describ
  - A brief discussion on how to relationships an attribute definition, with a link to the ["relationships"](relationships.md) page.
 
 ## Changing the Metadata Schema Implementation
-On a high level, changes to the metadata schema implementation consist of three steps: 
- 
+On a high level, changes to the metadata schema implementation consist of three steps:
+
  * updating the schema implementation in [`src/database/model`](https://github.com/aiondemand/AIOD-rest-api/tree/develop/src/database/model),
  * updating or adding tests which test those changes, and
  * adding a [database migration script](migration.md) which updates the database accordingly.
@@ -50,5 +50,3 @@ The subsections in the sidebar document how to execute these steps depending on 
  - [Attributes](attributes.md) explains how to work with attributes that do not refer to any external tables. For example, adding a field which stores a URL.
  - [Relationships](relationships.md) explains how to work with attributes which define relationships between objects. For example, an asset's creator which is represented with a link to an `Agent`.
  - [Objects](objects.md) explains how work with objects as a whole. For example, adding an entirely new entity to the schema.
-
-

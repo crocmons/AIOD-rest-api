@@ -23,7 +23,7 @@ With the sqlserver container running (e.g., by using `./scripts/up.sh`, you can 
 docker run -v $(pwd)/alembic:/alembic:ro  -v $(pwd)/src:/app -it --network aiod-rest-api_default  aiod-migration
 ```
 Make sure that the specified `--network` is the docker network that has the `sqlserver` container.
-The alembic directory is mounted to ensure the latest migrations are available, 
+The alembic directory is mounted to ensure the latest migrations are available,
 the src directory is mounted so the migration scripts can use defined classes and variable from the project.
 
 ## Update the Database
@@ -42,7 +42,7 @@ However, if you would attempt to run the Alembic migrations from scratch, they w
 Alembic stores information on the migration status in the database.
 We can update the database entry to tell Alembic on which revision we are.
 For example, to find out what revision `develop` is on:
- 
+
 1. Check out the development branch, and ensure there are no local changes (in `./alembic`).
 2. Start docker compose, ensure the database is running, and start the alembic container with `--entrypoint=/bin/bash`.
 2. Run `alembic head` to get the hash of the latest revision (e.g., `d09ed8ad4533`), or use `alembic history` to find the right hash.
@@ -51,7 +51,7 @@ For example, to find out what revision `develop` is on:
 
 ## Adding a Revision
 
-Build the docker image above, and start a container of it with shell as entry: 
+Build the docker image above, and start a container of it with shell as entry:
 
 ```bash
 docker run -v $(pwd)/alembic:/alembic  -v $(pwd)/src:/app -it --network aiod_default --entrypoint=/bin/bash  aiod-migration

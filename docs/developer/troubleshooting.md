@@ -21,6 +21,6 @@ By default, logging output is at `logging.INFO` level, so if you want to capture
 must first set it to `logging.DEBUG`.
 
 You can find the error in the docker logs as `docker logs CONTAINER_NAME 2>&1 | grep -e "REFERENCE"`,
-e.g.,`docker logs apiserver 2>&1 | grep -e "d47cb85f6cf64c158dbb65e1a891903f"`. The log message will 
-contain information about the type of request (`GET`) the path and query (`/datasets/v1/42`), and 
+e.g.,`docker logs apiserver 2>&1 | grep -e "d47cb85f6cf64c158dbb65e1a891903f"`. The log message will
+contain information about the type of request (`GET`) the path and query (`/datasets/v1/42`), and
 the body content (in the case of requests that have one).

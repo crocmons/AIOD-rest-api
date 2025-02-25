@@ -12,7 +12,7 @@ A clear and concise description of what the bug is.
 
 **Error Reference**
 Please indicate which server you were connecting to (e.g., api.aiod.eu).
-If the server provided a reference code, please provide it (a hexidecimal string, like `d47cb85f6cf64c158dbb65e1a891903f`).
+If the server provided a reference code, please provide it (a hexadecimal string, like `d47cb85f6cf64c158dbb65e1a891903f`).
 
 **To Reproduce**
 Please provide a [minimal, reproducible example](https://stackoverflow.com/help/minimal-reproducible-example). Preferably a (set of) complete queries which do not behave as expected.

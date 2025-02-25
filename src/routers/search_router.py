@@ -25,7 +25,7 @@ class SearchResult(GenericModel, Generic[RESOURCE_READ]):
     total_hits: int = Field(description="The total number of results.")
     resources: list[RESOURCE_READ] = Field(description="The resources matching the search query.")
     limit: int = Field(
-        description="The maximum number of returned results, as specified in the " "input."
+        description="The maximum number of returned results, as specified in the input."
     )
     offset: int = Field(description="The offset, as specified in the input.")
 

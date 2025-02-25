@@ -37,8 +37,7 @@ class ResourceConnectorByDate(ResourceConnector, Generic[RESOURCE]):
     ) -> Iterator[RESOURCE | ResourceWithRelations[RESOURCE] | RecordError]:
         if limit is not None:
             raise ValueError(
-                "Limit not implemented for this connector. Please remove the command "
-                "line argument."
+                "Limit not implemented for this connector. Please remove the command line argument."
             )
         if to_excl is not None:
             logging.warning("to_excl should only be set in (unit) tests")

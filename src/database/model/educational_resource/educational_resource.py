@@ -32,9 +32,7 @@ class EducationalResourceBase(AIResourceBase):
     )
 
 
-class EducationalResource(
-    EducationalResourceBase, AbstractAIResource, table=True
-):  # type: ignore [call-arg]
+class EducationalResource(EducationalResourceBase, AbstractAIResource, table=True):  # type: ignore [call-arg]
     __tablename__ = "educational_resource"
 
     type_identifier: int | None = Field(

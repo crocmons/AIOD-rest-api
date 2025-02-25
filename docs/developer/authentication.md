@@ -19,5 +19,5 @@ You can test authentication by e.g.,:
 5. You should now be logged in. You can verify this by accessing an endpoint that requires authentication, such as `/authorization_test`.
 
 ## Connecting to Keycloak Console
-To connect to the Keycloak console, visit http://localhost/aiod-auth. 
+To connect to the Keycloak console, visit http://localhost/aiod-auth.
 In the development instance the administrator username is 'admin' and its password 'password'.

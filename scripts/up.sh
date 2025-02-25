@@ -24,4 +24,3 @@ fi
 command="docker compose --env-file=.env --env-file=override.env -f docker-compose.yaml ${compose_with_dev} ${profiles} up -d"
 echo "${command}"
 eval "${command}"
-

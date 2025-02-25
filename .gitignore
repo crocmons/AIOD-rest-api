@@ -14,7 +14,7 @@ logstash/config/pipeline
 logstash/config/sql
 
 
-# MacOS 
+# MacOS
 .DS_Store
 
 # Byte-compiled / optimized / DLL files

@@ -6,6 +6,7 @@ See https://schema.org/Dataset.
 Using pydantic_schemaorg was not possible. Swagger does not play nicely with the circular
 references present in the schema.
 """
+
 import datetime
 
 from pydantic import BaseModel, Field, Extra
@@ -88,9 +89,12 @@ class SchemaDotOrgDataset(BaseModel):
         description="A reference to another creative work, such as another publication, web page,"
         "scholarly article, etc.",
     )
-    creator: list[
-        SchemaDotOrgOrganization | SchemaDotOrgPerson
-    ] | SchemaDotOrgOrganization | SchemaDotOrgPerson | None = Field(
+    creator: (
+        list[SchemaDotOrgOrganization | SchemaDotOrgPerson]
+        | SchemaDotOrgOrganization
+        | SchemaDotOrgPerson
+        | None
+    ) = Field(
         default=None,
         description="The creator/author of this CreativeWork. This is the same as the Author "
         "property for CreativeWork.",
@@ -133,9 +137,12 @@ class SchemaDotOrgDataset(BaseModel):
         "format.",
     )
 
-    funder: list[
-        SchemaDotOrgOrganization | SchemaDotOrgPerson
-    ] | SchemaDotOrgOrganization | SchemaDotOrgPerson | None = Field(
+    funder: (
+        list[SchemaDotOrgOrganization | SchemaDotOrgPerson]
+        | SchemaDotOrgOrganization
+        | SchemaDotOrgPerson
+        | None
+    ) = Field(
         default=None,
         description="A person or organization that supports (sponsors) something through some kind "
         "of financial"

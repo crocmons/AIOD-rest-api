@@ -241,7 +241,7 @@
                 "key":"dataset",
                 "subtype":{
                    "buckets":[
-                      
+
                    ],
                    "doc_count_error_upper_bound":0,
                    "sum_other_doc_count":0
@@ -252,7 +252,7 @@
                 "key":"software",
                 "subtype":{
                    "buckets":[
-                      
+
                    ],
                    "doc_count_error_upper_bound":0,
                    "sum_other_doc_count":0
@@ -263,7 +263,7 @@
                 "key":"presentation",
                 "subtype":{
                    "buckets":[
-                      
+
                    ],
                    "doc_count_error_upper_bound":0,
                    "sum_other_doc_count":0
@@ -274,7 +274,7 @@
                 "key":"other",
                 "subtype":{
                    "buckets":[
-                      
+
                    ],
                    "doc_count_error_upper_bound":0,
                    "sum_other_doc_count":0
@@ -285,7 +285,7 @@
                 "key":"poster",
                 "subtype":{
                    "buckets":[
-                      
+
                    ],
                    "doc_count_error_upper_bound":0,
                    "sum_other_doc_count":0
@@ -296,7 +296,7 @@
                 "key":"video",
                 "subtype":{
                    "buckets":[
-                      
+
                    ],
                    "doc_count_error_upper_bound":0,
                    "sum_other_doc_count":0
@@ -307,7 +307,7 @@
                 "key":"lesson",
                 "subtype":{
                    "buckets":[
-                      
+
                    ],
                    "doc_count_error_upper_bound":0,
                    "sum_other_doc_count":0
@@ -318,7 +318,7 @@
                 "key":"physicalobject",
                 "subtype":{
                    "buckets":[
-                      
+
                    ],
                    "doc_count_error_upper_bound":0,
                    "sum_other_doc_count":0

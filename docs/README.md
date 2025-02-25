@@ -6,7 +6,7 @@ It collects metadata from platforms such as [_Zendodo_](https://zenodo.org), [_H
 and is connected to European projects like [Bonsapps](https://bonsapps.eu) and [AIDA](https://www.i-aida.org).
 Metadata of datasets, models, papers, news, and more from all of these sources is available through a REST API at [api.aiod.eu](https://api.aiod.eu/).
 
-**🧑‍🔬 For most users:** 
+**🧑‍🔬 For most users:**
 Many users will only use the REST API indirectly, for example;
 through [My Resources](https://github.com/aiondemand/AIOD-marketplace-frontend/) to browse assets,
 through [RAIL](https://github.com/aiondemand/aiod-rail) to conduct ML experiments,

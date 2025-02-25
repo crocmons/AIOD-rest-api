@@ -134,7 +134,7 @@ class FindByNameDeserializer(DeSerializer[NamedRelation]):
             return None
         if isinstance(name, list):
             raise ValueError(
-                "Expected a single value. Do you need to use " "FindByNameDeserializerList instead?"
+                "Expected a single value. Do you need to use FindByNameDeserializerList instead?"
             )
         name = name.lower()
         query = select(self.clazz.identifier).where(self.clazz.name == name)
@@ -182,7 +182,7 @@ class CastDeserializer(DeSerializer[SQLModel]):
             return None
         if isinstance(serialized, list):
             raise ValueError(
-                "Expected a single value. Do you need to use CastDeserializerList " "instead?"
+                "Expected a single value. Do you need to use CastDeserializerList instead?"
             )
         return self._deserialize_single_resource(serialized, session)
 

@@ -1,4 +1,4 @@
-# Keycloak Service 
+# Keycloak Service
 
 When running the metadata catalogue in production, you want to ensure that users can authenticate
 so that proper authorization over the endpoints can take place.
@@ -19,9 +19,9 @@ As well as the `openid_connect_url` in `./src/config.override.toml` (for authent
 openid_connect_url = "https://auth.aiod.eu/aiod-auth/realms/aiod/.well-known/openid-configuration"
 ```
 
-## Using External Identity Providers 
+## Using External Identity Providers
 
-There are two ways to integrate external identity providers (e.g. Google, [EGI Check-in](https://docs.egi.eu/users/aai/check-in/)). 
+There are two ways to integrate external identity providers (e.g. Google, [EGI Check-in](https://docs.egi.eu/users/aai/check-in/)).
 
 Create both a private and a public client in the external provider (this step is required for both options below).
 
@@ -30,9 +30,9 @@ Create both a private and a public client in the external provider (this step is
    - Update `server_url`, `client_idr`, `client_id_swagger` `openid_connect_url` and `scopes` in `./src/config.override.toml`.
    - In this setup, the Keycloak container is not required and can be shut down.
 ### Option 2: use keycloak as an identity broker
-   - Details can be found in the Keycloak documentation: [Integrating identity providers](https://www.keycloak.org/docs/latest/server_admin/index.html#_identity_broker). 
+   - Details can be found in the Keycloak documentation: [Integrating identity providers](https://www.keycloak.org/docs/latest/server_admin/index.html#_identity_broker).
    - This method allows to configure multiple IdPs.
-  
+
 [//]: # (Should include information on how to run it locally then...)
 
 ## Roles
@@ -49,15 +49,15 @@ New roles can be created from the admin console, see ["Creating a realm role"](h
 To verify the Keycloak service is configured correctly using the Swagger interface, follows these steps:
 
  1. Open your browser and go to `http://$HOSTNAME`
- 2. Go to `/authorization_test`, click on `try it out` and `execute`. 
+ 2. Go to `/authorization_test`, click on `try it out` and `execute`.
     - You should get an `Error: Unauthorized`
  3. Log in:
     - Click the `Authorize` button in the top-right corner.
     - Select `OpenIdConnect (OAuth2, authorization_code with PKCE)`.
-    - Click `Authorize` and log in using any available identity provider. 
+    - Click `Authorize` and log in using any available identity provider.
  4. Return to `/authorization_test`, click `try it out` and then `execute` again.
 
-If authentication is successful, the request should now be authtorised. 
+If authentication is successful, the request should now be authtorised.
 
 ## Importing and Exporting Realm and User Files
 See also ["Importing and Exporting Realms"](https://www.keycloak.org/server/importExport) in the Keycloak documentation.
@@ -75,4 +75,3 @@ docker exec -it keycloak /opt/keycloak/bin/kc.sh export --dir /opt/keycloak/data
 This puts the exported files in the `${DATA_PATH}/keycloak/data/export` directory.
 
 To **import**, just place the export files into the `{DATA_PATH}/keycloak/data/import` directory.
-

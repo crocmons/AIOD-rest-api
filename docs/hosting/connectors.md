@@ -21,7 +21,7 @@ For example, you can use the following commands when starting the connectors for
 !!! warning "Connectors and Syncing Nodes"
 
     If you are configuring your metadata catalogue as part of a [set of root nodes](synchronization.md),
-    only one of the root nodes should be running the connectors. Running the same connector on 
+    only one of the root nodes should be running the connectors. Running the same connector on
     multiple root nodes _may_ introduce conflicts.
 
 The full list of connector profiles are:
@@ -47,7 +47,7 @@ AI Builder's models are only accessible with authentication, and for this the AP
 Because we do not want to expose the API key, we obfuscate it and use `AIBUILDER_API_TOKEN` in URLs.
 This means that for using the url of the `same_as` field of the AIBuilder models, you will need to substitute `AIBUILDER_API_TOKEN` on the url for your actual API token value.
 
-## HuggingFace 
+## HuggingFace
 
 **Profile**: `huggingface-datasets`
 

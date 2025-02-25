@@ -154,7 +154,7 @@
               </form>
           </#if>
 
-          
+
 
           <#if displayInfo>
               <div id="kc-info" class="${properties.kcSignUpClass!}">

@@ -25,8 +25,7 @@ class ResourceConnectorOnStartUp(ResourceConnector, Generic[RESOURCE]):
             return
         if limit is not None:
             logging.warning(
-                "Limiting the results! Please remove the limit command line argument "
-                "in production."
+                "Limiting the results! Please remove the limit command line argument in production."
             )
         state["result"] = f"started on {datetime.datetime.now()}"
         yield from self.fetch(limit=limit)

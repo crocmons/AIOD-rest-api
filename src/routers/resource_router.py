@@ -547,9 +547,7 @@ class ResourceRouter(abc.ABC):
             user: KeycloakUser = Depends(get_user_or_raise),
         ):
             with DbSession() as session:
-                resource = self._retrieve_resource(
-                    identifier=identifier, session=session
-                )  # type: ignore
+                resource = self._retrieve_resource(identifier=identifier, session=session)  # type: ignore
 
                 if not resource.aiod_entry.status == EntryStatus.DRAFT:
                     msg = (
@@ -582,9 +580,7 @@ class ResourceRouter(abc.ABC):
             user: KeycloakUser = Depends(get_user_or_raise),
         ):
             with DbSession() as session:
-                resource = self._retrieve_resource(
-                    identifier=identifier, session=session
-                )  # type: ignore
+                resource = self._retrieve_resource(identifier=identifier, session=session)  # type: ignore
 
                 if not user_can_administer(user, resource.aiod_entry):
                     # Could choose to instead give same error as if resource does not exist.

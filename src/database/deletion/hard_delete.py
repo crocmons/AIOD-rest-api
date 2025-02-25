@@ -6,6 +6,7 @@ We use soft-deletion for most resources, meaning that the .date_deleted attribut
 delete request, rather than actual deletion. This module hard deletes those items that have been
 soft deleted some time ago.
 """
+
 import argparse
 import datetime
 from datetime import timedelta

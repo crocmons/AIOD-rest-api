@@ -1,10 +1,11 @@
 """Extend max length of text in note
 
 Revision ID: 0a23b40cc09c
-Revises: 
+Revises:
 Create Date: 2024-08-29 11:37:20.827291
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
