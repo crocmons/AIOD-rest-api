@@ -138,14 +138,30 @@ def test_a_submitted_asset_is_pending_for_review(client, publication):
         assert queue.status_code == HTTPStatus.OK, queue.json()
         assert len(queue.json()) == 1, "A submitted asset should be pending until a review is done."
 
-
 def test_get_submission_by_id(client, publication):
     register_asset(publication, owner=ALICE, status=EntryStatus.PUBLISHED)
 
     with logged_in_user(REVIEWER):
-        queue = client.get("/submissions/v1/1", headers={"Authorization": "Fake token"})
-        assert queue.status_code == HTTPStatus.OK, queue.json()
-        assert queue.json()["identifier"] == 1
+        submission = client.get("/submissions/v1/1", headers={"Authorization": "Fake token"})
+        assert submission.status_code == HTTPStatus.OK, submission.json()
+
+        submission_dict = submission.json()
+        submission_date = submission_dict.pop("request_date")
+        review_date = submission_dict["reviews"][0].pop("decision_date")
+        assert submission_date < review_date
+        assert submission_dict == {
+            "identifier": 1,
+            "aiod_entry_identifier": 1,
+            "reviews": [
+                {
+                    "identifier": 1,
+                    "decision": "accepted",
+                    "comment": "foo",
+                    "submission_identifier": 1,
+                }
+            ],
+        }
+
 
 
 def test_unknown_submission_raises_404(client):
@@ -271,6 +287,7 @@ def register_asset(asset: AIoDConcept, /, *, owner: KeycloakUser, status: EntryS
                 review = Review(
                     decision=Decision.ACCEPTED,
                     reviewer_identifier=REVIEWER._subject_identifier,
+                    comment="foo",
                 )
                 review.submission = submission
                 session.add(review)

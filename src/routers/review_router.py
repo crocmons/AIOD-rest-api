@@ -2,11 +2,11 @@ import enum
 from http import HTTPStatus
 from typing import Sequence, Literal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from sqlmodel import select
 
-from database.session import DbSession
-from database.review import Submission, Review
+from database.session import DbSession, get_session
+from database.review import Submission, Review, SubmissionWithReviews, SubmissionBase
 
 
 def create(url_prefix: str) -> APIRouter:
@@ -17,12 +17,14 @@ def create(url_prefix: str) -> APIRouter:
         f"{url_prefix}/submissions/{version}/",
         tags=["Reviewing"],
         description="List all assets submitted for review.",
+        response_model=Sequence[SubmissionBase],
     )(list_submissions)
 
     router.get(
         f"{url_prefix}/submissions/{version}/{{identifier}}",
         tags=["Reviewing"],
         description="Retrieve a specific submission.",
+        response_model=SubmissionWithReviews,
     )(get_submission)
 
     # Add MiddleWare which requires authentication as reviewer role
@@ -71,10 +73,9 @@ def list_submissions(mode: ListMode = ListMode.NEWEST) -> Sequence[Submission]:
     raise ValueError(f"`mode` should be one of {ListMode!r} but is {mode!r}.")
 
 
-def get_submission(identifier: int) -> Submission:
-    with DbSession() as session:
-        query = select(Submission).where(Submission.identifier == identifier)
-        submission = session.scalars(query).first()
+def get_submission(identifier: int, session=Depends(get_session)) -> Submission:
+    query = select(Submission).where(Submission.identifier == identifier)
+    submission = session.scalars(query).first()
     if submission:
         return submission
     raise HTTPException(
