@@ -17,11 +17,7 @@ class AIResourceRelevantLink(SQLModel, table=True):  # type: ignore [call-arg]
     relevant_identifier: int = Field(foreign_key="ai_resource.identifier", primary_key=True)
 
 
-class AIResourceBase(SQLModel):
-    pass
-
-
-class AIResourceORM(AIResourceBase, table=True):  # type: ignore [call-arg]
+class AIResourceORM(SQLModel, table=True):  # type: ignore [call-arg]
     __tablename__ = "ai_resource"
     identifier: int = Field(default=None, primary_key=True)
     type: str = Field(default="will be overwritten by resource_router")
