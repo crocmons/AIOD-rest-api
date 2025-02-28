@@ -88,12 +88,18 @@ def test_drafts_are_private(
     # with and without authentication
 
 
-def test_user_can_submit_draft_for_review(client, publication):
+@pytest.mark.parametrize(
+    "comment", [None, "foo"]
+)
+def test_user_can_submit_draft_for_review(comment, client, publication):
     identifier = register_asset(publication, owner=ALICE, status=EntryStatus.DRAFT)
+    content = f'{{"comment": "{comment}"}}' if comment else None
+
     with logged_in_user(ALICE):
         submission = client.post(
             f"/publications/submit/v1/{identifier}",
             headers={"Authorization": "Fake token"},
+            content=content,
         )
         assert submission.status_code == HTTPStatus.OK, submission.json()
         assert "submission_identifier" in submission.json()
@@ -102,7 +108,9 @@ def test_user_can_submit_draft_for_review(client, publication):
         queue = client.get("/submissions/v1", headers={"Authorization": "Fake token"})
         assert queue.status_code == HTTPStatus.OK, queue.json()
         assert len(queue.json()) == 1, "A successful request should result in a submission."
-        assert "requestee_identifier" not in queue.json()
+        [sub] = queue.json()
+        assert "requestee_identifier" not in sub, "Submissions should not review who submitted."
+        assert sub["comment"] == (comment if comment else ""), "Comment should be stored."
 
 
 def test_user_can_not_submit_other_for_review(client, publication):
@@ -152,6 +160,7 @@ def test_get_submission_by_id(client, publication):
         assert submission_dict == {
             "identifier": 1,
             "aiod_entry_identifier": 1,
+            "comment": "",
             "reviews": [
                 {
                     "identifier": 1,
