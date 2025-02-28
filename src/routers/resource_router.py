@@ -26,7 +26,7 @@ from database.model.resource_read_and_create import (
     resource_read,
 )
 from database.model.serializers import deserialize_resource_relationships
-from database.review import Decision, Review, Submission, ReviewCreate
+from database.review import Decision, Review, Submission, ReviewCreate, SubmissionCreate
 from database.session import DbSession
 from dependencies.filtering import ResourceFilters, ResourceFiltersParams
 from dependencies.pagination import Pagination, PaginationParams
@@ -544,6 +544,7 @@ class ResourceRouter(abc.ABC):
 
         def submit_resource(
             identifier: str,
+            submission: SubmissionCreate | None = None,
             user: KeycloakUser = Depends(get_user_or_raise),
         ):
             with DbSession() as session:
@@ -565,6 +566,7 @@ class ResourceRouter(abc.ABC):
                 review_request = Submission(
                     requestee_identifier=user._subject_identifier,
                     aiod_entry_identifier=resource.aiod_entry.identifier,
+                    comment=submission.comment if submission else "",
                 )
                 session.add(review_request)
                 session.commit()

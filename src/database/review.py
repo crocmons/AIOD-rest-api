@@ -2,7 +2,6 @@ import enum
 from datetime import datetime, timezone
 
 import sqlalchemy
-from pydantic.main import BaseModel
 from sqlalchemy import Column
 from sqlmodel import SQLModel, Field, Relationship
 
@@ -50,17 +49,22 @@ class Review(ReviewBase, table=True):  # type: ignore [call-arg]
     submission: "Submission" = Relationship(back_populates="reviews")
 
 
-class SubmissionBase(SQLModel):
+class SubmissionCreate(SQLModel):
+    """User provided information to submit a review request."""
+
+    comment: str = Field(
+        description="Optional. Comment to the reviewer to motivate the submission or provide clarification.",
+        max_length=NORMAL,
+        default="",
+        schema_extra={"example": "'IA' is not a typo, it's for L'intelligence artificielle."},
+    )
+
+
+class SubmissionBase(SubmissionCreate):
     """A review request, requested by a user to publish an asset/change."""
 
     identifier: int = Field(primary_key=True, default=None)
     request_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    comment: str = Field(
-        description="A subdivision of the country. Not necessary for most countries. ",
-        max_length=NORMAL,
-        default="",
-        schema_extra={"example": "California"},
-    )
 
     # If the entry corresponding to the thing it reviews is removed,
     # then we also want to permanently remove the review data.
