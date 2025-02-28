@@ -6,6 +6,7 @@ from pydantic.main import BaseModel
 from sqlalchemy import Column
 from sqlmodel import SQLModel, Field, Relationship
 
+from database.model.field_length import NORMAL, LONG
 
 REQUIRED_NUMBER_OF_REVIEWS = 1
 
@@ -16,34 +17,37 @@ class Decision(enum.StrEnum):
     RETRACTED = enum.auto()
 
 
-class Review(SQLModel, table=True):  # type: ignore [call-arg]
+class ReviewBase(SQLModel):
     """A review (which may be pending), requested by a user to publish an asset/change."""
 
+    comment: str = Field(
+        description="Motivation for the decision.",
+        max_length=LONG,
+        default="",
+        schema_extra={"example": "The organization's contact information is invalid."},
+    )
+    decision: Decision = Field(
+        description="The decision made by the reviewer.",
+        sa_column=Column(sqlalchemy.Enum(Decision)),
+    )
+    submission_identifier: int = Field(
+        description="The identifier of the submission (review request)."
+    )
+
+
+class ReviewCreate(ReviewBase):
+    pass
+
+
+class Review(ReviewBase, table=True):  # type: ignore [call-arg]
     __tablename__ = "review"
 
     identifier: int = Field(primary_key=True, default=None)
     decision_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-    # Not sure if size should be limited, especially if we want to use this for structured data.
-    comment: str | None = Field()
-    decision: Decision = Field(sa_column=Column(sqlalchemy.Enum(Decision)))
-
-    reviewer_identifier: str = Field(
-        foreign_key="user.subject_identifier",
-        exclude=True,
-    )
-    submission_identifier: int = Field(
-        foreign_key="submission.identifier",
-    )
+    reviewer_identifier: str = Field(foreign_key="user.subject_identifier", exclude=True)
+    submission_identifier: int = Field(foreign_key="submission.identifier")
     submission: "Submission" = Relationship(back_populates="reviews")
-
-
-class ReviewCreate(BaseModel):
-    comment: str | None = Field(description="Motivation for the decision.")
-    decision: Decision = Field(description="The decision made by the reviewer.")
-    submission_identifier: int = Field(
-        description="The identifier of the submission (review request)."
-    )
 
 
 class SubmissionBase(SQLModel):
@@ -51,6 +55,12 @@ class SubmissionBase(SQLModel):
 
     identifier: int = Field(primary_key=True, default=None)
     request_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    comment: str = Field(
+        description="A subdivision of the country. Not necessary for most countries. ",
+        max_length=NORMAL,
+        default="",
+        schema_extra={"example": "California"},
+    )
 
     # If the entry corresponding to the thing it reviews is removed,
     # then we also want to permanently remove the review data.

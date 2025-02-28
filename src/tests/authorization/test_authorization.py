@@ -152,6 +152,7 @@ def test_get_submission_by_id(client, publication):
         assert submission_dict == {
             "identifier": 1,
             "aiod_entry_identifier": 1,
+            "comment": "",
             "reviews": [
                 {
                     "identifier": 1,
