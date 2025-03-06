@@ -1,0 +1,16 @@
+Entity,Property 1,Property 2,Property 3,Property 4,Property 5,Property 6,Property 7,Property 8,Property 9,Property 10,Property 11,Property 12,Property 13,Property 14,Property 15
+experiment,exemplary_execution_settings,uses_model,uses_dataset,,,,,,,,,,,,
+airesource,documented_in,part_of,business_sector,location,,,,,,,,,,,
+aiasset,licence,pricing,applies,date_created,,,,,,,,,,,
+service,conditions,use_case_example,coverage,service_category,provider,service_type,prerequisites,service_status,,,,,,,
+educationalresource,offered_by,enrollment_end_date,offered_via,start_date,enrollment_start_date,expected_outcome,schedule,uses_resource,learning_mode,under_classification,end_date,prerequisite_knowledge,taught_by,qualification,cost
+publication,has_issn,has_isbn,,,,,,,,,,,,,
+mlmodel,training_status,,,,,,,,,,,,,,
+resourcebundle,includes_resource,includes_external_reference,,,,,,,,,,,,,
+aiodentry,content,entry_created,entry_published,modified,,,,,,,,,,,
+location,latitude,city,number,postal_code,street,region,elevation_m,longitude,,,,,,,
+distribution,has_computational_requirement,date_modified,,,,,,,,,,,,,
+computationalasset,kernel,os,pricing_scheme,,,,,,,,,,,,
+aiodconcept,sameas,relevant_link,,,,,,,,,,,,,
+runnabledistribution,compilation_time_msec,deployment_process,other_dependency,compilation_process,deployment_time_msec,execution_time_msec,software_dependency,,,,,,,,
+event,duration,event_mode,event_status,project,,,,,,,,,,,
