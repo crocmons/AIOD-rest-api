@@ -24,6 +24,12 @@ def create(url_prefix: str) -> APIRouter:
     router = APIRouter()
     version = "v1"
 
+    router.post(
+        f"{url_prefix}/submissions/retract/{version}/{{submission_identifier}}",
+        tags=["Reviewing"],
+        description="Retract an asset under review, setting its status to 'draft'.",
+    )(retract_submission)
+
     router.get(
         f"{url_prefix}/submissions/{version}/",
         tags=["Reviewing"],
@@ -148,3 +154,35 @@ def _review_resource(
     session.add(review)
     session.commit()
     return review
+
+
+def retract_submission(
+    submission_identifier: str,
+    user: KeycloakUser = Depends(get_user_or_raise),
+):
+    with DbSession() as session:
+        current_request = session.get(Submission, submission_identifier)
+        if not user_can_administer(user, current_request.asset.aiod_entry):
+            # Could choose to instead give same error as if resource does not exist.
+            msg = f"You do not have permission to retract {current_request.asset_type} {current_request.asset.identifier}."
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=msg)
+
+        if current_request is None or not current_request.is_pending:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot retract this asset, as it is not under review.",
+            )
+
+        retraction = Review(
+            decision=Decision.RETRACTED,
+            reviewer_identifier=user._subject_identifier,
+            submission_identifier=current_request.identifier,
+        )
+        current_request.asset.aiod_entry.status = EntryStatus.DRAFT
+        session.add(retraction)
+        session.commit()
+        return {
+            "review_identifier": retraction.identifier,
+            "submission_identifier": current_request.identifier,
+            "decision": retraction.decision,
+        }
