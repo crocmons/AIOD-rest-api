@@ -88,13 +88,13 @@ def _get_submissions_by_state(
             submissions = select(Submission).where(has_review)
         return session.scalars(submissions).all()
 
-def _get_all_submissions(
-    *, which: Literal[ListMode.ALL]
-) -> Sequence[Submission]:
+
+def _get_all_submissions(*, which: Literal[ListMode.ALL]) -> Sequence[Submission]:
     with DbSession() as session:
         has_review = select(1).where(Submission.identifier == Review.submission_identifier).exists()
         submissions = select(Submission).where(or_(~has_review, has_review))
         return session.scalars(submissions).all()
+
 
 def list_submissions(mode: ListMode = ListMode.NEWEST) -> Sequence[Submission]:
     # mypy does not do type narrowing properly: https://github.com/python/mypy/issues/12535
