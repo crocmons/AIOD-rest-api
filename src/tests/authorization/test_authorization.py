@@ -345,7 +345,7 @@ def test_only_reviewer_can_approve_submission(publication, client):
 
     with logged_in_user(ALICE):
         response = client.post(
-            "/publications/review/v1",
+            "/reviews/v1",
             content=str(
                 ReviewCreate(decision=Decision.ACCEPTED, submission_identifier=1, comment="").json()
             ),
@@ -355,7 +355,7 @@ def test_only_reviewer_can_approve_submission(publication, client):
 
     with logged_in_user(REVIEWER):
         response = client.post(
-            "/publications/review/v1",
+            "/reviews/v1",
             content=str(
                 ReviewCreate(decision=Decision.ACCEPTED, submission_identifier=1, comment="").json()
             ),
@@ -374,7 +374,7 @@ def test_reviewer_can_reject_submission(publication, client):
 
     with logged_in_user(REVIEWER):
         response = client.post(
-            "/publications/review/v1",
+            "/reviews/v1",
             content=str(
                 ReviewCreate(decision=Decision.REJECTED, submission_identifier=1, comment="").json()
             ),
@@ -393,7 +393,7 @@ def test_reviewer_cannot_approve_own_submission(publication, client):
 
     with logged_in_user(REVIEWER):
         response = client.post(
-            "/publications/review/v1",
+            "/reviews/v1",
             content=str(
                 ReviewCreate(decision=Decision.ACCEPTED, submission_identifier=1, comment="").json()
             ),
