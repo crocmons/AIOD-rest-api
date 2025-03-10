@@ -236,7 +236,7 @@ start-up work (e.g., populating the database).
 
 #### Database Structure
 
-The Python classes that define the database tables are found in [src/database/model/](../src/database/model/).
+The Python classes that define the database tables are found in [src/database/model/](https://github.com/aiondemand/AIOD-rest-api/tree/develop/src/database/model).
 The structure is based on the
 [metadata schema](https://github.com/aiondemand/metadata-schema).
 Updating the database schema is done using [Alembic](schema/migration.md).
