@@ -99,23 +99,16 @@ def _get_submissions_by_state(
 
 
 def _get_all_submissions(
-    *, 
+    *,
     which: Literal[ListMode.ALL],
     from_requestee: str | None = None,
-    ) -> Sequence[Submission]:
+) -> Sequence[Submission]:
     with DbSession() as session:
         has_review = select(1).where(Submission.identifier == Review.submission_identifier).exists()
         if which == ListMode.ALL:
             submissions = select(Submission).where(or_(~has_review, has_review))
         if from_requestee is not None:
-            query = query.where(Submission.requestee_identifier == from_requestee)
-        return session.scalars(submissions).all()
-
-
-def _get_all_submissions(*, which: Literal[ListMode.ALL]) -> Sequence[Submission]:
-    with DbSession() as session:
-        has_review = select(1).where(Submission.identifier == Review.submission_identifier).exists()
-        submissions = select(Submission).where(or_(~has_review, has_review))
+            submissions = submissions.where(Submission.requestee_identifier == from_requestee)
         return session.scalars(submissions).all()
 
 
