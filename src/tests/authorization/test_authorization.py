@@ -206,10 +206,13 @@ def test_unknown_submission_raises_404(client):
     [
         (REVIEWER, ListMode.PENDING, [2, 3], "Reviewer can see all pending reviews."),
         (REVIEWER, ListMode.COMPLETED, [1], "Reviewer can see all completed reviews."),
+        (REVIEWER, ListMode.ALL, [1,2,3], "Reviewer can see all reviews."),
         (ALICE, ListMode.PENDING, [2], "Alice has one pending submission and can not see Bob's."),
         (ALICE, ListMode.COMPLETED, [1], "Alice only has one completed submission."),
+        (ALICE, ListMode.ALL, [1,2], "Alice can see all her reviews, but not Bob's."),
         (BOB, ListMode.PENDING, [3], "Bob has one pending submission and can not see Alice's."),
         (BOB, ListMode.COMPLETED, [], "Bob has no completed submission."),
+        (BOB, ListMode.ALL, [3], "Bob can see all his reviews, but not Alice's."),
     ]
 )
 def test_submission_by_state_respects_privacy(user: KeycloakUser, mode: ListMode, assets: list[int], reason: str, client: TestClient, publication):
@@ -271,10 +274,10 @@ def test_retrieving_single_submission_works(user: KeycloakUser, mode: ListMode, 
 
 
 def test_user_can_retract_assets(client, publication):
-    identifier = register_asset(publication, owner=ALICE, status=EntryStatus.SUBMITTED)
+    register_asset(publication, owner=ALICE, status=EntryStatus.SUBMITTED)
     with logged_in_user(ALICE):
         response = client.post(
-            f"/publications/retract/v1/{identifier}", headers={"Authorization": "Fake token"}
+            f"/submissions/retract/v1/1", headers={"Authorization": "Fake token"}
         )
         assert "review_identifier" in response.json()
         assert Decision.RETRACTED == response.json()["decision"]
@@ -292,7 +295,7 @@ def test_other_user_can_not_retract_assets(client, publication):
 
     with logged_in_user(BOB):
         response = client.post(
-            f"/publications/retract/v1/{identifier}", headers={"Authorization": "Fake token"}
+            f"/submissions/retract/v1/{identifier}", headers={"Authorization": "Fake token"}
         )
         assert response.status_code == HTTPStatus.FORBIDDEN, response.json()
 
