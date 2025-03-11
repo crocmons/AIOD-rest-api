@@ -73,7 +73,6 @@ def _get_single_submission(
     with DbSession() as session:
         has_review = select(1).where(Submission.identifier == Review.submission_identifier).exists()
         query = select(Submission).where(~has_review)
-
         if which == ListMode.NEWEST:
             query = query.order_by(Submission.request_date.desc())  # type: ignore[attr-defined]
         if from_requestee is not None:
@@ -84,29 +83,16 @@ def _get_single_submission(
 
 def _get_submissions_by_state(
     *,
-    which: Literal[ListMode.COMPLETED, ListMode.PENDING],
+    which: Literal[ListMode.COMPLETED, ListMode.PENDING, ListMode.ALL],
     from_requestee: str | None = None,
 ) -> Sequence[Submission]:
     with DbSession() as session:
         has_review = select(1).where(Submission.identifier == Review.submission_identifier).exists()
+        submissions = select(Submission)
         if which == ListMode.PENDING:
-            submissions = select(Submission).where(~has_review)
+            submissions = submissions.where(~has_review)
         if which == ListMode.COMPLETED:
-            submissions = select(Submission).where(has_review)
-        if from_requestee is not None:
-            submissions = submissions.where(Submission.requestee_identifier == from_requestee)
-        return session.scalars(submissions).all()
-
-
-def _get_all_submissions(
-    *,
-    which: Literal[ListMode.ALL],
-    from_requestee: str | None = None,
-) -> Sequence[Submission]:
-    with DbSession() as session:
-        has_review = select(1).where(Submission.identifier == Review.submission_identifier).exists()
-        if which == ListMode.ALL:
-            submissions = select(Submission).where(or_(~has_review, has_review))
+            submissions = submissions.where(has_review)
         if from_requestee is not None:
             submissions = submissions.where(Submission.requestee_identifier == from_requestee)
         return session.scalars(submissions).all()
@@ -120,10 +106,8 @@ def list_submissions(
     if mode in [ListMode.NEWEST, ListMode.OLDEST]:
         submission = _get_single_submission(which=mode, from_requestee=user_filter)  # type: ignore[arg-type]
         return [submission] if submission else []
-    if mode in [ListMode.PENDING, ListMode.COMPLETED]:
+    if mode in [ListMode.PENDING, ListMode.COMPLETED, ListMode.ALL]:
         return _get_submissions_by_state(which=mode, from_requestee=user_filter)  # type: ignore[arg-type]
-    if mode in [ListMode.ALL]:
-        return _get_all_submissions(which=mode)  # type: ignore[arg-type]
     raise ValueError(f"`mode` should be one of {ListMode!r} but is {mode!r}.")
 
 

@@ -206,10 +206,13 @@ def test_unknown_submission_raises_404(client):
     [
         (REVIEWER, ListMode.PENDING, [2, 3], "Reviewer can see all pending reviews."),
         (REVIEWER, ListMode.COMPLETED, [1], "Reviewer can see all completed reviews."),
+        (REVIEWER, ListMode.ALL, [1,2,3], "Reviewer can see all reviews."),
         (ALICE, ListMode.PENDING, [2], "Alice has one pending submission and can not see Bob's."),
         (ALICE, ListMode.COMPLETED, [1], "Alice only has one completed submission."),
+        (ALICE, ListMode.ALL, [1,2], "Alice can see all her reviews, but not Bob's."),
         (BOB, ListMode.PENDING, [3], "Bob has one pending submission and can not see Alice's."),
         (BOB, ListMode.COMPLETED, [], "Bob has no completed submission."),
+        (BOB, ListMode.ALL, [3], "Bob can see all his reviews, but not Alice's."),
     ]
 )
 def test_submission_by_state_respects_privacy(user: KeycloakUser, mode: ListMode, assets: list[int], reason: str, client: TestClient, publication):
