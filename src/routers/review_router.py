@@ -19,8 +19,6 @@ from database.review import (
 )
 from database.model.concept.aiod_entry import EntryStatus, AIoDEntryORM
 
-from sqlalchemy import or_
-
 
 def create(url_prefix: str) -> APIRouter:
     router = APIRouter()
@@ -72,13 +70,13 @@ def _get_single_submission(
 ) -> Submission | None:
     with DbSession() as session:
         has_review = select(1).where(Submission.identifier == Review.submission_identifier).exists()
-        query = select(Submission).where(~has_review)
+        submissions = select(Submission).where(~has_review)
         if which == ListMode.NEWEST:
-            query = query.order_by(Submission.request_date.desc())  # type: ignore[attr-defined]
+            submissions = submissions.order_by(Submission.request_date.desc())  # type: ignore[attr-defined]
         if from_requestee is not None:
-            query = query.where(Submission.requestee_identifier == from_requestee)
+            submissions = submissions.where(Submission.requestee_identifier == from_requestee)
 
-        return session.scalars(query).first()
+        return session.scalars(submissions).first()
 
 
 def _get_submissions_by_state(
@@ -116,8 +114,7 @@ def get_submission(
     user: KeycloakUser = Depends(get_user_or_raise),
     session: Session = Depends(get_session),
 ) -> Submission:
-    query = select(Submission).where(Submission.identifier == identifier)
-    submission = session.scalars(query).first()
+    submission = session.get(Submission, identifier)
     if not submission:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
@@ -184,13 +181,13 @@ def retract_submission(
     user: KeycloakUser = Depends(get_user_or_raise),
 ):
     with DbSession() as session:
-        current_request = session.get(Submission, submission_identifier)
-        if not user_can_administer(user, current_request.asset.aiod_entry):
+        submission = session.get(Submission, submission_identifier)
+        if not user_can_administer(user, submission.asset.aiod_entry):
             # Could choose to instead give same error as if resource does not exist.
-            msg = f"You do not have permission to retract {current_request.asset_type} {current_request.asset.identifier}."
+            msg = f"You do not have permission to retract {submission.asset_type} {submission.asset.identifier}."
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=msg)
 
-        if current_request is None or not current_request.is_pending:
+        if submission is None or not submission.is_pending:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Cannot retract this asset, as it is not under review.",
@@ -199,13 +196,13 @@ def retract_submission(
         retraction = Review(
             decision=Decision.RETRACTED,
             reviewer_identifier=user._subject_identifier,
-            submission_identifier=current_request.identifier,
+            submission_identifier=submission.identifier,
         )
-        current_request.asset.aiod_entry.status = EntryStatus.DRAFT
+        submission.asset.aiod_entry.status = EntryStatus.DRAFT
         session.add(retraction)
         session.commit()
         return {
             "review_identifier": retraction.identifier,
-            "submission_identifier": current_request.identifier,
+            "submission_identifier": submission.identifier,
             "decision": retraction.decision,
         }
