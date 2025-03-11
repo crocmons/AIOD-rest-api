@@ -89,7 +89,3 @@ python3 connectors/synchronization.py \
 python3 connectors/synchronization.py \
   -c connectors.example.enum.EnumConnectorNewsCategory \
   -w /opt/connectors/data/enum/news_category
-
-python3 connectors/synchronization.py \
-  -c connectors.example.enum.EnumConnectorStatus \
-  -w /opt/connectors/data/enum/status
