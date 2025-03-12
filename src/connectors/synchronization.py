@@ -165,7 +165,8 @@ def _create_or_fetch_related_objects(session: Session, item: ResourceWithRelatio
 
 
 def publish_resource(session: Session, item: AIoDConcept):
-    item.aiod_entry.status = EntryStatus.PUBLISHED
+    if hasattr(item, "aiod_entry"):
+        item.aiod_entry.status = EntryStatus.PUBLISHED
     session.add(item)
     session.commit()
     return item
