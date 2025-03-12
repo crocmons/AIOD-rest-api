@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Type
 
+from pydantic import create_model
 from sqlalchemy import Column, Integer, ForeignKey
 from sqlmodel import Field
 
@@ -52,16 +53,22 @@ class DistributionBase(AIoDConceptBase):
 
 
 def distribution_factory(table_from: str, distribution_name="distribution") -> Type:
-    class DistributionORM(DistributionBase, table=True):  # type: ignore [call-arg]
-        __tablename__ = f"{distribution_name}_{table_from}"
-
-        identifier: int | None = Field(primary_key=True)
-
-        asset_identifier: int | None = Field(
-            sa_column=Column(Integer, ForeignKey(table_from + ".identifier", ondelete="CASCADE"))
-        )
-
-    DistributionORM.__name__ = DistributionORM.__qualname__ = f"{distribution_name}_{table_from}"
+    name = f"{distribution_name}_{table_from}"
+    DistributionORM = create_model(
+        name,
+        __base__=(DistributionBase,),
+        __cls_kwargs__=dict(table=True),
+        identifier=(int | None, Field(primary_key=True)),
+        asset_identifier=(
+            int | None,
+            Field(
+                sa_column=Column(
+                    Integer, ForeignKey(table_from + ".identifier", ondelete="CASCADE")
+                )
+            ),
+        ),
+    )
+    DistributionORM.__tablename__ = name
     return DistributionORM
 
 

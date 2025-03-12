@@ -1,5 +1,6 @@
 from typing import Type
 
+from pydantic import create_model
 from sqlalchemy import Column, Integer, ForeignKey
 from sqlmodel import Field, SQLModel
 
@@ -17,15 +18,21 @@ class NoteBase(SQLModel):
 
 
 def note_factory(table_from: str) -> Type:
-    class NoteORM(NoteBase, table=True):  # type: ignore [call-arg]
-        __tablename__ = f"note_{table_from}"
-
-        identifier: int | None = Field(primary_key=True)
-        linked_identifier: int | None = Field(
-            sa_column=Column(Integer, ForeignKey(table_from + ".identifier", ondelete="CASCADE"))
-        )
-
-    NoteORM.__name__ = NoteORM.__qualname__ = f"note_{table_from}"
+    NoteORM = create_model(
+        f"note_{table_from}",
+        __base__=(NoteBase,),
+        __cls_kwargs__=dict(table=True),
+        identifier=(int | None, Field(primary_key=True)),
+        linked_identifier=(
+            int | None,
+            Field(
+                sa_column=Column(
+                    Integer, ForeignKey(table_from + ".identifier", ondelete="CASCADE")
+                )
+            ),
+        ),
+    )
+    NoteORM.__tablename__ = f"note_{table_from}"
     return NoteORM
 
 

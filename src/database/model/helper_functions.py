@@ -1,5 +1,6 @@
 from typing import Type, TYPE_CHECKING
 
+from pydantic import create_model
 from sqlalchemy import Column, Integer, ForeignKey
 from sqlmodel import SQLModel, Field
 
@@ -18,21 +19,30 @@ def many_to_many_link_factory(
     sides.
     """
     prefix = "" if table_prefix is None else f"{table_prefix}_"
-
-    class LinkTable(SQLModel, table=True):  # type: ignore [call-arg]
-        __tablename__ = f"{prefix}{table_from}_{table_to}_link"
-        from_identifier: int = Field(
-            sa_column=Column(
-                Integer,
-                ForeignKey(f"{table_from}.{table_from_identifier}", ondelete="CASCADE"),
+    name = f"{prefix}{table_from}_{table_to}_link"
+    LinkTable = create_model(
+        name,
+        __base__=(SQLModel,),
+        __cls_kwargs__=dict(table=True),
+        from_identifier=(
+            int,
+            Field(
+                sa_column=Column(
+                    Integer,
+                    ForeignKey(f"{table_from}.{table_from_identifier}", ondelete="CASCADE"),
+                    primary_key=True,
+                )
+            ),
+        ),
+        linked_identifier=(
+            int,
+            Field(
+                foreign_key=f"{table_to}.{table_to_identifier}",
                 primary_key=True,
-            )
-        )
-        linked_identifier: int = Field(
-            foreign_key=f"{table_to}.{table_to_identifier}", primary_key=True
-        )
-
-    LinkTable.__name__ = LinkTable.__qualname__ = LinkTable.__tablename__
+            ),
+        ),
+    )
+    LinkTable.__tablename__ = name
     return LinkTable
 
 
