@@ -42,6 +42,7 @@ def many_to_many_link_factory(
             ),
         ),
     )
+    # Pydantic will issue a warning for non-default dunder attributes, so we add it after creation
     LinkTable.__tablename__ = name
     return LinkTable
 

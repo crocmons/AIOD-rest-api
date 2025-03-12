@@ -32,6 +32,7 @@ def note_factory(table_from: str) -> Type:
             ),
         ),
     )
+    # Pydantic will issue a warning for non-default dunder attributes, so we add it after creation
     NoteORM.__tablename__ = f"note_{table_from}"
     return NoteORM
 

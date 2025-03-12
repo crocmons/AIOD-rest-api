@@ -68,6 +68,7 @@ def distribution_factory(table_from: str, distribution_name="distribution") -> T
             ),
         ),
     )
+    # Pydantic will issue a warning for non-default dunder attributes, so we add it after creation
     DistributionORM.__tablename__ = name
     return DistributionORM
 

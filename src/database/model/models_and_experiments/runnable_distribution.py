@@ -90,9 +90,7 @@ def runnable_distribution_factory(table_from: str, distribution_name="distributi
             ),
         ),
     )
-    # Pydantic will issue a warning for non-default dunder attributes, e.g.
-    # https://github.com/pydantic/pydantic/issues/7841
-    # So we set it after class creation instead.
+    # Pydantic will issue a warning for non-default dunder attributes, so we add it after creation
     RunnableDistributionORM.__tablename__ = f"{distribution_name}_{table_from}"
     return RunnableDistributionORM
 
