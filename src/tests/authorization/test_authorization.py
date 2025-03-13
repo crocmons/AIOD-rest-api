@@ -15,6 +15,7 @@ from database.model.concept.aiod_entry import EntryStatus
 from database.model.concept.concept import AIoDConcept
 from database.review import Review, Decision, ReviewCreate, Submission
 from database.session import DbSession
+from database.model.knowledge_asset.publication import Publication
 from routers.review_router import ListMode
 
 ALICE = KeycloakUser("Alice", {"edit_aiod_resources"}, "alice-sub")
@@ -440,3 +441,42 @@ def test_permission_type_order():
     assert PermissionType.ADMIN > PermissionType.WRITE
     assert PermissionType.ADMIN > PermissionType.READ
     assert PermissionType.WRITE > PermissionType.READ
+
+
+@pytest.mark.parametrize(
+    "owner", [ALICE, BOB, REVIEWER]
+)
+def test_user_can_read(owner, publication):
+    identifier = register_asset(publication, owner=owner, status=EntryStatus.PUBLISHED)
+    # `user_can_*` require object to be in session (or eagerly loaded)
+    with DbSession() as session:
+        asset = session.get(Publication, identifier)
+
+        users = [ALICE, BOB, REVIEWER]
+        assert all(user_can_read(user, asset.aiod_entry) for user in users), "Published assets are public"
+
+
+@pytest.mark.parametrize(
+    "owner", [ALICE, BOB, REVIEWER]
+)
+def test_user_can_write(owner, publication):
+    identifier = register_asset(publication, owner=owner, status=EntryStatus.PUBLISHED)
+    with DbSession() as session:
+        asset = session.get(Publication, identifier)
+
+        assert user_can_write(owner, asset.aiod_entry)
+        others = [u for u in [ALICE, BOB, REVIEWER] if u != owner]
+        assert not any(user_can_write(non_owner, asset.aiod_entry) for non_owner in others)
+
+
+@pytest.mark.parametrize(
+    "owner", [ALICE, BOB, REVIEWER]
+)
+def test_user_can_administer(owner, publication):
+    identifier = register_asset(publication, owner=owner, status=EntryStatus.PUBLISHED)
+    with DbSession() as session:
+        asset = session.get(Publication, identifier)
+
+        assert user_can_administer(owner, asset.aiod_entry)
+        others = [u for u in [ALICE, BOB, REVIEWER] if u != owner]
+        assert not any(user_can_administer(non_owner, asset.aiod_entry) for non_owner in others)
