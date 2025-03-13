@@ -9,7 +9,7 @@ from starlette.testclient import TestClient
 from authentication import keycloak_openid, KeycloakUser
 from database.authorization import (
     register_user,
-    add_administrator,
+    add_administrator, PermissionType,
 )
 from database.model.concept.aiod_entry import EntryStatus
 from database.model.concept.concept import AIoDConcept
@@ -430,3 +430,13 @@ def test_reviewer_cannot_approve_own_submission(publication, client):
             headers={"Authorization": "Fake token"},
         )
         assert response.status_code == HTTPStatus.FORBIDDEN, response.json()
+
+
+def test_permission_type_order():
+    permissions = {PermissionType.READ, PermissionType.WRITE, PermissionType.ADMIN}
+    please_update_msg = "Test needs to be updated when PermissionTypes are added or removed."
+    assert set(PermissionType) == permissions, please_update_msg
+
+    assert PermissionType.ADMIN > PermissionType.WRITE
+    assert PermissionType.ADMIN > PermissionType.READ
+    assert PermissionType.WRITE > PermissionType.READ
