@@ -81,10 +81,6 @@ def register_user(kc_user: KeycloakUser, session: Session) -> User:
     return user
 
 
-def set_administrator(user: KeycloakUser, resource: AIoDConcept, session: Session):
-    set_permission(user, resource, session, type_=PermissionType.ADMIN)
-
-
 def set_permission(
     user: KeycloakUser, resource: AIoDConcept, session: Session, *, type_: PermissionType
 ):

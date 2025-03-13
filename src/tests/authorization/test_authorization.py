@@ -9,7 +9,7 @@ from starlette.testclient import TestClient
 from authentication import keycloak_openid, KeycloakUser
 from database.authorization import (
     register_user,
-    set_administrator, PermissionType, user_can_read, user_can_write, user_can_administer,
+    set_permission, PermissionType, user_can_read, user_can_write, user_can_administer,
 )
 from database.model.concept.aiod_entry import EntryStatus
 from database.model.concept.concept import AIoDConcept
@@ -319,7 +319,7 @@ def register_asset(asset: AIoDConcept, /, *, owner: KeycloakUser, status: EntryS
         session.commit()
 
         register_user(owner, session)
-        set_administrator(owner, asset, session)
+        set_permission(owner, asset, session, type_=PermissionType.ADMIN)
 
         asset.aiod_entry.status = status
         if status in [EntryStatus.SUBMITTED, EntryStatus.PUBLISHED, EntryStatus.REJECTED]:
