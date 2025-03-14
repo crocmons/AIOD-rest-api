@@ -7,6 +7,7 @@ import pytest
 from starlette.testclient import TestClient
 
 from authentication import keycloak_openid, KeycloakUser
+from config import ROLES_CONFIG
 from database.authorization import (
     register_user,
     add_administrator,
@@ -19,7 +20,7 @@ from routers.review_router import ListMode
 
 ALICE = KeycloakUser("Alice", {"edit_aiod_resources"}, "alice-sub")
 BOB = KeycloakUser("Bob", {"edit_aiod_resources"}, "bob-sub")
-REVIEWER = KeycloakUser("Reviewer", {"reviewer", "edit_aiod_resources"}, "reviewer-sub")
+REVIEWER = KeycloakUser("Reviewer", {ROLES_CONFIG.get("reviewer"), "edit_aiod_resources"}, "reviewer-sub")
 
 
 def _register_user_in_db(user: KeycloakUser) -> KeycloakUser:

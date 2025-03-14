@@ -27,7 +27,7 @@ from fastapi import HTTPException, Security, status
 from fastapi.security import OpenIdConnect
 from keycloak import KeycloakOpenID
 
-from config import KEYCLOAK_CONFIG
+from config import KEYCLOAK_CONFIG, ROLES_CONFIG
 
 load_dotenv()
 
@@ -43,6 +43,7 @@ keycloak_openid = KeycloakOpenID(
     realm_name=KEYCLOAK_CONFIG.get("realm"),
     verify=True,
 )
+_REVIEWER_ROLE = ROLES_CONFIG.get("reviewer")
 
 
 @dataclasses.dataclass
@@ -59,7 +60,8 @@ class KeycloakUser:
 
     @property
     def is_reviewer(self):
-        return "reviewer" in self.roles
+        assert _REVIEWER_ROLE is not None, "Must configure role `reviewer` in config.toml file."  # noqa: S101
+        return _REVIEWER_ROLE in self.roles
 
 
 async def _get_user(token) -> KeycloakUser:

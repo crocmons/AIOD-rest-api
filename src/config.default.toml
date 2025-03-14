@@ -9,6 +9,11 @@ database = "aiod"
 username = "root"
 password = "ok"
 
+# Configurable aliases for roles configured in Keycloak
+# format: name_in_source = "name in keycloak"
+[roles]
+reviewer = "review_aiod_resources"
+
 # Additional options for development
 [dev]
 reload = true
