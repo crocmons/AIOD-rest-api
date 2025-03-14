@@ -54,14 +54,6 @@
       "containerId" : "3df7e07d-ebbd-41c4-bc0c-1ba0e1a40ac5",
       "attributes" : { }
     }, {
-      "id" : "ae367056-af48-4b9b-bec9-bfc57f91d218",
-      "name" : "reviewer",
-      "description" : "Allows reviewing of metadata assets",
-      "composite" : false,
-      "clientRole" : false,
-      "containerId" : "3df7e07d-ebbd-41c4-bc0c-1ba0e1a40ac5",
-      "attributes" : { }
-    }, {
       "id" : "427c7161-bcf0-4f2d-a6fd-291dbad3db1a",
       "name" : "default-roles-aiod",
       "description" : "${role_default-roles}",
@@ -87,6 +79,14 @@
       "id" : "18c2dc78-1119-4432-970b-3187f49bfa58",
       "name" : "edit_aiod_resources",
       "description" : "",
+      "composite" : false,
+      "clientRole" : false,
+      "containerId" : "3df7e07d-ebbd-41c4-bc0c-1ba0e1a40ac5",
+      "attributes" : { }
+    }, {
+      "id" : "2acb73ad-574d-4b77-b5dc-0fa9fd2ec8d7",
+      "name" : "review_aiod_resources",
+      "description" : "Can review submitted AIoD resources",
       "composite" : false,
       "clientRole" : false,
       "containerId" : "3df7e07d-ebbd-41c4-bc0c-1ba0e1a40ac5",
@@ -1232,7 +1232,7 @@
       "subType" : "authenticated",
       "subComponents" : { },
       "config" : {
-        "allowed-protocol-mapper-types" : [ "saml-user-property-mapper", "oidc-usermodel-attribute-mapper", "saml-user-attribute-mapper", "oidc-sha256-pairwise-sub-mapper", "oidc-full-name-mapper", "oidc-usermodel-property-mapper", "oidc-address-mapper", "saml-role-list-mapper" ]
+        "allowed-protocol-mapper-types" : [ "saml-role-list-mapper", "oidc-usermodel-property-mapper", "oidc-usermodel-attribute-mapper", "oidc-sha256-pairwise-sub-mapper", "oidc-full-name-mapper", "saml-user-property-mapper", "saml-user-attribute-mapper", "oidc-address-mapper" ]
       }
     }, {
       "id" : "10f8b9b2-1038-4c98-b7a5-a9ac88fed69e",
@@ -1274,7 +1274,7 @@
       "subType" : "anonymous",
       "subComponents" : { },
       "config" : {
-        "allowed-protocol-mapper-types" : [ "oidc-usermodel-property-mapper", "saml-user-property-mapper", "oidc-full-name-mapper", "oidc-sha256-pairwise-sub-mapper", "saml-user-attribute-mapper", "oidc-usermodel-attribute-mapper", "saml-role-list-mapper", "oidc-address-mapper" ]
+        "allowed-protocol-mapper-types" : [ "oidc-usermodel-property-mapper", "saml-user-property-mapper", "saml-user-attribute-mapper", "oidc-address-mapper", "oidc-usermodel-attribute-mapper", "oidc-full-name-mapper", "oidc-sha256-pairwise-sub-mapper", "saml-role-list-mapper" ]
       }
     }, {
       "id" : "1d21f027-e0ae-4b80-b95e-f21d9426f115",
