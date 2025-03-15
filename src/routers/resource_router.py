@@ -15,7 +15,12 @@ from starlette.responses import JSONResponse
 from authentication import KeycloakUser, get_user_or_none, get_user_or_raise
 from config import KEYCLOAK_CONFIG
 from converters.schema_converters.schema_converter import SchemaConverter
-from database.authorization import user_can_administer, add_administrator, register_user
+from database.authorization import (
+    user_can_administer,
+    set_permission,
+    register_user,
+    PermissionType,
+)
 from database.model.ai_resource.resource import AIResource
 from database.model.concept.aiod_entry import AIoDEntryORM, EntryStatus
 from database.model.concept.concept import AIoDConcept
@@ -413,7 +418,7 @@ class ResourceRouter(abc.ABC):
                     try:
                         resource = self.create_resource(session, resource_create)
                         register_user(user, session)
-                        add_administrator(user, resource, session)
+                        set_permission(user, resource, session, type_=PermissionType.ADMIN)
                         session.commit()
                         return self._wrap_with_headers({"identifier": resource.identifier})
                     except Exception as e:

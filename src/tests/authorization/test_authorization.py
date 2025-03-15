@@ -9,12 +9,13 @@ from starlette.testclient import TestClient
 from authentication import keycloak_openid, KeycloakUser
 from database.authorization import (
     register_user,
-    add_administrator,
+    set_permission, PermissionType, user_can_read, user_can_write, user_can_administer,
 )
 from database.model.concept.aiod_entry import EntryStatus
 from database.model.concept.concept import AIoDConcept
 from database.review import Review, Decision, ReviewCreate, Submission
 from database.session import DbSession
+from database.model.knowledge_asset.publication import Publication
 from routers.review_router import ListMode
 
 ALICE = KeycloakUser("Alice", {"edit_aiod_resources"}, "alice-sub")
@@ -318,7 +319,7 @@ def register_asset(asset: AIoDConcept, /, *, owner: KeycloakUser, status: EntryS
         session.commit()
 
         register_user(owner, session)
-        add_administrator(owner, asset, session)
+        set_permission(owner, asset, session, type_=PermissionType.ADMIN)
 
         asset.aiod_entry.status = status
         if status in [EntryStatus.SUBMITTED, EntryStatus.PUBLISHED, EntryStatus.REJECTED]:
@@ -430,3 +431,52 @@ def test_reviewer_cannot_approve_own_submission(publication, client):
             headers={"Authorization": "Fake token"},
         )
         assert response.status_code == HTTPStatus.FORBIDDEN, response.json()
+
+
+def test_permission_type_order():
+    permissions = {PermissionType.READ, PermissionType.WRITE, PermissionType.ADMIN}
+    please_update_msg = "Test needs to be updated when PermissionTypes are added or removed."
+    assert set(PermissionType) == permissions, please_update_msg
+
+    assert PermissionType.ADMIN > PermissionType.WRITE
+    assert PermissionType.ADMIN > PermissionType.READ
+    assert PermissionType.WRITE > PermissionType.READ
+
+
+@pytest.mark.parametrize(
+    "owner", [ALICE, BOB, REVIEWER]
+)
+def test_user_can_read(owner, publication):
+    identifier = register_asset(publication, owner=owner, status=EntryStatus.PUBLISHED)
+    # `user_can_*` require object to be in session (or eagerly loaded)
+    with DbSession() as session:
+        asset = session.get(Publication, identifier)
+
+        users = [ALICE, BOB, REVIEWER]
+        assert all(user_can_read(user, asset.aiod_entry) for user in users), "Published assets are public"
+
+
+@pytest.mark.parametrize(
+    "owner", [ALICE, BOB, REVIEWER]
+)
+def test_user_can_write(owner, publication):
+    identifier = register_asset(publication, owner=owner, status=EntryStatus.PUBLISHED)
+    with DbSession() as session:
+        asset = session.get(Publication, identifier)
+
+        assert user_can_write(owner, asset.aiod_entry)
+        others = [u for u in [ALICE, BOB, REVIEWER] if u != owner]
+        assert not any(user_can_write(non_owner, asset.aiod_entry) for non_owner in others)
+
+
+@pytest.mark.parametrize(
+    "owner", [ALICE, BOB, REVIEWER]
+)
+def test_user_can_administer(owner, publication):
+    identifier = register_asset(publication, owner=owner, status=EntryStatus.PUBLISHED)
+    with DbSession() as session:
+        asset = session.get(Publication, identifier)
+
+        assert user_can_administer(owner, asset.aiod_entry)
+        others = [u for u in [ALICE, BOB, REVIEWER] if u != owner]
+        assert not any(user_can_administer(non_owner, asset.aiod_entry) for non_owner in others)

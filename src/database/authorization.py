@@ -1,11 +1,12 @@
 import enum
+import functools
 
 import sqlalchemy
 from sqlalchemy import Column
 from sqlmodel import SQLModel, Field, Relationship, select, Session, and_
 
 from authentication import KeycloakUser
-from database.model.concept.aiod_entry import AIoDEntryORM
+from database.model.concept.aiod_entry import AIoDEntryORM, EntryStatus
 from database.model.concept.concept import AIoDConcept
 
 
@@ -16,10 +17,19 @@ class User(SQLModel, table=True):  # type: ignore [call-arg]
     subject_identifier: str = Field(primary_key=True)
 
 
-class PermissionType(enum.StrEnum):
-    READ = enum.auto()
-    WRITE = enum.auto()
-    ADMIN = enum.auto()
+@functools.total_ordering
+class PermissionType(enum.Enum):
+    # Enum instead of StrEnum because we *never* want to do str-comparison.
+    # Definition order is important: permissions defined later include earlier ones
+    READ: str = "read"
+    WRITE: str = "write"
+    ADMIN: str = "admin"
+
+    def __lt__(self, other: "PermissionType") -> bool:
+        if not isinstance(other, PermissionType):
+            return NotImplemented
+        # _sort_order_ is definition order: https://github.com/python/cpython/blob/main/Lib/enum.py
+        return self._sort_order_ < other._sort_order_  # type: ignore[attr-defined]
 
 
 class Permission(SQLModel, table=True):  # type: ignore [call-arg]
@@ -43,16 +53,23 @@ class Permission(SQLModel, table=True):  # type: ignore [call-arg]
     )
 
 
+def _user_has_permission(
+    user: KeycloakUser, aiod_entry: AIoDEntryORM, *, at_least: PermissionType
+) -> bool:
+    return any(
+        permission.user_identifier == user._subject_identifier and permission.type_ >= at_least
+        for permission in aiod_entry.permissions
+    )
+
+
 def user_can_read(user: KeycloakUser, aiod_entry) -> bool:
-    # TODO:
-    #  - [ ] add option for private entries
-    #  - [ ] check if any permissions exist (read is least permissive)
-    return True
+    if aiod_entry.status == EntryStatus.PUBLISHED:
+        return True
+    return _user_has_permission(user, aiod_entry, at_least=PermissionType.READ)
 
 
-def user_can_write(user: KeycloakUser, aiod_entry) -> bool:
-    # TODO: check for write or admin permission
-    return False
+user_can_write = functools.partial(_user_has_permission, at_least=PermissionType.WRITE)
+user_can_administer = functools.partial(_user_has_permission, at_least=PermissionType.ADMIN)
 
 
 def register_user(kc_user: KeycloakUser, session: Session) -> User:
@@ -64,26 +81,18 @@ def register_user(kc_user: KeycloakUser, session: Session) -> User:
     return user
 
 
-def add_administrator(user: KeycloakUser, resource: AIoDConcept, session: Session):
-    query = select(Permission).where(
-        and_(
-            Permission.user_identifier == user._subject_identifier,
-            Permission.aiod_entry_identifier == resource.aiod_entry_identifier,
-        )
-    )
-    permission = session.scalars(query).first()
+def set_permission(
+    user: KeycloakUser, resource: AIoDConcept, session: Session, *, type_: PermissionType
+):
+    key = {
+        "user_identifier": user._subject_identifier,
+        "aiod_entry_identifier": resource.aiod_entry_identifier,
+    }
+    permission = session.get(Permission, key)
     if permission is None:
         permission = Permission(
             user_identifier=user._subject_identifier,
             aiod_entry=resource.aiod_entry,
         )
-    permission.type_ = PermissionType.ADMIN
+    permission.type_ = type_
     session.add(permission)
-
-
-def user_can_administer(user: KeycloakUser, aiod_entry: AIoDEntryORM) -> bool:
-    return any(
-        permission.user_identifier == user._subject_identifier
-        and permission.type_ == PermissionType.ADMIN
-        for permission in aiod_entry.permissions
-    )
