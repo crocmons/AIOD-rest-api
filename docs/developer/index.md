@@ -146,3 +146,7 @@ the REST API, and are often deployed together. These are:
   * A number of [connectors](../hosting/connectors.md): code which periodically indexes data on
     other platforms, such as [Zenodo](https://zenodo.org), and stores it in the metadata catalogue.
 
+# Further Reading
+
+This documentation also contains more detailed guides on ["Implementing the Conceptual Model"](schema/index.md)
+and ["Writing a Connector for AI-on-Demand"]().

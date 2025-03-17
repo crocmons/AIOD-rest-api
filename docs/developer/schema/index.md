@@ -6,7 +6,7 @@ In the REST API, we have an implementation of the schema defined in our [`src/da
 For the model implementation we make use of [SQLModel](https://sqlmodel.tiangolo.com/), a layer
 on top of the ORM framework [SQLAlchemy](https://www.sqlalchemy.org/) and the serialization,
 validation and documentation (creating Swagger) framework [pydantic](https://docs.pydantic.dev/),
-created by the developer of FASTApi, the framework we use for routing.
+created by the developer of FastAPI, the framework we use for routing.
 
 SQLModel makes it possible to define only a single model instead of defining the database-layer
 (SQLAlchemy) and the logic-layer (Pydantic) separately.
@@ -28,10 +28,29 @@ Tools and documentation on how to read the conceptual metadata model are current
 This section will be updated at a later date (as of 16-12-2024).
 
 ## Reading the Metadata Schema Implementation
-This section will be updated at a later date (as of 16-12-2024) and will describe:
- - The use various class variants, such as `XBase`, `XORM`, `XCreate`, with a link to the ["objects"](objects.md) page.
- - A brief discussion on how to read an attribute definition, with a link to the ["attributes"](attributes.md) page.
- - A brief discussion on how to relationships an attribute definition, with a link to the ["relationships"](relationships.md) page.
+The metadata schema implementation is a hierarchy of classes that ultimately derive from `SQLModel`,
+and mimic the hierarchy defined in the conceptual model.
+However, we generally use multiple models of the same data to facilitate the differences between
+what is stored in the database, and what is served to the user (or, alternatively, what the user
+is supposed to provide through the API). This idea is also explained in SQLModel's
+["multiple models with FastAPI"](https://sqlmodel.tiangolo.com/tutorial/fastapi/multiple-models/)
+tutorial.
+
+In general, you will see different classes of the forms `XBase`, `XORM`, `XCreate`.
+The `XBase` class (where X is an entity, e.g., Dataset) provides attributes which are commonly used in all models:
+they are used by the database, they are define fields available when uploading the asset,
+and they are also returned to the user when they request the entity.
+
+Derived from this `XBase` class are the `X` class, that defines the table and database specific attributes,
+and `XRead` class, which defines the response model, though that is generated dynamically.
+
+The `XORM` classes are for separate tables which do not directly represent concepts of the metadata catalogue.
+Instead, they represent base classes in the class hierarchy, and facilitate resolving a parent-class identifier,
+e.g., an Agent identifier, to its child class, e.g., a Person.
+
+For more information on defining new objects in the conceptual model, see the ["objects"](objects.md) page.
+For a brief discussion on how to read an attribute definition, see ["attributes"](attributes.md).
+For a brief discussion on how to define relationships, see ["relationships"](relationships.md).
 
 ## Changing the Metadata Schema Implementation
 On a high level, changes to the metadata schema implementation consist of three steps:
