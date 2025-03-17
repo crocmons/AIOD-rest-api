@@ -9,12 +9,13 @@ from starlette.testclient import TestClient
 from authentication import keycloak_openid, KeycloakUser
 from database.authorization import (
     register_user,
-    add_administrator,
+    set_permission, PermissionType, user_can_read, user_can_write, user_can_administer,
 )
 from database.model.concept.aiod_entry import EntryStatus
 from database.model.concept.concept import AIoDConcept
 from database.review import Review, Decision, ReviewCreate, Submission
 from database.session import DbSession
+from database.model.knowledge_asset.publication import Publication
 from routers.review_router import ListMode
 
 ALICE = KeycloakUser("Alice", {"edit_aiod_resources"}, "alice-sub")
@@ -206,10 +207,13 @@ def test_unknown_submission_raises_404(client):
     [
         (REVIEWER, ListMode.PENDING, [2, 3], "Reviewer can see all pending reviews."),
         (REVIEWER, ListMode.COMPLETED, [1], "Reviewer can see all completed reviews."),
+        (REVIEWER, ListMode.ALL, [1,2,3], "Reviewer can see all reviews."),
         (ALICE, ListMode.PENDING, [2], "Alice has one pending submission and can not see Bob's."),
         (ALICE, ListMode.COMPLETED, [1], "Alice only has one completed submission."),
+        (ALICE, ListMode.ALL, [1,2], "Alice can see all her reviews, but not Bob's."),
         (BOB, ListMode.PENDING, [3], "Bob has one pending submission and can not see Alice's."),
         (BOB, ListMode.COMPLETED, [], "Bob has no completed submission."),
+        (BOB, ListMode.ALL, [3], "Bob can see all his reviews, but not Alice's."),
     ]
 )
 def test_submission_by_state_respects_privacy(user: KeycloakUser, mode: ListMode, assets: list[int], reason: str, client: TestClient, publication):
@@ -271,10 +275,10 @@ def test_retrieving_single_submission_works(user: KeycloakUser, mode: ListMode, 
 
 
 def test_user_can_retract_assets(client, publication):
-    identifier = register_asset(publication, owner=ALICE, status=EntryStatus.SUBMITTED)
+    register_asset(publication, owner=ALICE, status=EntryStatus.SUBMITTED)
     with logged_in_user(ALICE):
         response = client.post(
-            f"/publications/retract/v1/{identifier}", headers={"Authorization": "Fake token"}
+            f"/submissions/retract/v1/1", headers={"Authorization": "Fake token"}
         )
         assert "review_identifier" in response.json()
         assert Decision.RETRACTED == response.json()["decision"]
@@ -292,7 +296,7 @@ def test_other_user_can_not_retract_assets(client, publication):
 
     with logged_in_user(BOB):
         response = client.post(
-            f"/publications/retract/v1/{identifier}", headers={"Authorization": "Fake token"}
+            f"/submissions/retract/v1/{identifier}", headers={"Authorization": "Fake token"}
         )
         assert response.status_code == HTTPStatus.FORBIDDEN, response.json()
 
@@ -315,7 +319,7 @@ def register_asset(asset: AIoDConcept, /, *, owner: KeycloakUser, status: EntryS
         session.commit()
 
         register_user(owner, session)
-        add_administrator(owner, asset, session)
+        set_permission(owner, asset, session, type_=PermissionType.ADMIN)
 
         asset.aiod_entry.status = status
         if status in [EntryStatus.SUBMITTED, EntryStatus.PUBLISHED, EntryStatus.REJECTED]:
@@ -427,3 +431,52 @@ def test_reviewer_cannot_approve_own_submission(publication, client):
             headers={"Authorization": "Fake token"},
         )
         assert response.status_code == HTTPStatus.FORBIDDEN, response.json()
+
+
+def test_permission_type_order():
+    permissions = {PermissionType.READ, PermissionType.WRITE, PermissionType.ADMIN}
+    please_update_msg = "Test needs to be updated when PermissionTypes are added or removed."
+    assert set(PermissionType) == permissions, please_update_msg
+
+    assert PermissionType.ADMIN > PermissionType.WRITE
+    assert PermissionType.ADMIN > PermissionType.READ
+    assert PermissionType.WRITE > PermissionType.READ
+
+
+@pytest.mark.parametrize(
+    "owner", [ALICE, BOB, REVIEWER]
+)
+def test_user_can_read(owner, publication):
+    identifier = register_asset(publication, owner=owner, status=EntryStatus.PUBLISHED)
+    # `user_can_*` require object to be in session (or eagerly loaded)
+    with DbSession() as session:
+        asset = session.get(Publication, identifier)
+
+        users = [ALICE, BOB, REVIEWER]
+        assert all(user_can_read(user, asset.aiod_entry) for user in users), "Published assets are public"
+
+
+@pytest.mark.parametrize(
+    "owner", [ALICE, BOB, REVIEWER]
+)
+def test_user_can_write(owner, publication):
+    identifier = register_asset(publication, owner=owner, status=EntryStatus.PUBLISHED)
+    with DbSession() as session:
+        asset = session.get(Publication, identifier)
+
+        assert user_can_write(owner, asset.aiod_entry)
+        others = [u for u in [ALICE, BOB, REVIEWER] if u != owner]
+        assert not any(user_can_write(non_owner, asset.aiod_entry) for non_owner in others)
+
+
+@pytest.mark.parametrize(
+    "owner", [ALICE, BOB, REVIEWER]
+)
+def test_user_can_administer(owner, publication):
+    identifier = register_asset(publication, owner=owner, status=EntryStatus.PUBLISHED)
+    with DbSession() as session:
+        asset = session.get(Publication, identifier)
+
+        assert user_can_administer(owner, asset.aiod_entry)
+        others = [u for u in [ALICE, BOB, REVIEWER] if u != owner]
+        assert not any(user_can_administer(non_owner, asset.aiod_entry) for non_owner in others)

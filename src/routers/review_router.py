@@ -24,6 +24,12 @@ def create(url_prefix: str) -> APIRouter:
     router = APIRouter()
     version = "v1"
 
+    router.post(
+        f"{url_prefix}/submissions/retract/{version}/{{submission_identifier}}",
+        tags=["Reviewing"],
+        description="Retract an asset under review, setting its status to 'draft'.",
+    )(retract_submission)
+
     router.get(
         f"{url_prefix}/submissions/{version}/",
         tags=["Reviewing"],
@@ -64,27 +70,27 @@ def _get_single_submission(
 ) -> Submission | None:
     with DbSession() as session:
         has_review = select(1).where(Submission.identifier == Review.submission_identifier).exists()
-        query = select(Submission).where(~has_review)
-
+        submissions = select(Submission).where(~has_review)
         if which == ListMode.NEWEST:
-            query = query.order_by(Submission.request_date.desc())  # type: ignore[attr-defined]
+            submissions = submissions.order_by(Submission.request_date.desc())  # type: ignore[attr-defined]
         if from_requestee is not None:
-            query = query.where(Submission.requestee_identifier == from_requestee)
+            submissions = submissions.where(Submission.requestee_identifier == from_requestee)
 
-        return session.scalars(query).first()
+        return session.scalars(submissions).first()
 
 
 def _get_submissions_by_state(
     *,
-    which: Literal[ListMode.COMPLETED, ListMode.PENDING],
+    which: Literal[ListMode.COMPLETED, ListMode.PENDING, ListMode.ALL],
     from_requestee: str | None = None,
 ) -> Sequence[Submission]:
     with DbSession() as session:
         has_review = select(1).where(Submission.identifier == Review.submission_identifier).exists()
+        submissions = select(Submission)
         if which == ListMode.PENDING:
-            submissions = select(Submission).where(~has_review)
+            submissions = submissions.where(~has_review)
         if which == ListMode.COMPLETED:
-            submissions = select(Submission).where(has_review)
+            submissions = submissions.where(has_review)
         if from_requestee is not None:
             submissions = submissions.where(Submission.requestee_identifier == from_requestee)
         return session.scalars(submissions).all()
@@ -98,7 +104,7 @@ def list_submissions(
     if mode in [ListMode.NEWEST, ListMode.OLDEST]:
         submission = _get_single_submission(which=mode, from_requestee=user_filter)  # type: ignore[arg-type]
         return [submission] if submission else []
-    if mode in [ListMode.PENDING, ListMode.COMPLETED]:
+    if mode in [ListMode.PENDING, ListMode.COMPLETED, ListMode.ALL]:
         return _get_submissions_by_state(which=mode, from_requestee=user_filter)  # type: ignore[arg-type]
     raise ValueError(f"`mode` should be one of {ListMode!r} but is {mode!r}.")
 
@@ -108,8 +114,7 @@ def get_submission(
     user: KeycloakUser = Depends(get_user_or_raise),
     session: Session = Depends(get_session),
 ) -> Submission:
-    query = select(Submission).where(Submission.identifier == identifier)
-    submission = session.scalars(query).first()
+    submission = session.get(Submission, identifier)
     if not submission:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
@@ -169,3 +174,35 @@ def _review_resource(
     session.add(review)
     session.commit()
     return review
+
+
+def retract_submission(
+    submission_identifier: str,
+    user: KeycloakUser = Depends(get_user_or_raise),
+):
+    with DbSession() as session:
+        submission = session.get(Submission, submission_identifier)
+        if not user_can_administer(user, submission.asset.aiod_entry):
+            # Could choose to instead give same error as if resource does not exist.
+            msg = f"You do not have permission to retract {submission.asset_type} {submission.asset.identifier}."
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=msg)
+
+        if submission is None or not submission.is_pending:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot retract this asset, as it is not under review.",
+            )
+
+        retraction = Review(
+            decision=Decision.RETRACTED,
+            reviewer_identifier=user._subject_identifier,
+            submission_identifier=submission.identifier,
+        )
+        submission.asset.aiod_entry.status = EntryStatus.DRAFT
+        session.add(retraction)
+        session.commit()
+        return {
+            "review_identifier": retraction.identifier,
+            "submission_identifier": submission.identifier,
+            "decision": retraction.decision,
+        }

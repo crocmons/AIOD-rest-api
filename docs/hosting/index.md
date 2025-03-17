@@ -71,7 +71,7 @@ environment variables configured in `.env` files, and REST API configuration in 
 The default files are `./.env` and `./src/config.default.toml` shown below.
 
 If you want to use non-default values, we strongly encourage you not to overwrite the contents of these files.
-Instead, you can create `./override.env` and `./config.override.toml` files to override those files.
+Instead, you can create `./override.env` and `./src/config.override.toml` files to override those files.
 When using the `./scripts/up.sh` script to launch your services, these overrides are automatically taken into account.
 
 === "`./src/config/default.toml`"

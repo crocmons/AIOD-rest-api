@@ -1,10 +1,17 @@
 site_name: AI-on-Demand REST API
 site_url: https://api.aiod.eu/docs
+repo_url: https://github.com/aiondemand/AIOD-rest-api
+edit_uri: edit/develop/docs/
 theme:
   name: material
   features:
     - content.code.copy
     - navigation.footer
+    - content.action.view
+    - content.action.edit
+  icon:
+    edit: material/pencil
+    view: material/eye
 
 nav:
   - Home: README.md

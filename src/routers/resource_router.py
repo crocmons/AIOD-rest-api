@@ -15,7 +15,12 @@ from starlette.responses import JSONResponse
 from authentication import KeycloakUser, get_user_or_none, get_user_or_raise
 from config import KEYCLOAK_CONFIG
 from converters.schema_converters.schema_converter import SchemaConverter
-from database.authorization import user_can_administer, add_administrator, register_user
+from database.authorization import (
+    user_can_administer,
+    set_permission,
+    register_user,
+    PermissionType,
+)
 from database.model.ai_resource.resource import AIResource
 from database.model.concept.aiod_entry import AIoDEntryORM, EntryStatus
 from database.model.concept.concept import AIoDConcept
@@ -140,14 +145,6 @@ class ResourceRouter(abc.ABC):
             endpoint=self.get_submit_func(),
             name=self.resource_name,
             description=f"Submit a {self.resource_name} for review.",
-            **default_kwargs,
-        )
-        router.add_api_route(
-            path=f"{url_prefix}/{self.resource_name_plural}/retract/{version}/{{identifier}}",
-            methods={"POST"},
-            endpoint=self.get_retract_func(),
-            name=self.resource_name,
-            description=f"Retract a {self.resource_name}, setting its status to 'draft'.",
             **default_kwargs,
         )
         router.add_api_route(
@@ -421,7 +418,7 @@ class ResourceRouter(abc.ABC):
                     try:
                         resource = self.create_resource(session, resource_create)
                         register_user(user, session)
-                        add_administrator(user, resource, session)
+                        set_permission(user, resource, session, type_=PermissionType.ADMIN)
                         session.commit()
                         return self._wrap_with_headers({"identifier": resource.identifier})
                     except Exception as e:
@@ -566,55 +563,6 @@ class ResourceRouter(abc.ABC):
                 return self._wrap_with_headers({"submission_identifier": review_request.identifier})
 
         return submit_resource
-
-    def get_retract_func(self):
-        """Return a function that can be used to retract a single resource."""
-
-        def retract_resource(
-            identifier: str,
-            user: KeycloakUser = Depends(get_user_or_raise),
-        ):
-            with DbSession() as session:
-                resource = self._retrieve_resource(identifier=identifier, session=session)  # type: ignore
-
-                if not user_can_administer(user, resource.aiod_entry):
-                    # Could choose to instead give same error as if resource does not exist.
-                    msg = (
-                        f"You do not have permission to retract {self.resource_name} {identifier}."
-                    )
-                    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=msg)
-
-                query = (
-                    select(Submission)
-                    .where(
-                        Submission.aiod_entry_identifier == resource.aiod_entry.identifier,
-                    )
-                    .order_by(Submission.request_date.desc())  # type: ignore [attr-defined]
-                )
-                current_request = session.scalars(query).first()
-                if current_request is None or not current_request.is_pending:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="Cannot retract this asset, as it is not under review.",
-                    )
-
-                retraction = Review(
-                    decision=Decision.RETRACTED,
-                    reviewer_identifier=user._subject_identifier,
-                    submission_identifier=current_request.identifier,
-                )
-                resource.aiod_entry.status = EntryStatus.DRAFT
-                session.add(retraction)
-                session.commit()
-                return self._wrap_with_headers(
-                    {
-                        "review_identifier": retraction.identifier,
-                        "submission_identifier": current_request.identifier,
-                        "decision": retraction.decision,
-                    }
-                )
-
-        return retract_resource
 
     def _retrieve_resource(
         self,

@@ -1,5 +1,6 @@
 from typing import Type
 
+from pydantic import create_model
 from sqlalchemy import Column, Integer, ForeignKey
 from sqlmodel import Field
 
@@ -75,18 +76,22 @@ class RunnableDistributionBase(DistributionBase):
 
 
 def runnable_distribution_factory(table_from: str, distribution_name="distribution") -> Type:
-    class RunnableDistributionORM(RunnableDistributionBase, table=True):  # type: ignore [call-arg]
-        __tablename__ = f"{distribution_name}_{table_from}"
-
-        identifier: int | None = Field(primary_key=True)
-
-        asset_identifier: int | None = Field(
-            sa_column=Column(Integer, ForeignKey(table_from + ".identifier", ondelete="CASCADE"))
-        )
-
-    RunnableDistributionORM.__name__ = RunnableDistributionORM.__qualname__ = (
-        f"{distribution_name}_{table_from}"
+    RunnableDistributionORM = create_model(
+        f"{distribution_name}_{table_from}",
+        __base__=(RunnableDistributionBase,),
+        __cls_kwargs__=dict(table=True),
+        identifier=(int | None, Field(primary_key=True)),
+        asset_identifier=(
+            int | None,
+            Field(
+                sa_column=Column(
+                    Integer, ForeignKey(table_from + ".identifier", ondelete="CASCADE")
+                )
+            ),
+        ),
     )
+    # Pydantic will issue a warning for non-default dunder attributes, so we add it after creation
+    RunnableDistributionORM.__tablename__ = f"{distribution_name}_{table_from}"
     return RunnableDistributionORM
 
 
