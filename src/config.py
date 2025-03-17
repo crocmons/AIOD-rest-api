@@ -32,5 +32,4 @@ def _merge_configurations(
 CONFIG = _merge_configurations(DEFAULT_CONFIG, OVERRIDE_CONFIG)
 DB_CONFIG = CONFIG.get("database", {})
 KEYCLOAK_CONFIG = CONFIG.get("keycloak", {})
-ROLES_CONFIG = CONFIG.get("roles", {})
 REQUEST_TIMEOUT = CONFIG.get("dev", {}).get("request_timeout", None)

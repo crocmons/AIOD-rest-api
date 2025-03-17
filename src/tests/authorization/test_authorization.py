@@ -1,13 +1,14 @@
 import contextlib
 import json
+import os
 from http import HTTPStatus
 from unittest.mock import Mock
 
 import pytest
+from dotenv import load_dotenv
 from starlette.testclient import TestClient
 
 from authentication import keycloak_openid, KeycloakUser
-from config import ROLES_CONFIG
 from database.authorization import (
     register_user,
     add_administrator,
@@ -18,9 +19,13 @@ from database.review import Review, Decision, ReviewCreate, Submission
 from database.session import DbSession
 from routers.review_router import ListMode
 
+load_dotenv()
+
 ALICE = KeycloakUser("Alice", {"edit_aiod_resources"}, "alice-sub")
 BOB = KeycloakUser("Bob", {"edit_aiod_resources"}, "bob-sub")
-REVIEWER = KeycloakUser("Reviewer", {ROLES_CONFIG.get("reviewer"), "edit_aiod_resources"}, "reviewer-sub")
+review_role = os.getenv("REVIEWER_ROLE_NAME")
+assert review_role, "The REVIEWER_ROLE_NAME environment variable must be set"
+REVIEWER = KeycloakUser("Reviewer", {review_role, "edit_aiod_resources"}, "reviewer-sub")
 
 
 def _register_user_in_db(user: KeycloakUser) -> KeycloakUser:

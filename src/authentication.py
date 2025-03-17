@@ -27,7 +27,7 @@ from fastapi import HTTPException, Security, status
 from fastapi.security import OpenIdConnect
 from keycloak import KeycloakOpenID
 
-from config import KEYCLOAK_CONFIG, ROLES_CONFIG
+from config import KEYCLOAK_CONFIG
 
 load_dotenv()
 
@@ -43,7 +43,7 @@ keycloak_openid = KeycloakOpenID(
     realm_name=KEYCLOAK_CONFIG.get("realm"),
     verify=True,
 )
-_REVIEWER_ROLE = ROLES_CONFIG.get("reviewer")
+_REVIEWER_ROLE = os.getenv("REVIEWER_ROLE_NAME")
 
 
 @dataclasses.dataclass
