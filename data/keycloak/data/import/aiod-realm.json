@@ -85,7 +85,7 @@
       "attributes" : { }
     }, {
       "id" : "2acb73ad-574d-4b77-b5dc-0fa9fd2ec8d7",
-      "name" : "review_aiod_resources",
+      "name" : "${REVIEWER_ROLE_NAME}",
       "description" : "Can review submitted AIoD resources",
       "composite" : false,
       "clientRole" : false,

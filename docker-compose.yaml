@@ -149,6 +149,7 @@ services:
     environment:
       - REDIRECT_URIS=$REDIRECT_URIS
       - POST_LOGOUT_REDIRECT_URIS=$POST_LOGOUT_REDIRECT_URIS
+      - REVIEWER_ROLE_NAME=$REVIEWER_ROLE_NAME
     ports:
       - ${AIOD_KEYCLOAK_PORT}:8080
     volumes:
