@@ -84,7 +84,11 @@ When using the `./scripts/up.sh` script to launch your services, these overrides
     --8<-- ".env"
     ```
 
-Overwriting these files directly will likely complicate updating to newer releases due to merge conflicts.
+If you do not use `./scripts/up.sh` you can make sure the environment files are included by specifying them
+in your `docker compose up` call, e.g.: `docker compose --env-file=.env --env-file=override.env up`.
+Note that **order is important**, later environment files will override earlier ones.
+
+Overwriting `.env` or `src/config.default.toml` directly will likely complicate updating to newer releases due to merge conflicts.
 
 ## Updating to New Releases
 
@@ -105,6 +109,22 @@ The database schema migration must be performed before resuming operations.
 
 Then run the startup commands again (either `up.sh` or `docker compose`).
 
+### Creating the Database
+
+By default, the server will create a database on the provided MySQL server if it does not yet exist.
+You can change this behavior through the **build-db** command-line parameter,
+it takes the following options:
+* never: *never* creates the database, not even if there does not exist one yet.
+  Use this only if you expect the database to be created through other means, such
+  as MySQL group replication.
+* if-absent: Creates a database only if none exists. (default)
+* drop-then-build: Drops the database on startup to recreate it from scratch.
+  **THIS REMOVES ALL DATA PERMANENTLY. NO RECOVERY POSSIBLE.**
+
+### Populating the Database
+To populate the database with some examples, run the `connectors/fill-examples.sh` script.
+When using `docker compose` you can easily do this by running the "examples" profile:
+`docker compose --profile examples up`
 ### Database Schema Migration
 
 We use [Alembic](https://alembic.sqlalchemy.org/en/latest/tutorial.html#running-our-first-migration) to automate database schema migrations
@@ -134,3 +154,25 @@ The alembic directory is mounted to ensure the latest migrations are available,
 the src directory is mounted so the migration scripts can use defined classes and variable from the project.
 
 [//]: # (TODO: Write documentation for when some of the migrations are not applicable. E.g., when a table was created in a new release.)
+
+#### Using connectors
+You can start different connectors using their profiles, e.g.:
+
+```bash
+docker compose --profile examples --profile huggingface-datasets --profile openml --profile zenodo-datasets up -d
+docker compose --profile examples --profile huggingface-datasets --profile openml --profile zenodo-datasets down
+```
+
+Make sure you use the same profile for `up` and `down`, or use `./scripts/down.sh` (see below),
+otherwise some containers might keep running.
+
+### Shorthands
+We provide two auxiliary scripts for launching docker containers and bringing them down.
+The first, `./scripts/up.sh` invokes `docker compose up -d` and takes any number of profiles to launch as parameters.
+It will also ensure that the changes of the configurations (see above) are observed.
+If `USE_LOCAL_DEV` is set to `true` (e.g., in `override.env`) then your local source code will be mounted on the containers,
+this is useful for local development but should not be used in production.
+E.g., with `USE_LOCAL_DEV` set to `true`, `./scripts/up.sh` resolves to:
+`docker compose --env-file=.env --env-file=override.env -f docker-compose.yaml -f docker-compose.dev.yaml --profile examples  up -d`
+
+The second script is a convenience for bringing down all services, including all profiles: `./scripts/down.sh`
