@@ -15,6 +15,7 @@ This folder contains scripts to generate JSON schemas for implemented models, an
 1. Open the `generate_schema.ipynb` or `generate_schema_no_inheritance.ipynb` notebook in Jupyter.
 2. Run the cells sequentially to generate the JSON schemas.
 3. The generated results will be saved in the `comparison_results/` or `comparison_results_noinheritance/` directory, respectively.
+4. Use the comparision results to document what needs to be changed in the AIoD REST API in this [excel-sheet](https://docs.google.com/spreadsheets/d/15qDupz9-YxEY2jeFQxLQNL8uhy4CICKUxYMCsXWvZJ8/edit?usp=sharing).
 
 ## Code Structure
 
