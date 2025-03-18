@@ -143,12 +143,12 @@ def _review_resource(
     if submission is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"No review with identifier {review.submission_identifier} found.",
+            detail=f"No submission with identifier {review.submission_identifier} found.",
         )
     if not submission.is_pending:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Review is no longer pending, no new decision may be made.",
+            detail="Submission is no longer pending review, no new decision may be made.",
         )
     register_user(user, session)
 

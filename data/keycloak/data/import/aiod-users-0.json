@@ -17,7 +17,7 @@
     } ],
     "disableableCredentialTypes" : [ ],
     "requiredActions" : [ ],
-    "realmRoles" : [ "reviewer", "default-roles-aiod" ],
+    "realmRoles" : [ "default-roles-aiod", "review_aiod_resources" ],
     "notBefore" : 0,
     "groups" : [ ]
   }, {
@@ -51,8 +51,8 @@
       "type" : "password",
       "userLabel" : "My password",
       "createdDate" : 1689685345632,
-      "secretData" : "{\"value\":\"VB2FW3ylhoLKfwSDNKgg3UR0RVtEDdilsVNmcmN8uQc=\",\"salt\":\"T/PRFYHhKbI1wyKGcQFwOw==\",\"additionalParameters\":{}}",
-      "credentialData" : "{\"hashIterations\":27500,\"algorithm\":\"pbkdf2-sha256\",\"additionalParameters\":{}}"
+      "secretData" : "{\"value\":\"fT1UBmMhrRt/Z/0DL5YdyFM/9yAP5YyE4DQOhHsD8DyEp66qo+ZQ5tGiMhCeBMTVFHoG4wOP3LakEXOCvtBADA==\",\"salt\":\"FL4nLEZy2MRRMb5rH8ylHA==\",\"additionalParameters\":{}}",
+      "credentialData" : "{\"hashIterations\":210000,\"algorithm\":\"pbkdf2-sha512\",\"additionalParameters\":{}}"
     } ],
     "disableableCredentialTypes" : [ ],
     "requiredActions" : [ ],
