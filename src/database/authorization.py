@@ -82,17 +82,14 @@ def register_user(kc_user: KeycloakUser, session: Session) -> User:
 
 
 def set_permission(
-    user: KeycloakUser, resource: AIoDConcept, session: Session, *, type_: PermissionType
+    user: KeycloakUser, resource: AIoDEntryORM, session: Session, *, type_: PermissionType
 ):
     key = {
         "user_identifier": user._subject_identifier,
-        "aiod_entry_identifier": resource.aiod_entry_identifier,
+        "aiod_entry_identifier": resource.identifier,
     }
     permission = session.get(Permission, key)
     if permission is None:
-        permission = Permission(
-            user_identifier=user._subject_identifier,
-            aiod_entry=resource.aiod_entry,
-        )
+        permission = Permission(user_identifier=user._subject_identifier, aiod_entry=resource)
     permission.type_ = type_
     session.add(permission)
