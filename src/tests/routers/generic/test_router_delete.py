@@ -55,7 +55,7 @@ def test_delete_requires_admin(
         other: KeycloakUser,
         client_test_resource: TestClient,
 ):
-    identifier = register_asset(factory(title="test"), owner=owner, status=EntryStatus.DRAFT)
+    identifier = register_asset(factory(), owner=owner, status=EntryStatus.DRAFT)
     try_delete = partial(
         client_test_resource.delete,
             f"/test_resources/v0/{identifier}",
