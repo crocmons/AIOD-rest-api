@@ -29,7 +29,7 @@ def _register_user_in_db(user: KeycloakUser) -> KeycloakUser:
 
 
 @contextlib.contextmanager
-def logged_in_user(user: KeycloakUser):
+def logged_in_user(user: KeycloakUser | None):
     original = keycloak_openid.introspect
     keycloak_openid.introspect = Mock(
         return_value={
@@ -43,7 +43,7 @@ def logged_in_user(user: KeycloakUser):
             "active": True,
             "sub": user._subject_identifier,
         }
-    )
+    ) if user else None
     yield
     keycloak_openid.introspect = original
 
