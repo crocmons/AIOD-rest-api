@@ -22,7 +22,7 @@ of their usage in this project in the admonitions below.
 
     FastAPI allows us to easily construct REST API paths on our web server. For example:
     ```python
-    @app.get("/datasets/{identifier})
+    @app.get("/datasets/{identifier}")
     def get_dataset(identifier: int, user=Depends(user_or_raise)) -> Dataset:
         ... # fetch a dataset
         return dataset
@@ -35,7 +35,7 @@ of their usage in this project in the admonitions below.
 
     Usage of FastAPI is mostly limited to `src/main.py` and routers in `src/routers`:
     the modules that define our web endpoints. You will often see calls to decorating
-    methods directly, e.g., `app.get("/datasets/{identifier})(get_dataset)` insteaf of the
+    methods directly, e.g., `app.get("/datasets/{identifier}")(get_dataset)` instead of the
     `@app.get` decorator syntax.
 
 ??? info "Pydantic"
