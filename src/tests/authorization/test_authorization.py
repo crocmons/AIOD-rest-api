@@ -1,59 +1,21 @@
-import contextlib
 import json
-import os
 from http import HTTPStatus
 from unittest.mock import Mock
 
 import pytest
-from dotenv import load_dotenv
 from starlette.testclient import TestClient
 
-from authentication import keycloak_openid, KeycloakUser
+from authentication import KeycloakUser
 from database.authorization import (
-    register_user,
-    set_permission, PermissionType, user_can_read, user_can_write, user_can_administer,
+    PermissionType, user_can_read, user_can_write, user_can_administer,
 )
 from database.model.concept.aiod_entry import EntryStatus
-from database.model.concept.concept import AIoDConcept
-from database.review import Review, Decision, ReviewCreate, Submission
+from database.review import Decision, ReviewCreate
 from database.session import DbSession
 from database.model.knowledge_asset.publication import Publication
 from routers.review_router import ListMode
-
-load_dotenv()
-
-ALICE = KeycloakUser("Alice", {"edit_aiod_resources"}, "alice-sub")
-BOB = KeycloakUser("Bob", {"edit_aiod_resources"}, "bob-sub")
-review_role = os.getenv("REVIEWER_ROLE_NAME")
-assert review_role, "The REVIEWER_ROLE_NAME environment variable must be set"
-REVIEWER = KeycloakUser("Reviewer", {review_role, "edit_aiod_resources"}, "reviewer-sub")
-
-
-def _register_user_in_db(user: KeycloakUser) -> KeycloakUser:
-    with DbSession() as session:
-        register_user(user, session)
-        session.commit()
-    return user
-
-
-@contextlib.contextmanager
-def logged_in_user(user: KeycloakUser):
-    original = keycloak_openid.introspect
-    keycloak_openid.introspect = Mock(
-        return_value={
-            "realm_access": {"roles": user.roles},
-            "resource_access": {
-                "account": {"roles": ["manage-account", "manage-account-links", "view-profile"]}
-            },
-            "scope": "openid profile email",
-            "username": user.name,
-            "token_type": "Bearer",
-            "active": True,
-            "sub": user._subject_identifier,
-        }
-    )
-    yield
-    keycloak_openid.introspect = original
+from tests.testutils.database import ALICE, BOB, REVIEWER, _register_user_in_db, \
+    logged_in_user, register_asset
 
 
 def test_user_must_be_logged_in_to_publish(client, publication):
@@ -213,10 +175,10 @@ def test_unknown_submission_raises_404(client):
     [
         (REVIEWER, ListMode.PENDING, [2, 3], "Reviewer can see all pending reviews."),
         (REVIEWER, ListMode.COMPLETED, [1], "Reviewer can see all completed reviews."),
-        (REVIEWER, ListMode.ALL, [1,2,3], "Reviewer can see all reviews."),
+        (REVIEWER, ListMode.ALL, [1, 2, 3], "Reviewer can see all reviews."),
         (ALICE, ListMode.PENDING, [2], "Alice has one pending submission and can not see Bob's."),
         (ALICE, ListMode.COMPLETED, [1], "Alice only has one completed submission."),
-        (ALICE, ListMode.ALL, [1,2], "Alice can see all her reviews, but not Bob's."),
+        (ALICE, ListMode.ALL, [1, 2], "Alice can see all her reviews, but not Bob's."),
         (BOB, ListMode.PENDING, [3], "Bob has one pending submission and can not see Alice's."),
         (BOB, ListMode.COMPLETED, [], "Bob has no completed submission."),
         (BOB, ListMode.ALL, [3], "Bob can see all his reviews, but not Alice's."),
@@ -255,12 +217,12 @@ def test_an_published_asset_is_not_pending_for_review(client, publication):
 @pytest.mark.parametrize(
     ("user", "mode", "asset", "reason"),
     [
-        (REVIEWER, ListMode.OLDEST, 2,"Reviewer can see both Alice and Bob's submission." ),
+        (REVIEWER, ListMode.OLDEST, 2, "Reviewer can see both Alice and Bob's submission."),
         (REVIEWER, ListMode.NEWEST, 3, "Reviewer can see both Alice and Bob's submission."),
         (ALICE, ListMode.OLDEST, 2, "Alice only has one pending submission."),
-        (ALICE, ListMode.NEWEST, 2,"Alice only has one pending submission."),
-        (BOB, ListMode.OLDEST, 3,"Bob only has one pending submission." ),
-        (BOB, ListMode.NEWEST, 3,"Bob only has one pending submission."),
+        (ALICE, ListMode.NEWEST, 2, "Alice only has one pending submission."),
+        (BOB, ListMode.OLDEST, 3, "Bob only has one pending submission."),
+        (BOB, ListMode.NEWEST, 3, "Bob only has one pending submission."),
     ]
 )
 def test_retrieving_single_submission_works(user: KeycloakUser, mode: ListMode, asset: int, reason: str, client: TestClient, publication_factory):
@@ -317,35 +279,6 @@ def test_user_can_always_delete_asset(status: EntryStatus, publication, client):
             headers={"Authorization": "Fake token"},
         )
         assert response.status_code == HTTPStatus.OK, response.json()
-
-
-def register_asset(asset: AIoDConcept, /, *, owner: KeycloakUser, status: EntryStatus):
-    with DbSession() as session:
-        session.add(asset)
-        session.commit()
-
-        register_user(owner, session)
-        set_permission(owner, asset, session, type_=PermissionType.ADMIN)
-
-        asset.aiod_entry.status = status
-        if status in [EntryStatus.SUBMITTED, EntryStatus.PUBLISHED, EntryStatus.REJECTED]:
-            submission = Submission(
-                requestee_identifier=owner._subject_identifier,
-                aiod_entry_identifier=asset.aiod_entry.identifier,
-                asset_type=asset.__tablename__,
-            )
-            session.add(submission)
-            if status == EntryStatus.PUBLISHED:
-                register_user(REVIEWER, session)
-                review = Review(
-                    decision=Decision.ACCEPTED,
-                    reviewer_identifier=REVIEWER._subject_identifier,
-                    comment="foo",
-                )
-                review.submission = submission
-                session.add(review)
-        session.commit()
-        return asset.identifier
 
 
 def test_user_can_edit_asset_in_draft(publication, client):
