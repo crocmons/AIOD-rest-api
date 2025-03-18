@@ -13,8 +13,8 @@ from database.session import DbSession
 
 load_dotenv()
 
-ALICE = KeycloakUser("Alice", {"edit_aiod_resources"}, "alice-sub")
-BOB = KeycloakUser("Bob", {"edit_aiod_resources"}, "bob-sub")
+ALICE = KeycloakUser("Alice", {"crud_publications"}, "alice-sub")
+BOB = KeycloakUser("Bob", {"crud_publications"}, "bob-sub")
 
 review_role = os.getenv("REVIEWER_ROLE_NAME")
 assert review_role, "The REVIEWER_ROLE_NAME environment variable must be set"

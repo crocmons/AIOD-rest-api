@@ -501,18 +501,18 @@ class ResourceRouter(abc.ABC):
             user: KeycloakUser = Depends(get_user_or_raise),
         ):
             with DbSession() as session:
-                if not user.has_any_role(
-                    KEYCLOAK_CONFIG.get("role"),
-                    f"delete_{self.resource_name_plural}",
-                    f"crud_{self.resource_name_plural}",
-                ):
-                    raise HTTPException(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        detail=f"You do not have permission to delete {self.resource_name_plural}.",
-                    )
                 try:
                     # Raise error if it does not exist
                     resource: Any = self._retrieve_resource(session, identifier)
+                    if not user.has_any_role(
+                        KEYCLOAK_CONFIG.get("role"),
+                        f"delete_{self.resource_name_plural}",
+                        f"crud_{self.resource_name_plural}",
+                    ) and not user_can_administer(user, resource.aiod_entry):
+                        raise HTTPException(
+                            status_code=status.HTTP_403_FORBIDDEN,
+                            detail=f"You do not have permission to delete {self.resource_name_plural}.",
+                        )
                     if (
                         hasattr(self.resource_class, "__deletion_config__")
                         and not self.resource_class.__deletion_config__["soft_delete"]

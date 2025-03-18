@@ -59,26 +59,6 @@ def test_delete_authorized(
     assert response.status_code == 200, response.json()
 
 
-def test_delete_unauthenticated(
-    client_test_resource: TestClient, engine_test_resource_filled: Engine
-):
-    response = client_test_resource.delete("/test_resources/v0/1")
-    assert response.status_code == 401, response.json()
-
-
-@pytest.mark.parametrize(
-    "mocked_token", [["create_test_resources"], ["delete_datasets"]], indirect=True
-)
-def test_delete_unauthorized(client_test_resource: TestClient, mocked_token: Mock):
-    response = client_test_resource.delete(
-        "/test_resources/v0/1",
-        headers={"Authorization": "fake-token"},
-    )
-    assert response.status_code == 403, response.json()
-    response_json = response.json()
-    assert response_json["detail"] == "You do not have permission to delete test_resources."
-
-
 @pytest.mark.parametrize(
     "mocked_token",
     [

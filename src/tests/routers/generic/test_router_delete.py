@@ -63,8 +63,8 @@ def test_delete_requires_admin(
     )
     with logged_in_user(user=None):
         assert try_delete().status_code == HTTPStatus.UNAUTHORIZED
-    # with logged_in_user(other):
-    #     assert try_delete().status_code == HTTPStatus.FORBIDDEN
+    with logged_in_user(other):
+        assert try_delete().status_code == HTTPStatus.FORBIDDEN
     with logged_in_user(owner):
         assert try_delete().status_code == HTTPStatus.OK
 
