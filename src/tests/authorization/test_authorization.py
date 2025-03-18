@@ -325,7 +325,7 @@ def register_asset(asset: AIoDConcept, /, *, owner: KeycloakUser, status: EntryS
         session.commit()
 
         register_user(owner, session)
-        set_permission(owner, asset, session, type_=PermissionType.ADMIN)
+        set_permission(owner, asset.aiod_entry, session, type_=PermissionType.ADMIN)
 
         asset.aiod_entry.status = status
         if status in [EntryStatus.SUBMITTED, EntryStatus.PUBLISHED, EntryStatus.REJECTED]:

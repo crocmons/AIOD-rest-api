@@ -418,7 +418,9 @@ class ResourceRouter(abc.ABC):
                     try:
                         resource = self.create_resource(session, resource_create)
                         register_user(user, session)
-                        set_permission(user, resource, session, type_=PermissionType.ADMIN)
+                        set_permission(
+                            user, resource.aiod_entry, session, type_=PermissionType.ADMIN
+                        )
                         session.commit()
                         return self._wrap_with_headers({"identifier": resource.identifier})
                     except Exception as e:
