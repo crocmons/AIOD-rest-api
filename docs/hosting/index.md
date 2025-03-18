@@ -47,7 +47,7 @@ This will start a number of services running within one docker network:
 
  * Database: a [MySQL](https://dev.mysql.com) database that contains the metadata.
  * Keycloak: an authentication service, provides login functionality.
- * Metadata Catalogue REST API:
+ * Metadata Catalogue REST API: The main API service for managing and accessing metadata.
  * Elastic Search: indexes metadata catalogue data for faster keyword searches.
  * Logstash: Loads data into Elastic Search.
  * Deletion: Takes care of cleaning up deleted data.

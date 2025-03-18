@@ -38,7 +38,7 @@ tutorial.
 
 In general, you will see different classes of the forms `XBase`, `XORM`, `XCreate`.
 The `XBase` class (where X is an entity, e.g., Dataset) provides attributes which are commonly used in all models:
-they are used by the database, they are define fields available when uploading the asset,
+they are used by the database, they define the fields available when uploading the asset,
 and they are also returned to the user when they request the entity.
 
 Derived from this `XBase` class are the `X` class, that defines the table and database specific attributes,
