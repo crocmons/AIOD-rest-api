@@ -12,11 +12,12 @@ from database.model.dataset.dataset import Dataset
 from database.model.platform.platform_names import PlatformName
 from database.session import DbSession
 from tests.testutils.paths import path_test_resources
+from tests.testutils.database import logged_in_user, kc_user_with_roles
 from uploaders.hugging_face_uploader import HuggingfaceUploader
 
 
 def test_happy_path_new_repository(
-    client: TestClient, mocked_privileged_token: Mock, dataset: Dataset
+    client: TestClient, dataset: Dataset
 ):
     dataset = copy.deepcopy(dataset)
     dataset.platform = "huggingface"
@@ -37,12 +38,13 @@ def test_happy_path_new_repository(
             status=200,
         )
         huggingface_hub.upload_file = Mock(return_value=None)
-        response = client.post(
-            "/upload/datasets/1/huggingface",
-            params={"username": "Fake-username", "token": "Fake-token"},
-            headers={"Authorization": "Fake token"},
-            files=files,
-        )
+        with logged_in_user(kc_user_with_roles("upload_PlatformName.huggingface")):
+            response = client.post(
+                "/upload/datasets/1/huggingface",
+                params={"username": "Fake-username", "token": "Fake-token"},
+                headers={"Authorization": "Fake token"},
+                files=files,
+            )
 
         assert response.status_code == 200, response.json()
         id_response = response.json()
@@ -50,7 +52,7 @@ def test_happy_path_new_repository(
 
 
 def test_happy_path_generating_repo_id(
-    client: TestClient, mocked_privileged_token: Mock, dataset: Dataset
+    client: TestClient, dataset: Dataset
 ):
     dataset = copy.deepcopy(dataset)
     dataset.platform = None
@@ -72,12 +74,13 @@ def test_happy_path_generating_repo_id(
             status=200,
         )
         huggingface_hub.upload_file = Mock(return_value=None)
-        response = client.post(
-            "/upload/datasets/1/huggingface",
-            params={"username": "Fake-username", "token": "Fake-token"},
-            headers={"Authorization": "Fake token"},
-            files=files,
-        )
+        with logged_in_user(kc_user_with_roles("upload_PlatformName.huggingface")):
+            response = client.post(
+                "/upload/datasets/1/huggingface",
+                params={"username": "Fake-username", "token": "Fake-token"},
+                headers={"Authorization": "Fake token"},
+                files=files,
+            )
 
         assert response.status_code == 200, response.json()
         id_response = response.json()
@@ -100,12 +103,13 @@ def test_failed_generating_repo_id(
         files = {"file": f.read()}
 
     huggingface_hub.upload_file = Mock(return_value=None)
-    response = client.post(
-        "/upload/datasets/1/huggingface",
-        params={"username": "Fake-username", "token": "Fake-token"},
-        headers={"Authorization": "Fake token"},
-        files=files,
-    )
+    with logged_in_user(kc_user_with_roles("upload_PlatformName.huggingface")):
+        response = client.post(
+            "/upload/datasets/1/huggingface",
+            params={"username": "Fake-username", "token": "Fake-token"},
+            headers={"Authorization": "Fake token"},
+            files=files,
+        )
 
     assert response.status_code == 400, response.json()
     error_msg = response.json()["detail"]
@@ -137,12 +141,13 @@ def test_repo_already_exists(client: TestClient, mocked_privileged_token: Mock, 
             status=409,
         )
         huggingface_hub.upload_file = Mock(return_value=None)
-        response = client.post(
-            "/upload/datasets/1/huggingface",
-            params={"username": "Fake-username", "token": "Fake-token"},
-            headers={"Authorization": "Fake token"},
-            files=files,
-        )
+        with logged_in_user(kc_user_with_roles("upload_PlatformName.huggingface")):
+            response = client.post(
+                "/upload/datasets/1/huggingface",
+                params={"username": "Fake-username", "token": "Fake-token"},
+                headers={"Authorization": "Fake token"},
+                files=files,
+            )
         assert response.status_code == 200, response.json()
         id_response = response.json()
         assert id_response == 1
@@ -160,12 +165,13 @@ def test_wrong_platform(client: TestClient, mocked_privileged_token: Mock, datas
     with open(path_test_resources() / "uploaders" / "huggingface" / "example.csv", "rb") as f:
         files = {"file": f.read()}
 
-    response = client.post(
-        "/upload/datasets/1/huggingface",
-        params={"username": "Fake-username", "token": "Fake-token"},
-        headers={"Authorization": "Fake token"},
-        files=files,
-    )
+    with logged_in_user(kc_user_with_roles("upload_PlatformName.huggingface")):
+        response = client.post(
+            "/upload/datasets/1/huggingface",
+            params={"username": "Fake-username", "token": "Fake-token"},
+            headers={"Authorization": "Fake token"},
+            files=files,
+        )
     assert response.status_code == status.HTTP_400_BAD_REQUEST, response.json()
     assert (
         response.json()["detail"]
