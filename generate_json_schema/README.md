@@ -43,10 +43,12 @@ This process ensures that the implemented schema remains consistent with the AIo
 
 Example usage given in `analysis.ipynb`
 
-1. Open the `generate_schema.ipynb` or `generate_schema_no_inheritance.ipynb` notebook in Jupyter.
-2. Run the cells sequentially to generate the JSON schemas.
-3. The generated results will be saved in the `comparison_results/` or `comparison_results_noinheritance/` directory, respectively.
-4. Use the comparision results to document what needs to be changed in the AIoD REST API in this [excel-sheet](https://docs.google.com/spreadsheets/d/15qDupz9-YxEY2jeFQxLQNL8uhy4CICKUxYMCsXWvZJ8/edit?usp=sharing).
+1. Before generating comparison results, make sure this branch is updated with the changes in the develop branch.
+2. Open the `generate_schema.ipynb` or `generate_schema_no_inheritance.ipynb` notebook in Jupyter.
+3. Run the cells sequentially to generate the JSON schemas.
+4. The generated results will be saved in the `comparison_results/` or `comparison_results_noinheritance/` directory, respectively.
+5. Use the comparison results to document what needs to be changed in the AIoD REST API in this [excel-sheet](https://docs.google.com/spreadsheets/d/15qDupz9-YxEY2jeFQxLQNL8uhy4CICKUxYMCsXWvZJ8/edit?usp=sharing).
+
 
 ## Code Structure
 
