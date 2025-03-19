@@ -6,7 +6,9 @@ from fastapi import FastAPI
 from sqlalchemy.engine import Engine
 from starlette.testclient import TestClient
 
+from authentication import KeycloakUser
 from tests.testutils.test_resource import RouterTestResource
+from tests.testutils.database import kc_user_with_roles, logged_in_user
 
 
 class DeprecatedRouter(RouterTestResource):
@@ -22,19 +24,17 @@ class DeprecatedRouter(RouterTestResource):
 
 
 @pytest.mark.parametrize(
-    "verb,url",
+    ("verb", "url", "user"),
     [
-        ("get", "/test_resources/v1/"),
-        # ("get", "/platforms/example/test_resources/v1"),
-        ("get", "/test_resources/v1/1"),
-        # ("get", "/platforms/example/test_resources/v1/1"),
-        ("post", "/test_resources/v1/"),
-        ("put", "/test_resources/v1/1"),
-        ("delete", "/test_resources/v1/1"),
-    ],
+        ("get", "/test_resources/v1/", kc_user_with_roles()),
+        ("get", "/test_resources/v1/1", kc_user_with_roles()),
+        ("post", "/test_resources/v1/",  kc_user_with_roles()),
+        ("put", "/test_resources/v1/1", kc_user_with_roles("update_test_resources")),
+        ("delete", "/test_resources/v1/1",  kc_user_with_roles("delete_test_resources")),
+    ]
 )
 def test_deprecated_router(
-    engine_test_resource_filled: Engine, verb: str, url: str, mocked_privileged_token: Mock
+    engine_test_resource_filled: Engine, verb: str, url: str, user: KeycloakUser
 ):
     app = FastAPI()
     app.include_router(DeprecatedRouter().create(""))
@@ -51,7 +51,8 @@ def test_deprecated_router(
     if verb in ("post", "put", "delete"):
         kwargs["headers"] = {"Authorization": "fake-token"}
 
-    response = getattr(client, verb)(url, **kwargs)
+    with logged_in_user(user):
+        response = getattr(client, verb)(url, **kwargs)
     assert response.status_code == 200, response.json()
     assert "deprecated" in response.headers
     assert response.headers.get("deprecated") == "Thu, 21 Apr 2022 00:00:00 GMT"

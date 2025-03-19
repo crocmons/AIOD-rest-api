@@ -1,5 +1,6 @@
 import contextlib
 import os
+from typing import Sequence
 from unittest.mock import Mock
 
 from dotenv import load_dotenv
@@ -13,8 +14,8 @@ from database.session import DbSession
 
 load_dotenv()
 
-ALICE = KeycloakUser("Alice", {"crud_publications"}, "alice-sub")
-BOB = KeycloakUser("Bob", {"crud_publications"}, "bob-sub")
+ALICE = KeycloakUser("Alice", set(), "alice-sub")
+BOB = KeycloakUser("Bob", set(), "bob-sub")
 
 review_role = os.getenv("REVIEWER_ROLE_NAME")
 assert review_role, "The REVIEWER_ROLE_NAME environment variable must be set"
@@ -27,6 +28,14 @@ def _register_user_in_db(user: KeycloakUser) -> KeycloakUser:
         session.commit()
     return user
 
+
+def kc_user_with_roles(*roles: str) -> KeycloakUser:
+    """ Generates a user with name 'Dummy' and identifier 'Foo' and the provided roles. """
+    return KeycloakUser(
+        name="Dummy",
+        roles=set(roles),
+        _subject_identifier="Foo",
+    )
 
 @contextlib.contextmanager
 def logged_in_user(user: KeycloakUser | None):

@@ -41,11 +41,8 @@ def test_platform_get_unauthenticated(
 @pytest.mark.parametrize(
     "mocked_token",
     [
-        ["edit_aiod_resources"],
         ["delete_test_resources"],
-        ["crud_test_resources"],
         ["delete_test_resources", "create_datasets"],
-        ["edit_aiod_resources", "crud_test_resources"],
     ],
     indirect=True,
 )
@@ -92,11 +89,8 @@ def test_post_unauthenticated(client_test_resource: TestClient):
 @pytest.mark.parametrize(
     "mocked_token",
     [
-        ["edit_aiod_resources"],
         ["update_test_resources"],
-        ["crud_test_resources"],
         ["update_test_resources", "delete_datasets"],
-        ["edit_aiod_resources", "crud_test_resources"],
     ],
     indirect=True,
 )

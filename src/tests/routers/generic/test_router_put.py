@@ -4,6 +4,8 @@ import pytest
 from sqlalchemy.engine import Engine
 from starlette.testclient import TestClient
 
+from tests.testutils.database import logged_in_user, kc_user_with_roles
+
 
 @pytest.mark.parametrize(
     "title",
@@ -13,13 +15,13 @@ def test_unicode(
     client_test_resource: TestClient,
     engine_test_resource_filled: Engine,
     title: str,
-    mocked_privileged_token: Mock,
 ):
-    response = client_test_resource.put(
-        "/test_resources/v0/1",
-        json={"title": title, "platform": "openml", "platform_resource_identifier": "2"},
-        headers={"Authorization": "Fake token"},
-    )
+    with logged_in_user(kc_user_with_roles("update_test_resources")):
+        response = client_test_resource.put(
+            "/test_resources/v0/1",
+            json={"title": title, "platform": "openml", "platform_resource_identifier": "2"},
+            headers={"Authorization": "Fake token"},
+        )
     assert response.status_code == 200, response.json()
     response = client_test_resource.get("/test_resources/v0/1")
     assert response.status_code == 200, response.json()
@@ -68,17 +70,17 @@ def test_too_long_name(
 def test_no_platform_with_platform_resource_identifier(
     client_test_resource: TestClient,
     engine_test_resource_filled: Engine,
-    mocked_privileged_token: Mock,
 ):
     """
     The error handling should be the same as with the POST endpoints, so we're not testing all
     the possible UNIQUE / CHECK constraints here, just this one.
     """
-    response = client_test_resource.put(
-        "/test_resources/v0/1",
-        json={"title": "title", "platform": "other", "platform_resource_identifier": None},
-        headers={"Authorization": "Fake token"},
-    )
+    with logged_in_user(kc_user_with_roles("update_test_resources")):
+        response = client_test_resource.put(
+            "/test_resources/v0/1",
+            json={"title": "title", "platform": "other", "platform_resource_identifier": None},
+            headers={"Authorization": "Fake token"},
+        )
     assert response.status_code == 400, response.json()
     assert (
         response.json()["detail"]

@@ -20,6 +20,7 @@ from database.authorization import (
     set_permission,
     register_user,
     PermissionType,
+    user_can_write,
 )
 from database.model.ai_resource.resource import AIResource
 from database.model.concept.aiod_entry import AIoDEntryORM, EntryStatus
@@ -442,19 +443,18 @@ class ResourceRouter(abc.ABC):
             resource_create_instance: clz_create,  # type: ignore
             user: KeycloakUser = Depends(get_user_or_raise),
         ):
-            if not user.has_any_role(
-                KEYCLOAK_CONFIG.get("role"),
-                f"update_{self.resource_name_plural}",
-                f"crud_{self.resource_name_plural}",
-            ):
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"You do not have permission to edit {self.resource_name_plural}.",
-                )
-
             with DbSession() as session:
                 try:
                     resource: Any = self._retrieve_resource(session, identifier)
+                    if not (
+                        user_can_write(user, resource.aiod_entry)
+                        or user.has_role(f"update_{self.resource_name_plural}")
+                    ):
+                        raise HTTPException(
+                            status_code=status.HTTP_403_FORBIDDEN,
+                            detail=f"You do not have permission to edit {self.resource_name_plural}.",
+                        )
+
                     if resource.aiod_entry.status == EntryStatus.SUBMITTED:
                         raise HTTPException(
                             status_code=status.HTTP_403_FORBIDDEN,
@@ -495,11 +495,10 @@ class ResourceRouter(abc.ABC):
                 try:
                     # Raise error if it does not exist
                     resource: Any = self._retrieve_resource(session, identifier)
-                    if not user.has_any_role(
-                        KEYCLOAK_CONFIG.get("role"),
-                        f"delete_{self.resource_name_plural}",
-                        f"crud_{self.resource_name_plural}",
-                    ) and not user_can_administer(user, resource.aiod_entry):
+                    if not (
+                        user_can_administer(user, resource.aiod_entry)
+                        or user.has_role(f"delete_{self.resource_name_plural}")
+                    ):
                         raise HTTPException(
                             status_code=status.HTTP_403_FORBIDDEN,
                             detail=f"You do not have permission to delete {self.resource_name_plural}.",

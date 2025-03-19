@@ -18,6 +18,7 @@ from database.model.serializers import (
 )
 from database.session import DbSession
 from routers import ResourceRouter
+from tests.testutils.database import logged_in_user, kc_user_with_roles
 
 
 class TestEnum(NamedRelation, table=True):  # type: ignore [call-arg]
@@ -225,20 +226,21 @@ def test_post_happy_path(client_with_testobject: TestClient, mocked_privileged_t
     assert related_objects[1]["field2"] == "val2.2"
 
 
-def test_put_happy_path(client_with_testobject: TestClient, mocked_privileged_token: Mock):
-    response = client_with_testobject.put(
-        "/test_resources/v0/4",
-        json={
-            "title": "new title",
-            "named_string": "new_string",
-            "named_string_list": ["1", "4", "9"],
-            "related_objects": [
-                {"field1": "val1-1", "field2": "val1-2"},
-                {"field1": "val2-1", "field2": "val2-2"},
-            ],
-        },
-        headers={"Authorization": "Fake token"},
-    )
+def test_put_happy_path(client_with_testobject: TestClient):
+    with logged_in_user(kc_user_with_roles("update_test_resources")):
+        response = client_with_testobject.put(
+            "/test_resources/v0/4",
+            json={
+                "title": "new title",
+                "named_string": "new_string",
+                "named_string_list": ["1", "4", "9"],
+                "related_objects": [
+                    {"field1": "val1-1", "field2": "val1-2"},
+                    {"field1": "val2-1", "field2": "val2-2"},
+                ],
+            },
+            headers={"Authorization": "Fake token"},
+        )
     assert response.status_code == 200, response.json()
     changed_resource = client_with_testobject.get("/test_resources/v0/4").json()
     assert changed_resource["title"] == "new title"
