@@ -1,6 +1,34 @@
-# Generate JSON Schema
+# Generate JSON Schema od AIoD Metadata Model
 
 This folder contains scripts to generate JSON schemas for implemented models, and compare it with the AIoD conceptual model.
+
+1. [Process for Updating the Schema](#process-for-updating-the-schema)
+2. [Folder Structure](#folder-structure)
+3. [Usage](#usage)
+4. [Code Structure](#code-structure)
+   - [generate_schema.ipynb](#generate_schemaipynb)
+   - [generate_schema_no_inheritance.ipynb](#generate_schema_no_inheritanceipynb)
+5. [Comparison Results](#comparison-results)
+   - [CSV Files in comparison_results](#csv-files-in-comparison_results)
+   - [CSV Files in comparison_results_no_inheritance](#csv-files-in-comparison_results_no_inheritance)
+6. [TODO](#todo)
+7. [Note](#note)
+
+
+## Process for Updating the Schema
+
+The following steps outline the process we follow for updating the schema:
+
+1. **Add Missing Properties to Existing Entities**: Identify and add any properties that are present in the AIoD conceptual model but missing in the existing entities.
+2. **Correct Incorrect Property Types/Names/Range**: Ensure that the property types, names, and ranges in the existing entities match those defined in the AIoD conceptual model.
+- *We are currently at stage 1 and 2.*
+3. **Delete Extra Properties from Existing Entities**: Remove any properties that are present in the existing entities but not in the AIoD conceptual model.
+4. **Add Missing Entities**: Identify and add any entities that are present in the AIoD conceptual model but missing in the existing schema.
+5. **Use Newly Added Entities as Missing Properties of Existing Entities**: Ensure that all properties defined in the AIoD conceptual model for the newly added entities are included.
+6. **Delete Extra Entities**: Remove any entities that are present in the existing schema but not in the AIoD conceptual model.
+
+This process ensures that the implemented schema remains consistent with the AIoD conceptual model and up-to-date with any changes.
+
 
 ## Folder Structure
 
@@ -33,6 +61,11 @@ Example usage given in `analysis.ipynb`
 - **Generate comparison results**: Identifies missing and extra properties and entities.
 - **Save Schema**: Save the generated JSON schemas to the appropriate directory.
 
+### `generate_schema_no_inheritance.ipynb`
+
+- Same code structure as `generate_schema.ipynb`, only excludes adding inherited properties to schema.
+
+
 ## Comparison Results
 
 The comparison results are stored in the `comparison_results/` and `comparison_results_noinheritance/` directories.
@@ -45,6 +78,10 @@ The `comparison_results/` folder contains four different CSV files that provide 
 2. **`extra_properties.csv`**: Lists the fields for each entity that are present in the generated JSON schemas but not in the AIoD conceptual model.
 3. **`missing_entities.csv`**: Lists the entities that are present in the AIoD conceptual model but missing in the generated JSON schemas.
 4. **`extra_entities.csv`**: Lists the entities that are present in the generated JSON schemas but not in the AIoD conceptual model.
+
+### CSV Files in `comparison_results_no_inheritance/`
+
+- Same file sequence/structure as `comparison_results`.
 
 ### TODO
 
@@ -63,6 +100,6 @@ The `comparison_results/` folder contains four different CSV files that provide 
 
 5. Update the documentation to reflect the changes in the JSON schema structure.
 
-#### Note:
+### Note:
 * The conceptual model is a work in progress.
 * The code is meant for internal usage to keep the implemented schema up-to-date with the conceptual model.
