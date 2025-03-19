@@ -79,20 +79,6 @@ def test_post_authorized(client_test_resource, mocked_token: Mock):
     assert response.status_code == 200, response.json()
 
 
-@pytest.mark.parametrize(
-    "mocked_token", [["delete_test_resources"], ["create_datasets"]], indirect=True
-)
-def test_post_unauthorized(client_test_resource: TestClient, mocked_token: Mock):
-    response = client_test_resource.post(
-        "/test_resources/v0",
-        json={"title": "example"},
-        headers={"Authorization": "fake-token"},
-    )
-    assert response.status_code == 403, response.json()
-    response_json = response.json()
-    assert response_json["detail"] == "You do not have permission to create test_resources."
-
-
 def test_post_unauthenticated(client_test_resource: TestClient):
     response = client_test_resource.post("/test_resources/v0", json={"title": "example"})
     assert response.status_code == 401, response.json()

@@ -404,15 +404,6 @@ class ResourceRouter(abc.ABC):
             resource_create: clz_create,  # type: ignore
             user: KeycloakUser = Depends(get_user_or_raise),
         ):
-            if not user.has_any_role(
-                KEYCLOAK_CONFIG.get("role"),
-                f"create_{self.resource_name_plural}",
-                f"crud_{self.resource_name_plural}",
-            ):
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"You do not have permission to create {self.resource_name_plural}.",
-                )
             try:
                 with DbSession() as session:
                     try:
