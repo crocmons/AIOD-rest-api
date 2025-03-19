@@ -43,6 +43,7 @@ keycloak_openid = KeycloakOpenID(
     realm_name=KEYCLOAK_CONFIG.get("realm"),
     verify=True,
 )
+_REVIEWER_ROLE = os.getenv("REVIEWER_ROLE_NAME")
 
 
 @dataclasses.dataclass
@@ -59,7 +60,8 @@ class KeycloakUser:
 
     @property
     def is_reviewer(self):
-        return "reviewer" in self.roles
+        assert _REVIEWER_ROLE is not None, "Must configure role `reviewer` in config.toml file."  # noqa: S101
+        return _REVIEWER_ROLE in self.roles
 
 
 async def _get_user(token) -> KeycloakUser:

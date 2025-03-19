@@ -9,6 +9,7 @@ services:
       - ./src/config.override.toml:/app/config.override.toml:ro
     environment:
       - KEYCLOAK_CLIENT_SECRET=$KEYCLOAK_CLIENT_SECRET
+      - REVIEWER_ROLE_NAME=$REVIEWER_ROLE_NAME
       - ES_USER=$ES_USER
       - ES_PASSWORD=$ES_PASSWORD
     ports:
@@ -149,6 +150,7 @@ services:
     environment:
       - REDIRECT_URIS=$REDIRECT_URIS
       - POST_LOGOUT_REDIRECT_URIS=$POST_LOGOUT_REDIRECT_URIS
+      - REVIEWER_ROLE_NAME=$REVIEWER_ROLE_NAME
     ports:
       - ${AIOD_KEYCLOAK_PORT}:8080
     volumes:

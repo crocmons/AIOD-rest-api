@@ -1,9 +1,11 @@
 import contextlib
 import json
+import os
 from http import HTTPStatus
 from unittest.mock import Mock
 
 import pytest
+from dotenv import load_dotenv
 from starlette.testclient import TestClient
 
 from authentication import keycloak_openid, KeycloakUser
@@ -18,9 +20,13 @@ from database.session import DbSession
 from database.model.knowledge_asset.publication import Publication
 from routers.review_router import ListMode
 
+load_dotenv()
+
 ALICE = KeycloakUser("Alice", {"edit_aiod_resources"}, "alice-sub")
 BOB = KeycloakUser("Bob", {"edit_aiod_resources"}, "bob-sub")
-REVIEWER = KeycloakUser("Reviewer", {"reviewer", "edit_aiod_resources"}, "reviewer-sub")
+review_role = os.getenv("REVIEWER_ROLE_NAME")
+assert review_role, "The REVIEWER_ROLE_NAME environment variable must be set"
+REVIEWER = KeycloakUser("Reviewer", {review_role, "edit_aiod_resources"}, "reviewer-sub")
 
 
 def _register_user_in_db(user: KeycloakUser) -> KeycloakUser:
@@ -319,7 +325,7 @@ def register_asset(asset: AIoDConcept, /, *, owner: KeycloakUser, status: EntryS
         session.commit()
 
         register_user(owner, session)
-        set_permission(owner, asset, session, type_=PermissionType.ADMIN)
+        set_permission(owner, asset.aiod_entry, session, type_=PermissionType.ADMIN)
 
         asset.aiod_entry.status = status
         if status in [EntryStatus.SUBMITTED, EntryStatus.PUBLISHED, EntryStatus.REJECTED]:
