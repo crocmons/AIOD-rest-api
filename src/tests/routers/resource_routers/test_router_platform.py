@@ -4,9 +4,13 @@ import pytest
 from starlette.testclient import TestClient
 
 from database.model.platform.platform_names import PlatformName
+from authentication import PLATFORM_EDITOR_ROLE
 
 
-def test_happy_path(client: TestClient, mocked_privileged_token: Mock):
+@pytest.mark.parametrize(
+    "mocked_token", [[PLATFORM_EDITOR_ROLE]], indirect=True
+)
+def test_happy_path(mocked_token: Mock, client: TestClient):
     body = {"name": "my_favourite_platform"}
     response = client.post("/platforms/v1", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
@@ -25,7 +29,10 @@ def test_get_platform_of_platform(client: TestClient, url: str):
     assert response.json()["detail"] == "Not Found"
 
 
-def test_delete_platform(client: TestClient, mocked_privileged_token: Mock):
+@pytest.mark.parametrize(
+    "mocked_token", [[PLATFORM_EDITOR_ROLE]], indirect=True
+)
+def test_delete_platform(client: TestClient, mocked_token: Mock):
     body = {"name": "my_favourite_platform"}
     response = client.post("/platforms/v1", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
@@ -36,7 +43,10 @@ def test_delete_platform(client: TestClient, mocked_privileged_token: Mock):
     assert response.status_code == 200, response.json()
 
 
-def test_platform_same_name(client: TestClient, mocked_privileged_token: Mock):
+@pytest.mark.parametrize(
+    "mocked_token", [[PLATFORM_EDITOR_ROLE]], indirect=True
+)
+def test_platform_same_name(client: TestClient, mocked_token: Mock):
     body = {"name": "my_favourite_platform"}
     response = client.post("/platforms/v1", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()

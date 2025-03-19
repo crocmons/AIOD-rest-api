@@ -4,7 +4,7 @@ from typing import Any, Sequence
 from fastapi import Depends, HTTPException, status, APIRouter
 from sqlmodel import SQLModel, Session, select
 
-from authentication import KeycloakUser, get_user_or_raise
+from authentication import KeycloakUser, get_user_or_raise, PLATFORM_EDITOR_ROLE
 from config import KEYCLOAK_CONFIG
 from database.model.platform.platform import Platform
 from database.model.resource_read_and_create import resource_create, resource_read
@@ -178,11 +178,7 @@ class PlatformRouter:
             resource_create: clz_create,  # type: ignore
             user: KeycloakUser = Depends(get_user_or_raise),
         ):
-            if not user.has_any_role(
-                KEYCLOAK_CONFIG.get("role"),
-                f"create_{self.resource_name_plural}",
-                f"crud_{self.resource_name_plural}",
-            ):
+            if not user.has_role(PLATFORM_EDITOR_ROLE):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=f"You do not have permission to create {self.resource_name_plural}.",
@@ -222,11 +218,7 @@ class PlatformRouter:
             resource_create_instance: clz_create,  # type: ignore
             user: KeycloakUser = Depends(get_user_or_raise),
         ):
-            if not user.has_any_role(
-                KEYCLOAK_CONFIG.get("role"),
-                f"update_{self.resource_name_plural}",
-                f"crud_{self.resource_name_plural}",
-            ):
+            if not user.has_role(PLATFORM_EDITOR_ROLE):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=f"You do not have permission to edit {self.resource_name_plural}.",
@@ -265,11 +257,7 @@ class PlatformRouter:
             user: KeycloakUser = Depends(get_user_or_raise),
         ):
             with DbSession() as session:
-                if not user.has_any_role(
-                    KEYCLOAK_CONFIG.get("role"),
-                    f"delete_{self.resource_name_plural}",
-                    f"crud_{self.resource_name_plural}",
-                ):
+                if not user.has_role(PLATFORM_EDITOR_ROLE):
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail=f"You do not have permission to delete {self.resource_name_plural}.",
