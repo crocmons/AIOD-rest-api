@@ -1,4 +1,4 @@
-# Generate JSON Schema od AIoD Metadata Model
+# Generate JSON Schema of AIoD Metadata Model
 
 This folder contains scripts to generate JSON schemas for implemented models, and compare it with the AIoD conceptual model.
 
