@@ -4,11 +4,10 @@ import pytest
 from starlette.testclient import TestClient
 
 from database.model.platform.platform_names import PlatformName
-from authentication import PLATFORM_EDITOR_ROLE
 
 
 @pytest.mark.parametrize(
-    "mocked_token", [[PLATFORM_EDITOR_ROLE]], indirect=True
+    "mocked_token", [["create_platforms"]], indirect=True
 )
 def test_happy_path(mocked_token: Mock, client: TestClient):
     body = {"name": "my_favourite_platform"}
@@ -30,7 +29,7 @@ def test_get_platform_of_platform(client: TestClient, url: str):
 
 
 @pytest.mark.parametrize(
-    "mocked_token", [[PLATFORM_EDITOR_ROLE]], indirect=True
+    "mocked_token", [["create_platforms", "delete_platforms"]], indirect=True
 )
 def test_delete_platform(client: TestClient, mocked_token: Mock):
     body = {"name": "my_favourite_platform"}
@@ -44,7 +43,7 @@ def test_delete_platform(client: TestClient, mocked_token: Mock):
 
 
 @pytest.mark.parametrize(
-    "mocked_token", [[PLATFORM_EDITOR_ROLE]], indirect=True
+    "mocked_token", [["create_platforms"]], indirect=True
 )
 def test_platform_same_name(client: TestClient, mocked_token: Mock):
     body = {"name": "my_favourite_platform"}

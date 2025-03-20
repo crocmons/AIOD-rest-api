@@ -39,8 +39,6 @@ oidc = OpenIdConnect(openIdConnectUrl=KEYCLOAK_CONFIG.get("openid_connect_url"),
 # Should be managed together with other settings in the future (#67)
 _REVIEWER_ROLE = os.getenv("REVIEWER_ROLE_NAME")
 assert _REVIEWER_ROLE, "Environment variable 'REVIEWER_ROLE_NAME' not set."  # noqa: S101
-PLATFORM_EDITOR_ROLE = os.environ["PLATFORM_EDITOR_ROLE_NAME"]
-assert PLATFORM_EDITOR_ROLE, "Environment variable 'PLATFORM_EDITOR_ROLE_NAME' not set."  # noqa: S101
 client_secret = os.getenv("KEYCLOAK_CLIENT_SECRET")
 assert client_secret, "Environment variable 'KEYCLOAK_CLIENT_SECRET' not set."  # noqa: S101
 

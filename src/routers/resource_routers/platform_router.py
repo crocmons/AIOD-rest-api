@@ -4,8 +4,7 @@ from typing import Any, Sequence
 from fastapi import Depends, HTTPException, status, APIRouter
 from sqlmodel import SQLModel, Session, select
 
-from authentication import KeycloakUser, get_user_or_raise, PLATFORM_EDITOR_ROLE
-from config import KEYCLOAK_CONFIG
+from authentication import KeycloakUser, get_user_or_raise
 from database.model.platform.platform import Platform
 from database.model.resource_read_and_create import resource_create, resource_read
 from database.model.serializers import deserialize_resource_relationships
@@ -178,7 +177,7 @@ class PlatformRouter:
             resource_create: clz_create,  # type: ignore
             user: KeycloakUser = Depends(get_user_or_raise),
         ):
-            if not user.has_role(PLATFORM_EDITOR_ROLE):
+            if not user.has_role("create_platforms"):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=f"You do not have permission to create {self.resource_name_plural}.",
@@ -218,7 +217,7 @@ class PlatformRouter:
             resource_create_instance: clz_create,  # type: ignore
             user: KeycloakUser = Depends(get_user_or_raise),
         ):
-            if not user.has_role(PLATFORM_EDITOR_ROLE):
+            if not user.has_role("update_platforms"):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=f"You do not have permission to edit {self.resource_name_plural}.",
@@ -257,7 +256,7 @@ class PlatformRouter:
             user: KeycloakUser = Depends(get_user_or_raise),
         ):
             with DbSession() as session:
-                if not user.has_role(PLATFORM_EDITOR_ROLE):
+                if not user.has_role("delete_platforms"):
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail=f"You do not have permission to delete {self.resource_name_plural}.",
