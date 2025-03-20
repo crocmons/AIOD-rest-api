@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy.engine import Engine
 from starlette.testclient import TestClient
 
-from tests.testutils.database import logged_in_user, kc_user_with_roles
+from tests.testutils.users import logged_in_user, kc_user_with_roles
 
 
 @pytest.mark.parametrize(

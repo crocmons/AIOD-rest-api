@@ -8,7 +8,7 @@ from starlette.testclient import TestClient
 
 from authentication import KeycloakUser
 from tests.testutils.test_resource import RouterTestResource
-from tests.testutils.database import kc_user_with_roles, logged_in_user
+from tests.testutils.users import kc_user_with_roles, logged_in_user
 
 
 class DeprecatedRouter(RouterTestResource):

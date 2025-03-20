@@ -9,7 +9,7 @@ from starlette import status
 
 
 from authentication import get_user_or_raise, keycloak_openid
-from tests.testutils.database import ALICE, logged_in_user
+from tests.testutils.users import ALICE, logged_in_user
 from tests.testutils.mock_keycloak import MockedKeycloak, TestUserType
 
 

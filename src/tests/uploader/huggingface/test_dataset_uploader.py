@@ -12,7 +12,7 @@ from database.model.dataset.dataset import Dataset
 from database.model.platform.platform_names import PlatformName
 from database.session import DbSession
 from tests.testutils.paths import path_test_resources
-from tests.testutils.database import logged_in_user, kc_user_with_roles
+from tests.testutils.users import logged_in_user, kc_user_with_roles
 from uploaders.hugging_face_uploader import HuggingfaceUploader
 
 

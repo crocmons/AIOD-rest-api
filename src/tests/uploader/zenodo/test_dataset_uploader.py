@@ -21,7 +21,7 @@ from database.model.dataset.dataset import Dataset
 from tests.testutils.paths import path_test_resources
 
 import tests.uploader.zenodo.mock_zenodo as zenodo
-from tests.testutils.database import logged_in_user, kc_user_with_roles
+from tests.testutils.users import logged_in_user, kc_user_with_roles
 from uploaders.zenodo_uploader import ZenodoUploader
 
 ENDPOINT = "/upload/datasets/1/zenodo"

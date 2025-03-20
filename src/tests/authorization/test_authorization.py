@@ -14,7 +14,7 @@ from database.review import Decision, ReviewCreate
 from database.session import DbSession
 from database.model.knowledge_asset.publication import Publication
 from routers.review_router import ListMode
-from tests.testutils.database import ALICE, BOB, REVIEWER, _register_user_in_db, \
+from tests.testutils.users import ALICE, BOB, REVIEWER, _register_user_in_db, \
     logged_in_user, register_asset
 
 

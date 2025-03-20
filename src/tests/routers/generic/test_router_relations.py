@@ -18,7 +18,7 @@ from database.model.serializers import (
 )
 from database.session import DbSession
 from routers import ResourceRouter
-from tests.testutils.database import logged_in_user, kc_user_with_roles
+from tests.testutils.users import logged_in_user, kc_user_with_roles
 
 
 class TestEnum(NamedRelation, table=True):  # type: ignore [call-arg]

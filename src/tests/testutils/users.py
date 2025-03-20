@@ -1,25 +1,17 @@
 import contextlib
-import os
-from typing import Sequence
+from typing import cast
 from unittest.mock import Mock
 
-from dotenv import load_dotenv
-
-from authentication import KeycloakUser, keycloak_openid
+from authentication import KeycloakUser, keycloak_openid, REVIEWER_ROLE
 from database.authorization import register_user, set_permission, PermissionType
 from database.model.concept.aiod_entry import EntryStatus
 from database.model.concept.concept import AIoDConcept
 from database.review import Submission, Review, Decision
 from database.session import DbSession
 
-load_dotenv()
-
 ALICE = KeycloakUser("Alice", set(), "alice-sub")
 BOB = KeycloakUser("Bob", set(), "bob-sub")
-
-review_role = os.getenv("REVIEWER_ROLE_NAME")
-assert review_role, "The REVIEWER_ROLE_NAME environment variable must be set"
-REVIEWER = KeycloakUser("Reviewer", {review_role, "edit_aiod_resources"}, "reviewer-sub")
+REVIEWER = KeycloakUser("Reviewer", {cast(str, REVIEWER_ROLE)}, "reviewer-sub")
 
 
 def _register_user_in_db(user: KeycloakUser) -> KeycloakUser:

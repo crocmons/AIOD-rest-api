@@ -9,7 +9,7 @@ from authentication import KeycloakUser
 from database.session import DbSession
 from database.model.concept.aiod_entry import EntryStatus
 from tests.testutils.test_resource import factory
-from tests.testutils.database import register_asset, ALICE, logged_in_user, BOB
+from tests.testutils.users import register_asset, ALICE, logged_in_user, BOB
 
 
 @pytest.mark.parametrize("identifier", [1, 2])
