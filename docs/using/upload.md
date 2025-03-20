@@ -7,8 +7,6 @@ The second is to directly register metadata with the metadata catalogue.
 This may be done directly through the REST API, or by services built on top of it
 such as [RAIL](https://rail.aiod.eu) or the (to be added) metadata catalogue editor.
 
-[//]: # (todo: insert image)
-
 This page describes the steps to register metadata through the REST API.
 
 ## What is *meta*data?
@@ -35,6 +33,8 @@ Registering new data requires a user to submit it to the metadata catalogue's RE
 after which a review will publish the asset or suggest changes. This general workflow
 is shown in the image below. In the image and the description after `ASSET` denotes
 a type of asset, e.g., `Organisation` or `FundingOpportunity`.
+
+![Flowchart that depicts the upload process](../media/upload_and_review.svg)
 
 The sections below describe the process in more detail.
 
