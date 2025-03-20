@@ -15,7 +15,9 @@ theme:
 
 nav:
   - Home: README.md
-  - Using the API: Using.md
+  - Using the API:
+      - using/index.md
+      - 'Uploading Metadata': using/upload.md
   - Hosting the API:
       - hosting/index.md
       - 'Authentication': hosting/authentication.md
