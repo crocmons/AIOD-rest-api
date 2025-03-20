@@ -175,7 +175,19 @@ The `?mode=oldest` parameter can be used to fetch the submission which has been 
 in particular this will provide also the asset body to review.
   * `/reviews/v1` the endpoint through which reviews can be made using `POST` requests.
 
-[//]: # (todo) add more information on leaving a review.
+Given a submission identifier (obtained from either `/submissions` endpoint mentioned above),
+the review can post a review to `/reviews/v1`. This requires the user to make a decision
+to accept or reject the submission, and optionally leave a comment. When rejecting an
+asset, a comment is strongly encouraged, otherwise the user will not know how to improve
+their submission. An example body of the `POST` request to `/reviews/v1` could look like:
+```json
+{
+  "comment": "Several critical fields have incomplete information. Please improve the description, and add a house number to the address.",
+  "decision": "rejected",
+  "submission_identifier": 0
+}
+```
+The comment may be up to 1800 characters long, so detailed feedback can be given.
 
 ## Notes
 Assets registered by users will automatically be associated with the "AIoD" platform,
