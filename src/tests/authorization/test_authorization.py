@@ -280,7 +280,6 @@ def test_user_can_always_delete_asset(status: EntryStatus, publication, client):
         )
         assert response.status_code == HTTPStatus.OK, response.json()
 
-
 def test_user_can_edit_asset_in_draft(publication, client):
     identifier = register_asset(publication, owner=ALICE, status=EntryStatus.DRAFT)
     new_name = "Alice in Wonderland"
