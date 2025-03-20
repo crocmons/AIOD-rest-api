@@ -17,7 +17,7 @@ about that data, for example, "how big is the dataset?", "how was the model trai
 
 The metadata catalogue does not provide an option to upload the data alongside the
 metadata. If you want to upload your model or dataset, we recommend you do this in
-platforms that specialize storing this artifacts, such as [Zenodo](https://zenodo.org),
+platforms that specialize in storing this artifacts, such as [Zenodo](https://zenodo.org),
 [OpenML](https://openml.org), or [Hugging Face](https://huggingface.co).
 If you do this with a platform which has a [connector](../hosting/connectors.md) to
 the metadata catalogue, the metadata for that asset will automatically be registered
@@ -29,10 +29,12 @@ used for data storage.
 
 ## Workflow for Uploading Metadata
 
-Registering new data requires a user to submit it to the metadata catalogue's REST API,
-after which a review will publish the asset or suggest changes. This general workflow
+Registering new metadata requires a user to submit it to the metadata catalogue's REST API,
+after which a reviewer will publish the asset or suggest changes. This general workflow
 is shown in the image below. In the image and the description after `ASSET` denotes
-a type of asset, e.g., `Organisation` or `FundingOpportunity`.
+a type of asset, e.g., `Organisation` or `FundingOpportunity`. Refer to the [REST API
+documentation](https://api.aiod.eu/docs) for more information about the latest versions
+of the endpoints, including their exact addresses and schemas used.
 
 ![Flowchart that depicts the upload process](../media/upload_and_review.svg)
 
@@ -79,6 +81,8 @@ Again, it's useful to save this identifier for later.
 
 !!! info
     An asset submitted for review may longer be edited.
+    If you do not want it published, you may [retract the asset](#retracting-a-submission)
+    from review after which you are allowed to edit it again.
 
 ### Awaiting a Review
 After submitting your asset for review, you must wait for a reviewer to process your
@@ -133,6 +137,15 @@ While it is registered in the database which user requested the submission,
 this information is not revealed to the reviewer. That is to say, it is a
 double-blind review process (though in general the content of the metadata
 is likely revealing).
+
+#### Retracting a Submission
+Sometimes you may want to retract a submitted asset before a reviewer manages to review it.
+For example, to correct a mistake in the original submission. You can retract an asset from
+review at any time by doing a `POST` request to the `/submissions/retract/v1/SUBMISSION_IDENTIFIER`
+endpoint.
+
+A retracted submission is treated the same as a rejected submission. The asset is put back
+into draft status and will not be reviewed until the you submit a new review request.
 
 ### A Rejected Submission
 You may find that your submission gets rejected. In that case, the `submissions/v1/IDENTIFIER`
