@@ -212,7 +212,7 @@ class ResourceRouter(abc.ABC):
         user: KeycloakUser | None = None,
         platform: str | None = None,
     ):
-        """Fetch all resources of this platform in given schema, using pagination"""
+        """Fetch all published resources of this platform in given schema, using pagination"""
         _raise_error_on_invalid_schema(self._possible_schemas, schema)
         with DbSession(autoflush=False) as session:
             try:
@@ -624,8 +624,8 @@ class ResourceRouter(abc.ABC):
         platform: str | None = None,
     ) -> Sequence[type[RESOURCE_MODEL]]:
         """
-        Retrieve a sequence of resources from the database based on the provided identifier,
-        platform and resource filters (if applicable).
+        Retrieve a sequence of published resources from the database based on the
+        provided identifier, platform and resource filters (if applicable).
         """
         where_clause = and_(
             is_(self.resource_class.date_deleted, None),
@@ -636,6 +636,7 @@ class ResourceRouter(abc.ABC):
             AIoDEntryORM.date_modified < resource_filters.date_modified_before
             if resource_filters.date_modified_before is not None
             else True,
+            AIoDEntryORM.status == EntryStatus.PUBLISHED,
         )
         query = (
             select(self.resource_class)
