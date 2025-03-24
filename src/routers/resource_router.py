@@ -288,7 +288,7 @@ class ResourceRouter(abc.ABC):
 
     def get_resource_count_func(self):
         """
-        Gets the total number of resources from the database.
+        Gets the total number of published resources from the database.
         This function returns a function (instead of being that function directly) because the
         docstring and the variables are dynamic, and used in Swagger.
         """
@@ -303,7 +303,11 @@ class ResourceRouter(abc.ABC):
                     if not detailed:
                         return (
                             session.query(self.resource_class)
-                            .where(is_(self.resource_class.date_deleted, None))
+                            .join(self.resource_class.aiod_entry, isouter=True)
+                            .where(
+                                is_(self.resource_class.date_deleted, None),
+                                AIoDEntryORM.status == EntryStatus.PUBLISHED,
+                            )
                             .count()
                         )
                     else:
@@ -312,7 +316,11 @@ class ResourceRouter(abc.ABC):
                                 self.resource_class.platform,
                                 func.count(self.resource_class.identifier),
                             )
-                            .where(is_(self.resource_class.date_deleted, None))
+                            .join(self.resource_class.aiod_entry, isouter=True)
+                            .where(
+                                is_(self.resource_class.date_deleted, None),
+                                AIoDEntryORM.status == EntryStatus.PUBLISHED,
+                            )
                             .group_by(self.resource_class.platform)
                             .all()
                         )
