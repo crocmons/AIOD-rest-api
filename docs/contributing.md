@@ -94,4 +94,8 @@ to start docker containers in a way that reflects local changes.
 See the ["Developer Documentation"](developer/index.md) for the technical documentation of this project.
 More to be added.
 
+Note that when using our convenience scripts to launch docker containers (see ["Shorthands"](hosting/index.md#shorthands)),
+local code changes are not mounted to the docker containers unless `USE_LOCAL_DEV` is set to `true`. You should configure this
+variable in your `override.env`.
+
 [//]: # (## Setting up a pull request)
