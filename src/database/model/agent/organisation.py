@@ -7,6 +7,7 @@ from database.model.agent.agent import AgentBase, Agent
 from database.model.agent.agent_table import AgentTable
 from database.model.agent.contact import Contact
 from database.model.agent.organisation_type import OrganisationType
+from database.model.agent.company_revenue import CompanyRevenue
 from database.model.field_length import NORMAL, LONG
 from database.model.helper_functions import many_to_many_link_factory
 from database.model.relationships import ManyToOne, ManyToMany, OneToOne
@@ -47,6 +48,8 @@ class Organisation(OrganisationBase, Agent, table=True):  # type: ignore [call-a
     member: list[AgentTable] = Relationship(
         link_model=many_to_many_link_factory("organisation", AgentTable.__tablename__),
     )
+    
+    turnover: int | None = Relationship()
 
     class RelationshipConfig(Agent.RelationshipConfig):
         contact_details: int | None = OneToOne(
@@ -68,6 +71,13 @@ class Organisation(OrganisationBase, Agent, table=True):  # type: ignore [call-a
             _serializer=AttributeSerializer("identifier"),
             deserializer=FindByIdentifierDeserializerList(AgentTable),
             default_factory_pydantic=list,
+        )
+        turnover: Optional[int] = ManyToOne(
+            description="The revenue size category of this organisation.",
+            identifier_name="turnover_identifier",
+            _serializer=AttributeSerializer("identifier"),
+            deserializer=FindByIdentifierDeserializer(CompanyRevenue),
+            example=1,
         )
 
 
