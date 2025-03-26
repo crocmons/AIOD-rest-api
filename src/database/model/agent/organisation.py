@@ -48,8 +48,22 @@ class Organisation(OrganisationBase, Agent, table=True):  # type: ignore [call-a
     member: list[AgentTable] = Relationship(
         link_model=many_to_many_link_factory("organisation", AgentTable.__tablename__),
     )
-    
-    turnover: int | None = Relationship()
+
+    # many-to-one relationship
+    turnover_identifier: Optional[int] = Field(
+        foreign_key="company_revenue.identifier", description="Identifier of the revenue category."
+    )
+    number_of_employees_identifier: Optional[int] = Field(
+        foreign_key="company_revenue.identifier",
+        description="Identifier of the employee count category.",
+    )
+
+    turnover: Optional[CompanyRevenue] = Relationship(
+        sa_relationship_kwargs={"foreign_keys": "[Organisation.turnover_identifier]"}
+    )
+    number_of_employees: Optional[CompanyRevenue] = Relationship(
+        sa_relationship_kwargs={"foreign_keys": "[Organisation.number_of_employees_identifier]"}
+    )
 
     class RelationshipConfig(Agent.RelationshipConfig):
         contact_details: int | None = OneToOne(
@@ -72,13 +86,26 @@ class Organisation(OrganisationBase, Agent, table=True):  # type: ignore [call-a
             deserializer=FindByIdentifierDeserializerList(AgentTable),
             default_factory_pydantic=list,
         )
-        turnover: Optional[int] = ManyToOne(
-            description="The revenue size category of this organisation.",
+
+        turnover: Optional[str] = ManyToOne(
+            description="The revenue category of the organisation.",
             identifier_name="turnover_identifier",
-            _serializer=AttributeSerializer("identifier"),
-            deserializer=FindByIdentifierDeserializer(CompanyRevenue),
-            example=1,
+            _serializer=AttributeSerializer("name"),
+            deserializer=FindByNameDeserializer(CompanyRevenue),
+            example="<100M",
         )
+        number_of_employees: Optional[str] = ManyToOne(
+            description="The number of employees in the organisation.",
+            identifier_name="number_of_employees_identifier",
+            _serializer=AttributeSerializer("name"),
+            deserializer=FindByNameDeserializer(CompanyRevenue),
+            example=">250",
+        )
+
+        # ALLOWED_EMPLOYEE_VALUES = {'<10', '<50', '<250', '>250', 'N/A'}
+
+        # # Optional validation (not enforced here, but could be handled in API layer or form validation)
+        # number_of_employees.__annotations__["example"] = list(ALLOWED_EMPLOYEE_VALUES)
 
 
 deserializer = FindByIdentifierDeserializer(Organisation)
