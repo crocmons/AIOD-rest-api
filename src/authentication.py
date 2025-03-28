@@ -35,12 +35,8 @@ load_dotenv()
 oidc = OpenIdConnect(openIdConnectUrl=KEYCLOAK_CONFIG.get("openid_connect_url"), auto_error=False)
 
 
-# These variables are required for the API to function, so we provide context beyond KeyError.
-# Should be managed together with other settings in the future (#67)
 REVIEWER_ROLE = os.getenv("REVIEWER_ROLE_NAME")
-assert REVIEWER_ROLE, "Environment variable 'REVIEWER_ROLE_NAME' not set."  # noqa: S101
 client_secret = os.getenv("KEYCLOAK_CLIENT_SECRET")
-assert client_secret, "Environment variable 'KEYCLOAK_CLIENT_SECRET' not set."  # noqa: S101
 
 keycloak_openid = KeycloakOpenID(
     server_url=KEYCLOAK_CONFIG.get("server_url"),
@@ -49,6 +45,13 @@ keycloak_openid = KeycloakOpenID(
     realm_name=KEYCLOAK_CONFIG.get("realm"),
     verify=True,
 )
+
+
+def assert_required_settings_configured() -> None:
+    # These variables are required for the API to function, so we provide context beyond KeyError.
+    # Should be managed together with other settings in the future (#67)
+    assert REVIEWER_ROLE, "Environment variable 'REVIEWER_ROLE_NAME' not set."  # noqa: S101
+    assert client_secret, "Environment variable 'KEYCLOAK_CLIENT_SECRET' not set."  # noqa: S101
 
 
 @dataclasses.dataclass
