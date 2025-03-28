@@ -30,7 +30,6 @@ async def test_happy_path_privileged():
         "offline_access",
         "uma_authorization",
         "default-roles-aiod",
-        "edit_aiod_resources",
     }
 
 
