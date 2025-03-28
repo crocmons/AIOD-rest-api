@@ -56,7 +56,7 @@
     } ],
     "disableableCredentialTypes" : [ ],
     "requiredActions" : [ ],
-    "realmRoles" : [ "default-roles-aiod", "edit_aiod_resources" ],
+    "realmRoles" : [ "default-roles-aiod"],
     "notBefore" : 0,
     "groups" : [ ]
   } ]

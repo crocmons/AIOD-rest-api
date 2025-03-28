@@ -4,6 +4,8 @@ The user model in AIoD allows users to maintain and share ownership over assets,
 and to allow a review process for new assets.
 The components of this user model are defined in [src/database/authorization.py](https://github.com/aiondemand/AIOD-rest-api/blob/develop/src/database/authorization.py)
 and [src/database/review.py](https://github.com/aiondemand/AIOD-rest-api/blob/develop/src/database/review.py).
+Note that for special users (e.g., administrators), this user model may be circumvented through
+special Keycloak roles (for more information, see ["Roles"](../hosting/authentication.md)).
 
 [//]: # (Add a diagram overview once the model is more final, e.g., groups are added)
 

@@ -1,46 +1,72 @@
+from functools import partial
+from http import HTTPStatus
 from unittest.mock import Mock
 
 import pytest
 from starlette.testclient import TestClient
 
+from authentication import KeycloakUser
 from database.session import DbSession
 from database.model.concept.aiod_entry import EntryStatus
 from tests.testutils.test_resource import factory
+from tests.testutils.users import register_asset, ALICE, logged_in_user, BOB
 
 
 @pytest.mark.parametrize("identifier", [1, 2])
 def test_happy_path(
     client_test_resource: TestClient,
     identifier: int,
-    mocked_privileged_token: Mock,
 ):
-    with DbSession() as session:
-        session.add_all(
-            [
-                factory(
-                    title="my_test_resource",
-                    platform="example",
-                    platform_resource_identifier=1,
-                    status=EntryStatus.DRAFT,
-                ),
-                factory(
-                    title="second_test_resource",
-                    platform="example",
-                    platform_resource_identifier=2,
-                    status=EntryStatus.DRAFT,
-                ),
-            ]
+    resources = [
+            factory(
+                title="my_test_resource",
+                platform="example",
+                platform_resource_identifier=1,
+                status=EntryStatus.DRAFT,
+            ),
+            factory(
+                title="second_test_resource",
+                platform="example",
+                platform_resource_identifier=2,
+                status=EntryStatus.DRAFT,
+            ),
+    ]
+    for resource in resources:
+        register_asset(resource, owner=ALICE, status=EntryStatus.DRAFT)
+
+    with logged_in_user(ALICE):
+        response = client_test_resource.delete(
+            f"/test_resources/v0/{identifier}", headers={"Authorization": "Fake token"}
         )
-        session.commit()
-    response = client_test_resource.delete(
-        f"/test_resources/v0/{identifier}", headers={"Authorization": "Fake token"}
-    )
     assert response.status_code == 200, response.json()
     response = client_test_resource.get("/test_resources/v0/")
     assert response.status_code == 200, response.json()
     response_json = response.json()
     assert len(response_json) == 1
     assert {r["identifier"] for r in response_json} == {1, 2} - {identifier}
+
+
+@pytest.mark.parametrize(
+    ("owner", "other"),
+    [(ALICE, BOB), (BOB, ALICE)]
+)
+def test_delete_requires_admin(
+        owner: KeycloakUser,
+        other: KeycloakUser,
+        client_test_resource: TestClient,
+):
+    identifier = register_asset(factory(), owner=owner, status=EntryStatus.DRAFT)
+    try_delete = partial(
+        client_test_resource.delete,
+            f"/test_resources/v0/{identifier}",
+        headers={"Authorization": "Fake token"}
+    )
+    with logged_in_user(user=None):
+        assert try_delete().status_code == HTTPStatus.UNAUTHORIZED
+    with logged_in_user(other):
+        assert try_delete().status_code == HTTPStatus.FORBIDDEN
+    with logged_in_user(owner):
+        assert try_delete().status_code == HTTPStatus.OK
 
 
 @pytest.mark.parametrize("identifier", [3, 4])

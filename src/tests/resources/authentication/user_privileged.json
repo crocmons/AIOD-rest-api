@@ -17,8 +17,7 @@
       "roles": [
         "offline_access",
         "uma_authorization",
-        "default-roles-aiod",
-        "edit_aiod_resources"
+        "default-roles-aiod"
       ]
     },
     "resource_access": {

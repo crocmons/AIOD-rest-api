@@ -20,10 +20,8 @@ class TestResource(TestResourceBase, AIoDConcept, table=True):  # type: ignore [
 
 
 def factory(
-    title=None, status=None, platform="example", platform_resource_identifier="1", date_deleted=None
+    title="default_title", status=EntryStatus.DRAFT, platform="example", platform_resource_identifier="1", date_deleted=None
 ):
-    if status is None:
-        status = EntryStatus.DRAFT
     return TestResource(
         title=title,
         platform=platform,
