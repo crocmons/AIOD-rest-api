@@ -65,7 +65,6 @@ class KeycloakUser:
 
     @property
     def is_reviewer(self):
-        assert REVIEWER_ROLE is not None, "Must configure role `reviewer` in config.toml file."  # noqa: S101
         return REVIEWER_ROLE in self.roles
 
 
