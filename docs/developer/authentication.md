@@ -4,9 +4,9 @@ For authentication, we use a [keycloak](https://www.keycloak.org) service.
 For development, make sure to use the `USE_LOCAL_DEV=true` environment variable so that the local
 keycloak server is configured with default users:
 
-| User | Password | Role(s)                                                                    | Comment |
-|------|----------|----------------------------------------------------------------------------|---------|
-| user | password | edit_aiod_resources, default-roles-aiod, offline_access, uma_authorization |         |
+| User | Password | Role(s)                                               | Comment |
+|------|----------|-------------------------------------------------------|---------|
+| user | password | default-roles-aiod, offline_access, uma_authorization |         |
 
 For a description of the roles, see ["AIoD Keycloak Roles"](../hosting/authentication.md#roles).
 With the local development configuration, you will only be able to authenticate with keycloak users (OAuth2, password) not by other means.
