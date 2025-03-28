@@ -42,7 +42,7 @@ Roles are generally only necessary for special cases.
 The normal flow for granting individual users permissions for individual assets is detailed in the ["user model"](../developer/users.md) documentation.
 These are the roles the metadata catalogue uses (`*` in a role indicates its defined for each asset type individually):
 
- * `reviewer`: identifies the user as having permission to view asset submissions and review them.
+ * `review_aiod_resources`: identifies the user as having permission to view asset submissions and review them.
  * `read_*`: allows the user read access to all assets on the platform, regardless of the asset-specific permissions.
  * `update_*`: allows the user update permission for all assets on the platform, regardless of the asset-specific permissions.
  * `delete_*`: allows the user delete permission for all assets on the platform, regardless of the asset-specific permissions.
