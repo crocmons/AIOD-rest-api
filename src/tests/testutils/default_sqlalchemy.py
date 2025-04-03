@@ -136,7 +136,7 @@ def auto_publish(engine: Engine):
             """)
         )
     yield
-    with Session(engine):
+    with Session(engine) as session:
         session.execute(text(f"DROP TRIGGER {trigger_name}"))
 
 

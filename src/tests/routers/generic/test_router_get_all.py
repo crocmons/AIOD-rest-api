@@ -11,13 +11,18 @@ def test_get_all_happy_path(client_test_resource: TestClient):
             [
                 factory(
                     title="my_test_resource_1",
-                    status=EntryStatus.DRAFT,
+                    status=EntryStatus.PUBLISHED,
                     platform_resource_identifier="2",
                 ),
                 factory(
                     title="My second test resource",
-                    status=EntryStatus.DRAFT,
+                    status=EntryStatus.PUBLISHED,
                     platform_resource_identifier="3",
+                ),
+                factory(
+                    title="My third test resource",
+                    status=EntryStatus.DRAFT,
+                    platform_resource_identifier="4",
                 ),
             ]
         )
@@ -26,7 +31,7 @@ def test_get_all_happy_path(client_test_resource: TestClient):
     assert response.status_code == 200, response.json()
     response_json = response.json()
 
-    assert len(response_json) == 2
+    assert len(response_json) == 2, "Expecting only two published assets"
     response_1, response_2 = response_json
     assert response_1["identifier"] == 1
     assert response_1["title"] == "my_test_resource_1"

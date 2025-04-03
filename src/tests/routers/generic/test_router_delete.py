@@ -32,7 +32,7 @@ def test_happy_path(
             ),
     ]
     for resource in resources:
-        register_asset(resource, owner=ALICE, status=EntryStatus.DRAFT)
+        register_asset(resource, owner=ALICE, status=EntryStatus.PUBLISHED)
 
     with logged_in_user(ALICE):
         response = client_test_resource.delete(
