@@ -90,6 +90,11 @@ It is also generally useful to set add an `override.env` file to the project's r
 the line `USE_LOCAL_DEV=true` added. This will allow utility scripts `./scripts/up.sh` and `./scripts/down.sh`
 to start docker containers in a way that reflects local changes.
 
+### Pre-commit
+Finally, configure your [pre-commit](https://pre-commit.com) hooks using `pre-commit install`.
+This will install some hooks to run before a commit can be made, these hooks will run various checks such as a code formatter, linter, file validation, and unit tests.
+These hooks help make sure formatting is more homogeneous across the project, and that no breaking changes are accidentally committed.
+
 ## Making a Code Changes
 See the ["Developer Documentation"](developer/index.md) for the technical documentation of this project.
 More to be added.
