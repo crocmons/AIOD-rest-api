@@ -99,4 +99,8 @@ These hooks help make sure formatting is more homogeneous across the project, an
 See the ["Developer Documentation"](developer/index.md) for the technical documentation of this project.
 More to be added.
 
+Note that when using our convenience scripts to launch docker containers (see ["Shorthands"](hosting/index.md#shorthands)),
+local code changes are not mounted to the docker containers unless `USE_LOCAL_DEV` is set to `true`. You should configure this
+variable in your `override.env`.
+
 [//]: # (## Setting up a pull request)
