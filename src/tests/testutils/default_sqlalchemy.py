@@ -20,7 +20,7 @@ from database.model.platform.platform import Platform
 from database.model.platform.platform_names import PlatformName
 from database.session import EngineSingleton
 from main import build_app
-from tests.testutils.test_resource import RouterTestResource, factory
+from tests.testutils.test_resource import RouterTestResource, factory_test_resource
 from tests.testutils.users import bypass_reviewer_publish_everything
 
 
@@ -62,11 +62,8 @@ def clear_db(request, engine: Engine):
         session.add_all([Platform(name=name) for name in PlatformName])
         if any("engine" in fixture and "filled" in fixture for fixture in request.fixturenames):
             session.add(
-                factory(
-                    title="A title",
-                    platform="example",
-                    platform_resource_identifier="1",
-                )
+                factory_test_resource(title="A title", platform="example",
+                                      platform_resource_identifier="1")
             )
         session.commit()
         bypass_reviewer_publish_everything()

@@ -7,7 +7,7 @@ from database.model.agent.person import Person
 from database.model.concept.aiod_entry import  EntryStatus
 from database.model.knowledge_asset.publication import Publication
 from database.session import DbSession
-from tests.testutils.test_resource import factory
+from tests.testutils.test_resource import factory_test_resource
 from tests.testutils.users import register_asset
 
 
@@ -15,27 +15,15 @@ def test_get_count_happy_path(client_test_resource: TestClient):
     with DbSession() as session:
         session.add_all(
             [
-                factory(
-                    title="my_test_resource_1",
-                    status=EntryStatus.PUBLISHED,
-                    platform_resource_identifier="1",
-                ),
-                factory(
-                    title="My second test resource",
-                    status=EntryStatus.PUBLISHED,
-                    platform_resource_identifier="2",
-                ),
-                factory(
-                    title="My third test resource",
-                    status=EntryStatus.PUBLISHED,
-                    platform_resource_identifier="3",
-                    date_deleted=datetime.datetime.now(),
-                ),
-                factory(
-                    title="My fourth test resource",
-                    status=EntryStatus.DRAFT,
-                    platform_resource_identifier="4",
-                ),
+                factory_test_resource(title="my_test_resource_1", status=EntryStatus.PUBLISHED,
+                                      platform_resource_identifier="1"),
+                factory_test_resource(title="My second test resource", status=EntryStatus.PUBLISHED,
+                                      platform_resource_identifier="2"),
+                factory_test_resource(title="My third test resource", status=EntryStatus.PUBLISHED,
+                                      platform_resource_identifier="3",
+                                      date_deleted=datetime.datetime.now()),
+                factory_test_resource(title="My fourth test resource", status=EntryStatus.DRAFT,
+                                      platform_resource_identifier="4"),
             ]
         )
         session.commit()
@@ -51,35 +39,17 @@ def test_get_count_detailed_happy_path(client_test_resource: TestClient):
     with DbSession() as session:
         session.add_all(
             [
-                factory(
-                    title="my_test_resource_1",
-                    status=EntryStatus.PUBLISHED,
-                    platform_resource_identifier="1",
-                ),
-                factory(
-                    title="My second test resource",
-                    status=EntryStatus.PUBLISHED,
-                    platform_resource_identifier="2",
-                ),
-                factory(
-                    title="My third test resource",
-                    status=EntryStatus.PUBLISHED,
-                    platform_resource_identifier="3",
-                    date_deleted=datetime.datetime.now(),
-                    platform="openml",
-                ),
-                factory(
-                    title="My third test resource",
-                    status=EntryStatus.PUBLISHED,
-                    platform_resource_identifier="4",
-                    platform="openml",
-                ),
-                factory(
-                    title="My fourth test resource",
-                    status=EntryStatus.PUBLISHED,
-                    platform=None,
-                    platform_resource_identifier=None,
-                ),
+                factory_test_resource(title="my_test_resource_1", status=EntryStatus.PUBLISHED,
+                                      platform_resource_identifier="1"),
+                factory_test_resource(title="My second test resource", status=EntryStatus.PUBLISHED,
+                                      platform_resource_identifier="2"),
+                factory_test_resource(title="My third test resource", status=EntryStatus.PUBLISHED,
+                                      platform="openml", platform_resource_identifier="3",
+                                      date_deleted=datetime.datetime.now()),
+                factory_test_resource(title="My third test resource", status=EntryStatus.PUBLISHED,
+                                      platform="openml", platform_resource_identifier="4"),
+                factory_test_resource(title="My fourth test resource", status=EntryStatus.PUBLISHED,
+                                      platform=None, platform_resource_identifier=None),
             ]
         )
         session.commit()

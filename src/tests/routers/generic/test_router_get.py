@@ -1,6 +1,8 @@
 from sqlalchemy.future import Engine
 from starlette.testclient import TestClient
 
+from tests.testutils.users import register_asset
+
 
 def test_get_happy_path(client_test_resource: TestClient, engine_test_resource_filled: Engine):
     response = client_test_resource.get("/test_resources/v0/1")
@@ -16,3 +18,7 @@ def test_not_found(client_test_resource: TestClient, engine_test_resource_filled
     response = client_test_resource.get("/test_resources/v0/99")
     assert response.status_code == 404, response.json()
     assert response.json()["detail"] == "Test_resource '99' not found in the database."
+
+
+# def test_get_draft_unauthenticated_not_allow(client_test_resource: TestClient):
+#     register_asset()
