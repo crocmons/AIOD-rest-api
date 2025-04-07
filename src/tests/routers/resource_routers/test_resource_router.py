@@ -63,7 +63,6 @@ def test_happy_path_with_filters(
         f"/{resource_type}/v1", json=body_asset, headers={"Authorization": "Fake token"}
     )
     assert response.status_code == 200, response.json()
-    # bypass_reviewer_publish_everything()
 
     response = client.get(f"/{resource_type}/v1", params=resource_filters)
     assert response.status_code == 200, response.json()

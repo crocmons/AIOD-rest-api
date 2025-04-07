@@ -97,19 +97,6 @@ def client(engine: Engine) -> TestClient:
     yield TestClient(app, base_url="http://localhost")
 
 
-@pytest.fixture(scope="session")
-def client_with_headers(engine: Engine) -> TestClient:
-    """Yield a client which can mock requests and always sets a header.
-    To be used in conjunction with functions such as `logged_in_user`.
-    """
-    app = build_app(version="unittest")
-    client = TestClient(app, base_url="http://localhost")
-    for operation in ["get", "put", "post", "delete"]:
-        operation_with_header = partial(getattr(client, operation), headers={"Authorization": "Fake token"})
-        setattr(client, operation, operation_with_header)
-    yield client
-
-
 # *NEVER* broaden the scope of this fixture, bypassing reviews should be on a test-by-test basis
 @pytest.fixture(scope="function")
 def auto_publish(engine: Engine):
