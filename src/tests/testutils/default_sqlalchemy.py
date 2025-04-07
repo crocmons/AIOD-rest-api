@@ -1,6 +1,5 @@
 import sqlite3
 import tempfile
-from functools import partial
 from typing import Iterator, Any
 from unittest.mock import Mock
 

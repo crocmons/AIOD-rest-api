@@ -6,7 +6,7 @@ from starlette.testclient import TestClient
 
 from database.model.agent.person import Person
 from database.session import DbSession
-from tests.testutils.users import logged_in_user, bypass_reviewer_publish_everything
+from tests.testutils.users import logged_in_user
 
 
 def test_happy_path(

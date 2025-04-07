@@ -4,7 +4,6 @@ from unittest.mock import Mock
 import pytest
 from starlette.testclient import TestClient
 
-from tests.testutils.users import bypass_reviewer_publish_everything
 
 
 @pytest.mark.parametrize(

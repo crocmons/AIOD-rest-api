@@ -8,7 +8,7 @@ from starlette.testclient import TestClient
 
 from database.model.agent.person import Person
 from database.session import DbSession
-from tests.testutils.users import logged_in_user, ALICE, bypass_reviewer_publish_everything
+from tests.testutils.users import logged_in_user, ALICE
 
 TEST_URL1 = "https://www.example.com/example1.csv/content"
 TEST_URL2 = "https://www.example.com/example2.tsv/content"

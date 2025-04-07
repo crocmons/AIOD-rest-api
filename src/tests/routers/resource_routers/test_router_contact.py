@@ -11,7 +11,7 @@ from database.model.platform.platform import Platform
 from database.session import DbSession
 from tests.testutils.default_instances import _create_class_with_body
 from tests.testutils.default_sqlalchemy import AI4EUROPE_CMS_TOKEN
-from tests.testutils.users import logged_in_user, bypass_reviewer_publish_everything
+from tests.testutils.users import logged_in_user
 
 
 def test_happy_path(client: TestClient, body_asset: dict, auto_publish: None):

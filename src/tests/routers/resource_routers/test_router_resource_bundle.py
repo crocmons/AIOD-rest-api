@@ -2,7 +2,6 @@ import copy
 from unittest.mock import Mock
 
 from starlette.testclient import TestClient
-from database.model.resource_bundle.resource_bundle import ResourceBundle
 from database.model.ai_resource.resource_table import AIResourceORM
 from database.session import DbSession
 

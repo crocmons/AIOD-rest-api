@@ -2,7 +2,7 @@ import copy
 
 from starlette.testclient import TestClient
 
-from tests.testutils.users import logged_in_user, bypass_reviewer_publish_everything
+from tests.testutils.users import logged_in_user
 
 
 def test_happy_path(client: TestClient, body_asset: dict, auto_publish: None):

@@ -1,5 +1,4 @@
 from typing import Optional, List, Type
-from unittest.mock import Mock
 
 import pytest
 from fastapi import FastAPI
@@ -18,8 +17,7 @@ from database.model.serializers import (
 )
 from database.session import DbSession
 from routers import ResourceRouter
-from tests.testutils.users import logged_in_user, kc_user_with_roles, \
-    bypass_reviewer_publish_everything
+from tests.testutils.users import logged_in_user, kc_user_with_roles
 
 
 class TestEnum(NamedRelation, table=True):  # type: ignore [call-arg]

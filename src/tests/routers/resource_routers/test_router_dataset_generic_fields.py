@@ -21,7 +21,7 @@ from database.model.dataset.dataset import Dataset
 from database.model.knowledge_asset.publication import Publication
 from database.model.news.news import News
 from database.session import DbSession
-from tests.testutils.users import logged_in_user, bypass_reviewer_publish_everything
+from tests.testutils.users import logged_in_user
 
 
 def test_happy_path(

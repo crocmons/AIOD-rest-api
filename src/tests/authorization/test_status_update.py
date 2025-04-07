@@ -1,6 +1,5 @@
 import copy
 from http import HTTPStatus
-from unittest.mock import Mock
 
 import pytest
 from starlette.testclient import TestClient

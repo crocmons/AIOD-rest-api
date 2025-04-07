@@ -1,10 +1,8 @@
-from unittest.mock import Mock
 
 import pytest
 from starlette.testclient import TestClient
 
-from tests.testutils.users import kc_user_with_roles, logged_in_user, \
-    bypass_reviewer_publish_everything
+from tests.testutils.users import logged_in_user
 
 
 @pytest.mark.parametrize(

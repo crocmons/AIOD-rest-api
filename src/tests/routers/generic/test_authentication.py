@@ -4,7 +4,6 @@ import pytest
 from sqlalchemy.future import Engine
 from starlette.testclient import TestClient
 
-from tests.testutils.users import bypass_reviewer_publish_everything
 
 
 def test_get_all_unauthenticated(
