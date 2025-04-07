@@ -197,7 +197,7 @@ def test_get_all_happy_path(client_with_testobject: TestClient):
 
 
 def test_post_happy_path(client_with_testobject: TestClient, auto_publish: None):
-    with logged_in_user(kc_user_with_roles()):
+    with logged_in_user():
         response = client_with_testobject.post(
             "/test_resources/v0",
             json={

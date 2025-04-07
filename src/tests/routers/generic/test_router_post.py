@@ -12,7 +12,7 @@ from tests.testutils.users import kc_user_with_roles, logged_in_user, \
     ["\"'é:?", "!@#$%^&*()`~", "Ω≈ç√∫˜µ≤≥÷", "田中さんにあげて下さい", " أي بعد, ", "𝑻𝒉𝒆 𝐪𝐮𝐢𝐜𝐤", "گچپژ"],
 )
 def test_unicode(client_test_resource: TestClient, title: str, auto_publish: None):
-    with logged_in_user(kc_user_with_roles()):
+    with logged_in_user():
         response = client_test_resource.post(
             "/test_resources/v0",
             json={"title": title, "platform": "example", "platform_resource_identifier": "1"},
@@ -29,7 +29,7 @@ def test_unicode(client_test_resource: TestClient, title: str, auto_publish: Non
 
 def test_missing_value(client_test_resource: TestClient):
     body = {"platform": "example", "platform_resource_identifier": "1"}
-    with logged_in_user(kc_user_with_roles()):
+    with logged_in_user():
         response = client_test_resource.post(
             "/test_resources/v0", json=body, headers={"Authorization": "Fake token"}
         )
@@ -41,7 +41,7 @@ def test_missing_value(client_test_resource: TestClient):
 
 def test_null_value(client_test_resource: TestClient):
     body = {"title": None, "platform": "example", "platform_resource_identifier": "1"}
-    with logged_in_user(kc_user_with_roles()):
+    with logged_in_user():
         response = client_test_resource.post(
             "/test_resources/v0", json=body, headers={"Authorization": "Fake token"}
         )
@@ -58,11 +58,11 @@ def test_null_value(client_test_resource: TestClient):
 def test_posting_same_item_twice(client_test_resource: TestClient):
     headers = {"Authorization": "Fake token"}
     body = {"title": "title1", "platform": "example", "platform_resource_identifier": "1"}
-    with logged_in_user(kc_user_with_roles()):
+    with logged_in_user():
         response = client_test_resource.post("/test_resources/v0", json=body, headers=headers)
     assert response.status_code == 200, response.json()
     body = {"title": "title2", "platform": "example", "platform_resource_identifier": "1"}
-    with logged_in_user(kc_user_with_roles()):
+    with logged_in_user():
         response = client_test_resource.post("/test_resources/v0", json=body, headers=headers)
     assert response.status_code == 409, response.json()
     assert (
@@ -76,16 +76,16 @@ def test_posting_same_item_twice_but_deleted(
 ):
     headers = {"Authorization": "Fake token"}
     body = {"title": "title1", "platform": "example", "platform_resource_identifier": "1"}
-    with logged_in_user(kc_user_with_roles()):
+    with logged_in_user():
         response = client_test_resource.post("/test_resources/v0", json=body, headers=headers)
     assert response.status_code == 200, response.json()
 
-    with logged_in_user(kc_user_with_roles()):
+    with logged_in_user():
         response = client_test_resource.delete("/test_resources/v0/1", headers=headers)
     assert response.status_code == 200, response.json()
 
     body = {"title": "title2", "platform": "example", "platform_resource_identifier": "1"}
-    with logged_in_user(kc_user_with_roles()):
+    with logged_in_user():
         response = client_test_resource.post("/test_resources/v0", json=body, headers=headers)
     assert response.status_code == 200, response.json()
 
@@ -95,11 +95,11 @@ def test_no_platform_no_platform_resource_identifier(
 ):
     headers = {"Authorization": "Fake token"}
     body = {"title": "title1", "platform": None, "platform_resource_identifier": None}
-    with logged_in_user(kc_user_with_roles()):
+    with logged_in_user():
         response = client_test_resource.post("/test_resources/v0", json=body, headers=headers)
     assert response.status_code == 200, response.json()
     body = {"title": "title2", "platform": None, "platform_resource_identifier": None}
-    with logged_in_user(kc_user_with_roles()):
+    with logged_in_user():
         response = client_test_resource.post("/test_resources/v0", json=body, headers=headers)
     assert response.status_code == 200, response.json()
 
@@ -109,7 +109,7 @@ def test_no_platform_with_platform_resource_identifier(
 ):
     headers = {"Authorization": "Fake token"}
     body = {"title": "title1", "platform": None, "platform_resource_identifier": "1"}
-    with logged_in_user(kc_user_with_roles()):
+    with logged_in_user():
         response = client_test_resource.post("/test_resources/v0", json=body, headers=headers)
     assert response.status_code == 400, response.json()
     assert (
@@ -124,7 +124,7 @@ def test_platform_with_no_platform_resource_identifier(
 ):
     headers = {"Authorization": "Fake token"}
     body = {"title": "title1", "platform": "example", "platform_resource_identifier": None}
-    with logged_in_user(kc_user_with_roles()):
+    with logged_in_user():
         response = client_test_resource.post("/test_resources/v0", json=body, headers=headers)
     assert response.status_code == 400, response.json()
     assert (
@@ -137,7 +137,7 @@ def test_platform_with_no_platform_resource_identifier(
 def test_non_existent_platform(client_test_resource: TestClient):
     headers = {"Authorization": "Fake token"}
     body = {"title": "title1", "platform": "this_does_not_exist", "platform_resource_identifier": 1}
-    with logged_in_user(kc_user_with_roles()):
+    with logged_in_user():
         response = client_test_resource.post("/test_resources/v0", json=body, headers=headers)
     assert response.status_code == 412
     assert (

@@ -306,7 +306,7 @@ def test_attempt_to_upload_published_resource(
         session.add(contact)
         session.commit()
 
-    with logged_in_user(kc_user_with_roles()):
+    with logged_in_user():
         response = client.post("/datasets/v1", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == status.HTTP_200_OK, response.json()
 
@@ -398,7 +398,7 @@ def test_fail_due_to_missing_contact_name(
     with DbSession() as session:
         session.add(person)
         session.commit()
-    with logged_in_user(kc_user_with_roles()):
+    with logged_in_user():
         response = client.post("/datasets/v1", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == status.HTTP_200_OK, response.json()
 
