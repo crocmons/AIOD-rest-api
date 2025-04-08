@@ -1,12 +1,9 @@
-from typing import Sequence
-
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlmodel import Session
 
 from authentication import KeycloakUser, get_user_or_raise
-from database.authorization import Permission
-from database.model.concept.concept import AIoDConcept
+from database.authorization import Permission, PermissionType
 from database.session import get_session
 from database.model.concept.aiod_entry import AIoDEntryORM, AIoDEntryRead
 
@@ -36,7 +33,10 @@ def _get_resources_for_user(user: KeycloakUser, session: Session) -> list[AIoDEn
     stmt = (
         select(AIoDEntryORM)
         .join(Permission.aiod_entry)
-        .where(Permission.user_identifier == user._subject_identifier)
+        .where(
+            Permission.user_identifier == user._subject_identifier,
+            Permission.type_ == PermissionType.ADMIN,
+        )
     )
     entries = session.scalars(stmt).all()
     return entries
