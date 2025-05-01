@@ -9,7 +9,7 @@ from starlette import status
 
 
 from authentication import get_user_or_raise, keycloak_openid
-from tests.authorization.test_authorization import logged_in_user, ALICE
+from tests.testutils.users import ALICE, logged_in_user
 from tests.testutils.mock_keycloak import MockedKeycloak, TestUserType
 
 
@@ -30,7 +30,6 @@ async def test_happy_path_privileged():
         "offline_access",
         "uma_authorization",
         "default-roles-aiod",
-        "edit_aiod_resources",
     }
 
 

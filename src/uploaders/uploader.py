@@ -29,7 +29,6 @@ class Uploader(abc.ABC):
         Verifies if the user is authorised on AIoD to upload content to the external platform.
         """
         if not user.has_any_role(
-            KEYCLOAK_CONFIG.get("role"),
             f"upload_{self.platform_name}",
             f"upload_{self.platform_name}_dataset",
         ):
