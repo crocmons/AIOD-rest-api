@@ -49,21 +49,26 @@ class Organisation(OrganisationBase, Agent, table=True):  # type: ignore [call-a
         link_model=many_to_many_link_factory("organisation", AgentTable.__tablename__),
     )
 
-    # many-to-one relationship
-    turnover_identifier: Optional[int] = Field(
-        foreign_key="company_revenue.identifier", description="Identifier of the revenue category."
-    )
-    number_of_employees_identifier: Optional[int] = Field(
+    turnover_identifier: int | None = Field(
+        default=None,
         foreign_key="company_revenue.identifier",
-        description="Identifier of the employee count category.",
+        description="The revenue bracket of the organisation.",
     )
 
     turnover: Optional[CompanyRevenue] = Relationship(
         sa_relationship_kwargs={"foreign_keys": "[Organisation.turnover_identifier]"}
     )
+
+    number_of_employees_identifier: int | None = Field(
+        default=None,
+        foreign_key="company_revenue.identifier",
+        description="The employee size bracket of the organisation.",
+    )
+
     number_of_employees: Optional[CompanyRevenue] = Relationship(
         sa_relationship_kwargs={"foreign_keys": "[Organisation.number_of_employees_identifier]"}
     )
+
 
     class RelationshipConfig(Agent.RelationshipConfig):
         contact_details: int | None = OneToOne(
@@ -88,19 +93,22 @@ class Organisation(OrganisationBase, Agent, table=True):  # type: ignore [call-a
         )
 
         turnover: Optional[str] = ManyToOne(
-            description="The revenue category of the organisation.",
+            description="The revenue bracket of the organisation (e.g., '<10M $', '<250M $').",
             identifier_name="turnover_identifier",
             _serializer=AttributeSerializer("name"),
             deserializer=FindByNameDeserializer(CompanyRevenue),
-            example="<100M",
+            example="<200M $",
         )
+
         number_of_employees: Optional[str] = ManyToOne(
-            description="The number of employees in the organisation.",
+            description="The employee size bracket of the organisation (e.g., '<50', '>250').",
             identifier_name="number_of_employees_identifier",
             _serializer=AttributeSerializer("name"),
             deserializer=FindByNameDeserializer(CompanyRevenue),
-            example=">250",
+            example="<10",
         )
+
+
 
         # ALLOWED_EMPLOYEE_VALUES = {'<10', '<50', '<250', '>250', 'N/A'}
 
