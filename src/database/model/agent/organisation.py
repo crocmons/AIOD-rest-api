@@ -20,6 +20,7 @@ from database.model.serializers import (
 
 ALLOWED_EMPLOYEE_SIZE_CATEGORIES = {"<10", "<50", "<250", ">250", "N/A"}
 
+
 class OrganisationBase(AgentBase):
     date_founded: date | None = Field(
         description="The date on which the organisation was founded.",
@@ -70,7 +71,6 @@ class Organisation(OrganisationBase, Agent, table=True):  # type: ignore [call-a
         sa_relationship_kwargs={"foreign_keys": "[Organisation.number_of_employees_identifier]"}
     )
 
-
     class RelationshipConfig(Agent.RelationshipConfig):
         contact_details: int | None = OneToOne(
             description="The identifier of the contact details by which this organisation "
@@ -102,17 +102,15 @@ class Organisation(OrganisationBase, Agent, table=True):  # type: ignore [call-a
         )
 
         number_of_employees: Optional[str] = ManyToOne(
-            description=("The number of employees of the organisation. "
-        f"Allowed values: {ALLOWED_EMPLOYEE_SIZE_CATEGORIES}"
+            description=(
+                "The number of employees of the organisation. "
+                f"Allowed values: {ALLOWED_EMPLOYEE_SIZE_CATEGORIES}"
             ),
             identifier_name="number_of_employees_identifier",
             _serializer=AttributeSerializer("name"),
             deserializer=FindByNameDeserializer(CompanyRevenue),
             example="<10",
         )
-
-
-
 
 
 deserializer = FindByIdentifierDeserializer(Organisation)
