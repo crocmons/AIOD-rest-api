@@ -28,6 +28,8 @@ def test_happy_path(
     body["type"] = "Research Institute"
     body["member"] = [1]
     body["contact_details"] = 1
+    body["turnover"] = "<10M $"
+    body["number_of_employees"] = "N/a"
 
     response = client.post("/organisations/v1", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
@@ -46,6 +48,8 @@ def test_happy_path(
     assert response_json["type"] == "research institute"
     assert response_json["member"] == [1]
     assert response_json["contact_details"] == 1
+    assert response_json["turnover"] == "<10m $"
+    assert response_json["number_of_employees"] == "n/a"
 
     # response = client.delete("/organisations/v1/1", headers={"Authorization": "Fake token"})
     # assert response.status_code == 200
@@ -59,6 +63,12 @@ def test_happy_path(
     assert response.status_code == 200, response.json()
     response = client.get("organisations/v1/2")
     assert response.json()["type"] == "association"
+
+    body["number_of_employees"] = "<50"
+    response = client.put("organisations/v1/2", json=body, headers={"Authorization": "Fake token"})
+    assert response.status_code == 200, response.json()
+    response = client.get("organisations/v1/2")
+    assert response.json()["number_of_employees"] == "<50"
 
     response = client.delete("/organisations/v1/2", headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
