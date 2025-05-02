@@ -143,7 +143,7 @@ def mocked_token(request: FixtureRequest, overwrites_keycloak_token: None):
 
 @pytest.fixture()
 def mocked_privileged_token(mocked_token: Mock, overwrites_keycloak_token: None):
-    roles = ["offline_access", "uma_authorization", "default-roles-aiod", "edit_aiod_resources"]
+    roles = ["offline_access", "uma_authorization", "default-roles-aiod"]
     keycloak_openid.introspect = Mock(return_value=_user_with_roles(*roles))
 
 

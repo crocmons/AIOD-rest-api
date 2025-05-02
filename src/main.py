@@ -14,7 +14,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from sqlmodel import select, SQLModel
 
-from authentication import get_user_or_raise, KeycloakUser
+from authentication import get_user_or_raise, KeycloakUser, assert_required_settings_configured
 from config import KEYCLOAK_CONFIG
 from database.deletion.triggers import create_delete_triggers
 import database.authorization  # noqa  # Trigger registration of User, Permission -> likely obsolete when couple with aiod_entry is done
@@ -110,6 +110,7 @@ def create_app() -> FastAPI:
     """Create the FastAPI application, complete with routes."""
     setup_logger()
     args = _parse_args()
+    assert_required_settings_configured()
     if args.build_db == "never":
         if not database_exists():
             logging.warning(

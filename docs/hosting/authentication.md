@@ -38,7 +38,16 @@ Create both a private and a public client in the external provider (this step is
 ## Roles
 
 Roles identify a type or category of user and determine their access and permissions within applications.
-Currently, only the ` edit_aiod_resources` role is defined, granting users the ability to upload and edit resources.
+Roles are generally only necessary for special cases.
+The normal flow for granting individual users permissions for individual assets is detailed in the ["user model"](../developer/users.md) documentation.
+These are the roles the metadata catalogue uses (`*` in a role indicates its defined for each asset type individually):
+
+ * `review_aiod_resources`: identifies the user as having permission to view asset submissions and review them.
+ * `read_*`: allows the user read access to all assets on the platform, regardless of the asset-specific permissions.
+ * `update_*`: allows the user update permission for all assets on the platform, regardless of the asset-specific permissions.
+ * `delete_*`: allows the user delete permission for all assets on the platform, regardless of the asset-specific permissions.
+ * `create_platforms`: allows the user to define new platforms.
+
 Note that roles may be used for services other than the metadata catalogue.
 New roles can be created from the admin console, see ["Creating a realm role"](https://www.keycloak.org/docs/latest/server_admin/index.html#proc-creating-realm-roles_server_administration_guide).
 
