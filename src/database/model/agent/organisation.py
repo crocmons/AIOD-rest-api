@@ -18,6 +18,7 @@ from database.model.serializers import (
     FindByIdentifierDeserializerList,
 )
 
+ALLOWED_EMPLOYEE_SIZE_CATEGORIES = {"<10", "<50", "<250", ">250", "N/A"}
 
 class OrganisationBase(AgentBase):
     date_founded: date | None = Field(
@@ -101,7 +102,9 @@ class Organisation(OrganisationBase, Agent, table=True):  # type: ignore [call-a
         )
 
         number_of_employees: Optional[str] = ManyToOne(
-            description="The employee size bracket of the organisation (e.g., '<50', '>250').",
+            description=("The number of employees of the organisation. "
+        f"Allowed values: {ALLOWED_EMPLOYEE_SIZE_CATEGORIES}"
+            ),
             identifier_name="number_of_employees_identifier",
             _serializer=AttributeSerializer("name"),
             deserializer=FindByNameDeserializer(CompanyRevenue),
@@ -110,10 +113,6 @@ class Organisation(OrganisationBase, Agent, table=True):  # type: ignore [call-a
 
 
 
-        # ALLOWED_EMPLOYEE_VALUES = {'<10', '<50', '<250', '>250', 'N/A'}
-
-        # # Optional validation (not enforced here, but could be handled in API layer or form validation)
-        # number_of_employees.__annotations__["example"] = list(ALLOWED_EMPLOYEE_VALUES)
 
 
 deserializer = FindByIdentifierDeserializer(Organisation)
