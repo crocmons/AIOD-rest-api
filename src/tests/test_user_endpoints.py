@@ -1,14 +1,13 @@
 from http import HTTPStatus
 from typing import Callable
 
-import pytest
 from starlette.testclient import TestClient
 
 from database.authorization import set_permission, PermissionType, register_user
 from database.model.knowledge_asset.publication import Publication
 from database.model.concept.aiod_entry import EntryStatus
-from database.model.dataset.dataset import Dataset
 from database.session import DbSession
+from database.model.agent.organisation import Organisation
 from tests.testutils.users import register_asset, logged_in_user, ALICE, BOB
 from tests.testutils.default_instances import publication_factory, publication
 
@@ -35,16 +34,21 @@ def test_my_resources_shows_published_assets(client: TestClient, publication: Pu
     assert response.status_code == HTTPStatus.OK
     assert len(response.json()) == 1, "Published assets should be included in this view."
 
-@pytest.mark.skip()
-def test_my_resources_shows_mixed_assets(client: TestClient, publication: Publication, dataset: Dataset) -> None:
+
+def test_my_resources_shows_mixed_assets(client: TestClient, publication: Publication, organisation: Organisation) -> None:
     register_asset(publication, owner=ALICE, status=EntryStatus.DRAFT)
-    register_asset(dataset, owner=ALICE, status=EntryStatus.PUBLISHED)
+    register_asset(organisation, owner=ALICE, status=EntryStatus.PUBLISHED)
     with logged_in_user(ALICE):
         response = client.get("/user/resources/v1", headers={"Authorization": "fake token"})
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == [], ""
-    assert True, "The overview should contain attributes specific to each asset"
 
+    pub = next(asset for asset in response.json() if asset["aiod_entry_identifier"] == 1)
+    org = next(asset for asset in response.json() if asset["aiod_entry_identifier"] == 2)
+    dataset_property = "legal_name"
+    publication_property = "isbn"
+
+    assert dataset_property in org and publication_property in pub, "Assets should report properties unique to their type"
+    assert dataset_property not in pub and publication_property not in org, "Assets should not report properties they do not have"
 
 def test_my_resources_shows_only_own_resources(client: TestClient, publication_factory: Callable[[], Publication]) -> None:
     register_asset(publication_factory(), owner=ALICE, status=EntryStatus.DRAFT)
