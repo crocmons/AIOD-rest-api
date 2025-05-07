@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Optional
+from typing import Optional, Literal
 
 from sqlmodel import Field, Relationship
 
@@ -93,15 +93,15 @@ class Organisation(OrganisationBase, Agent, table=True):  # type: ignore [call-a
             default_factory_pydantic=list,
         )
 
-        turnover: Optional[str] = ManyToOne(
-            description="The revenue bracket of the organisation (e.g., '<10M $', '<250M $').",
+        turnover: Optional[Literal["<1M €",">1M €",">3M €",">5M €",">50M €",">1.5B €"]] = ManyToOne(
+            description="The approximate revenue bracket of the organisation in euros (e.g., '<1M €', '>1.5B €').",
             identifier_name="turnover_identifier",
             _serializer=AttributeSerializer("name"),
             deserializer=FindByNameDeserializer(CompanyRevenue),
-            example="<200M $",
+            example=">5M €",
         )
 
-        number_of_employees: Optional[str] = ManyToOne(
+        number_of_employees: Optional[Literal["<10", "<50", "<250", ">250", "N/A"]] = ManyToOne(
             description=(
                 "The number of employees of the organisation. "
                 f"Allowed values: {ALLOWED_EMPLOYEE_SIZE_CATEGORIES}"
