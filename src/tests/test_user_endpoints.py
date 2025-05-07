@@ -66,16 +66,21 @@ def test_my_resources_counts_only_if_admin(client: TestClient, publication_facto
     identifier_one = register_asset(asset_one, owner=ALICE, status=EntryStatus.PUBLISHED)
     asset_two = publication_factory()
     identifier_two = register_asset(asset_two, owner=ALICE, status=EntryStatus.PUBLISHED)
+    asset_three = publication_factory()
+    identifier_three = register_asset(asset_three, owner=ALICE, status=EntryStatus.PUBLISHED)
 
     with DbSession() as session:
         register_user(BOB, session)
         set_permission(BOB, session.get(Publication, identifier_one).aiod_entry, session, type_=PermissionType.READ)
         set_permission(BOB, session.get(Publication, identifier_two).aiod_entry, session, type_=PermissionType.WRITE)
+        set_permission(BOB, session.get(Publication, identifier_three).aiod_entry, session, type_=PermissionType.ADMIN)
         session.commit()
 
     with logged_in_user(BOB):
         response = client.get("/user/resources/v1", headers={"Authorization": "fake token"})
-        assert response.json() == []
+        assert len(response.json()) == 1, "Bob has ADMIN permission to one asset."
+
+    pytest.skip("Should also check that the returned asset has the right identifier")
 
 
 def test_my_resources_must_be_authorized(client: TestClient) -> None:
