@@ -10,28 +10,12 @@ from database.session import get_session
 from database.model.concept.aiod_entry import AIoDEntryORM
 from database.model.concept.concept import AIoDConcept
 from database.model.helper_functions import non_abstract_subclasses
-import routers
+from routers.helper_functions import get_all_asset_schemas
 
 
 def create(url_prefix: str) -> APIRouter:
     router = APIRouter()
     version = "v1"
-
-    available_schemas: list[AIoDConcept] = list(non_abstract_subclasses(AIoDConcept))
-    classes_dict = {clz.__tablename__: clz for clz in available_schemas if clz.__tablename__}
-    resrouters = {
-        route.resource_name: route
-        for route in routers.resource_routers.router_list  # type: ignore
-    }
-    read_classes_dict = {
-        name: resrouters[name].resource_class_read
-        for name in classes_dict
-        if name not in ["testresource", "test_object"]
-    }
-
-    responses = [
-        {"$ref": f"#/components/schemas/{clz.__name__}"} for clz in read_classes_dict.values()
-    ]
 
     router.get(
         f"{url_prefix}/user/resources/{version}",
@@ -45,7 +29,7 @@ def create(url_prefix: str) -> APIRouter:
                         "schema": {
                             "title": "List of assets owned by the user.",
                             "type": "array",
-                            "items": {"anyOf": responses},
+                            "items": {"anyOf": get_all_asset_schemas()},
                         }
                     }
                 },
