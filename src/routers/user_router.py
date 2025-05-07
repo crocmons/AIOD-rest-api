@@ -5,7 +5,9 @@ from sqlmodel import Session
 from authentication import KeycloakUser, get_user_or_raise
 from database.authorization import Permission, PermissionType
 from database.session import get_session
-from database.model.concept.aiod_entry import AIoDEntryORM, AIoDEntryRead
+from database.model.concept.aiod_entry import AIoDEntryORM
+from database.model.concept.concept import AIoDConcept
+from database.model.helper_functions import non_abstract_subclasses
 
 
 def create(url_prefix: str) -> APIRouter:
@@ -16,7 +18,8 @@ def create(url_prefix: str) -> APIRouter:
         f"{url_prefix}/user/resources/{version}",
         tags=["User"],
         description="Return all your assets",
-        response_model=list[AIoDEntryRead],  # TODO: Return AIoD Concept instead
+        # return types register the type in pydantic which messes things up
+        # response_model=list[AIoDConcept],
     )(get_resources_for_logged_in_user)
     return router
 
@@ -24,12 +27,12 @@ def create(url_prefix: str) -> APIRouter:
 def get_resources_for_logged_in_user(
     user: KeycloakUser = Depends(get_user_or_raise),
     session: Session = Depends(get_session),
-) -> list[AIoDEntryORM]:
+):  # -> list[AIoDConcept]:
     return _get_resources_for_user(user, session)
 
 
-def _get_resources_for_user(user: KeycloakUser, session: Session) -> list[AIoDEntryORM]:
-    # Get all resources for which the user has administration permissions
+def _get_resources_for_user(user: KeycloakUser, session: Session):  # -> list[AIoDConcept]:
+    # "Ownership" is currently equivalent to having ADMIN permissions
     stmt = (
         select(AIoDEntryORM)
         .join(Permission.aiod_entry)
@@ -39,4 +42,19 @@ def _get_resources_for_user(user: KeycloakUser, session: Session) -> list[AIoDEn
         )
     )
     entries = session.scalars(stmt).all()
-    return entries
+    assets_to_fetch = [entry.identifier for entry in entries]
+    # We have AIoD entries, but want their respective asset information (e.g. publication).
+    # We lack the information about what the type of the asset is, so unfortunately we
+    # have to check all tables:
+    found_assets = []
+    for asset_type in non_abstract_subclasses(AIoDConcept):
+        query = select(asset_type).where(asset_type.aiod_entry_identifier.in_(assets_to_fetch))
+        assets = session.scalars(query).all()
+        found_assets.extend(assets)
+        if len(found_assets) == len(assets_to_fetch):
+            return found_assets  # minor optimization since queries may be expensive
+
+    raise RuntimeError(
+        f"Expected to find assets for identifiers {assets_to_fetch}, "
+        f"but only found {len(found_assets)} in total: {found_assets}."
+    )

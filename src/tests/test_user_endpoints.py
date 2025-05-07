@@ -35,7 +35,6 @@ def test_my_resources_shows_published_assets(client: TestClient, publication: Pu
     assert response.status_code == HTTPStatus.OK
     assert len(response.json()) == 1, "Published assets should be included in this view."
 
-
 @pytest.mark.skip()
 def test_my_resources_shows_mixed_assets(client: TestClient, publication: Publication, dataset: Dataset) -> None:
     register_asset(publication, owner=ALICE, status=EntryStatus.DRAFT)
@@ -79,8 +78,7 @@ def test_my_resources_counts_only_if_admin(client: TestClient, publication_facto
     with logged_in_user(BOB):
         response = client.get("/user/resources/v1", headers={"Authorization": "fake token"})
         assert len(response.json()) == 1, "Bob has ADMIN permission to one asset."
-
-    pytest.skip("Should also check that the returned asset has the right identifier")
+        assert response.json()[0]["identifier"] == identifier_three
 
 
 def test_my_resources_must_be_authorized(client: TestClient) -> None:
