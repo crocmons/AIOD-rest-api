@@ -20,7 +20,7 @@ def create(url_prefix: str) -> APIRouter:
     router.get(
         f"{url_prefix}/user/resources/{version}",
         tags=["User"],
-        description="Return all your assets",
+        description="Return all assets for which you have administrator rights",
         response_model=None,  # Required! Otherwise FastAPI infers it from type annotation.
         responses={
             HTTPStatus.OK: {
