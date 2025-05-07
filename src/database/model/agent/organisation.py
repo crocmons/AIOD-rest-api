@@ -18,8 +18,6 @@ from database.model.serializers import (
     FindByIdentifierDeserializerList,
 )
 
-ALLOWED_EMPLOYEE_SIZE_CATEGORIES = {"<10", "<50", "<250", ">250", "N/A"}
-
 
 class OrganisationBase(AgentBase):
     date_founded: date | None = Field(
@@ -93,18 +91,20 @@ class Organisation(OrganisationBase, Agent, table=True):  # type: ignore [call-a
             default_factory_pydantic=list,
         )
 
-        turnover: Optional[Literal["<1M €",">1M €",">3M €",">5M €",">50M €",">1.5B €"]] = ManyToOne(
-            description="The approximate revenue bracket of the organisation in euros (e.g., '<1M €', '>1.5B €').",
-            identifier_name="turnover_identifier",
-            _serializer=AttributeSerializer("name"),
-            deserializer=FindByNameDeserializer(CompanyRevenue),
-            example=">5M €",
+        turnover: Optional[Literal["<1m €", ">1m €", ">3m €", ">5m €", ">50m €", ">1.5b €"]] = (
+            ManyToOne(
+                description="The approximate revenue bracket of the organisation in euros (e.g., '<1m €', '>1.5b €').",
+                identifier_name="turnover_identifier",
+                _serializer=AttributeSerializer("name"),
+                deserializer=FindByNameDeserializer(CompanyRevenue),
+                example=">5m €",
+            )
         )
 
-        number_of_employees: Optional[Literal["<10", "<50", "<250", ">250", "N/A"]] = ManyToOne(
+        number_of_employees: Optional[Literal["<10", "<50", "<250", ">250", "n/a"]] = ManyToOne(
             description=(
                 "The number of employees of the organisation. "
-                f"Allowed values: {ALLOWED_EMPLOYEE_SIZE_CATEGORIES}"
+                "Allowed values: [<10, <50, <250, >250, n/a]"
             ),
             identifier_name="number_of_employees_identifier",
             _serializer=AttributeSerializer("name"),
