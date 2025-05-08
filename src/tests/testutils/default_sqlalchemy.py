@@ -1,24 +1,27 @@
 import sqlite3
 import tempfile
+from functools import partial
 from typing import Iterator, Any
 from unittest.mock import Mock
 
 import pytest
 from fastapi import FastAPI
 from pytest import FixtureRequest
-from sqlalchemy import event
+from sqlalchemy import event, text
 from sqlalchemy.engine import Engine
 from sqlmodel import create_engine, SQLModel, Session, select
 from starlette.testclient import TestClient
 
 from authentication import keycloak_openid
 from database.deletion.triggers import create_delete_triggers
+from database.model.concept.aiod_entry import EntryStatus, AIoDEntryORM
 from database.model.concept.concept import AIoDConcept
 from database.model.platform.platform import Platform
 from database.model.platform.platform_names import PlatformName
 from database.session import EngineSingleton
 from main import build_app
 from tests.testutils.test_resource import RouterTestResource, factory
+from tests.testutils.users import bypass_reviewer_publish_everything
 
 
 @pytest.fixture(scope="session")
@@ -66,6 +69,7 @@ def clear_db(request, engine: Engine):
                 )
             )
         session.commit()
+        bypass_reviewer_publish_everything()
 
     yield
 
@@ -94,6 +98,46 @@ def client(engine: Engine) -> TestClient:
     """
     app = build_app(version="unittest")
     yield TestClient(app, base_url="http://localhost")
+
+
+@pytest.fixture(scope="session")
+def client_with_headers(engine: Engine) -> TestClient:
+    """Yield a client which can mock requests and always sets a header.
+    To be used in conjunction with functions such as `logged_in_user`.
+    """
+    app = build_app(version="unittest")
+    client = TestClient(app, base_url="http://localhost")
+    for operation in ["get", "put", "post", "delete"]:
+        operation_with_header = partial(getattr(client, operation), headers={"Authorization": "Fake token"})
+        setattr(client, operation, operation_with_header)
+    yield client
+
+
+# *NEVER* broaden the scope of this fixture, bypassing reviews should be on a test-by-test basis
+@pytest.fixture(scope="function")
+def auto_publish(engine: Engine):
+    """Automatically sets *all* new insertions to the aiod_entry table as published.
+
+    This can be useful to bypass the reviewing workflow, as otherwise assets that were
+    just uploaded also require authenticated requests as they would be in a private
+    DRAFT status.
+    """
+    trigger_name = "publish_on_insert"
+    with Session(engine) as session:
+        session.execute(
+            text(f"""
+            CREATE TRIGGER {trigger_name}
+            AFTER INSERT ON {AIoDEntryORM.__tablename__}
+            BEGIN
+              UPDATE {AIoDEntryORM.__tablename__}
+              SET status='{EntryStatus.PUBLISHED.upper()}'
+              WHERE identifier=NEW.identifier;
+            END;
+            """)
+        )
+    yield
+    with Session(engine):
+        session.execute(text(f"DROP TRIGGER {trigger_name}"))
 
 
 @pytest.fixture(scope="session")

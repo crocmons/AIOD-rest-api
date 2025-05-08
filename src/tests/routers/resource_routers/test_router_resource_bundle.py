@@ -11,6 +11,7 @@ def test_resource_bundle_api(
     client: TestClient,
     mocked_privileged_token: Mock,
     body_asset: dict,
+    auto_publish: None,
 ):
     """
     Test creating and retrieving a ResourceBundle through the API.

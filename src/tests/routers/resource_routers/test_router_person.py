@@ -20,7 +20,7 @@ def test_happy_path(
     person: Person,
     contact: Contact,
     organisation: Organisation,
-
+    auto_publish: None,
 ):
     with DbSession() as session:
         person.platform_resource_identifier = "2"
@@ -77,6 +77,7 @@ def test_privacy_for_ai4europe_cms(
     person: Person,
     contact: Contact,
     endpoint: str,
+    auto_publish: None,
 ):
     """Test to ensure that only authenticated users with "full_view_ai4europe_cms_resources" role
     can visualise fields such as name, given_name and surname of a person migrated from
