@@ -7,7 +7,7 @@ from sqlmodel import select, Session
 from starlette import status
 
 from authentication import KeycloakUser, get_user_or_raise
-from database.authorization import register_user, user_can_administer
+from database.authorization import register_user, user_can_administer, user_can_write
 from database.session import DbSession, get_session
 from database.review import (
     Submission,
@@ -153,7 +153,7 @@ def _review_resource(
     register_user(user, session)
 
     aiod_entry = cast(AIoDEntryORM, session.get(AIoDEntryORM, submission.aiod_entry_identifier))
-    if user_can_administer(user, aiod_entry):
+    if user_can_write(user, aiod_entry):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to review your own assets.",

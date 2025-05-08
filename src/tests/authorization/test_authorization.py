@@ -1,5 +1,6 @@
 import json
 from http import HTTPStatus
+from typing import Callable
 from unittest.mock import Mock
 
 import pytest
@@ -7,9 +8,9 @@ from starlette.testclient import TestClient
 
 from authentication import KeycloakUser
 from database.authorization import (
-    PermissionType, user_can_read, user_can_write, user_can_administer,
+    PermissionType, user_can_read, user_can_write, user_can_administer, set_permission,
 )
-from database.model.concept.aiod_entry import EntryStatus
+from database.model.concept.aiod_entry import EntryStatus, AIoDEntryORM
 from database.review import Decision, ReviewCreate
 from database.session import DbSession
 from database.model.knowledge_asset.publication import Publication
@@ -367,10 +368,26 @@ def test_reviewer_can_reject_submission(publication, client):
     assert response.json()["aiod_entry"]["status"] == EntryStatus.DRAFT
 
 
-def test_reviewer_cannot_approve_own_submission(publication, client):
-    register_asset(publication, owner=REVIEWER, status=EntryStatus.SUBMITTED)
+@pytest.mark.parametrize(
+    "permission", [PermissionType.WRITE, PermissionType.ADMIN]
+)
+def test_reviewer_cannot_approve_own_submission(
+        permission: PermissionType,
+        publication_factory: Callable[[], Publication],
+        client: TestClient
+):
+    # Create an asset and add REVIEWER as a collaborator (write/admin)
     _register_user_in_db(REVIEWER)
 
+    publication = publication_factory()
+    register_asset(publication, owner=ALICE, status=EntryStatus.SUBMITTED)
+
+    with DbSession() as session:
+        session.add(publication)
+        set_permission(REVIEWER, publication.aiod_entry, session, type_=permission)
+        session.commit()
+
+    # See if the review endpoint correctly rejects collaborators from reviewing the asset
     with logged_in_user(REVIEWER):
         response = client.post(
             "/reviews/v1",
