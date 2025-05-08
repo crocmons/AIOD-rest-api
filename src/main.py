@@ -31,6 +31,7 @@ from routers import (
     uploader_routers,
     search_routers,
     review_router,
+    user_router,
 )
 from setup_logger import setup_logger
 
@@ -101,7 +102,7 @@ def add_routes(app: FastAPI, url_prefix=""):
         + enum_routers.router_list
         + search_routers.router_list
         + uploader_routers.router_list
-        + [review_router]
+        + [review_router, user_router]
     ):
         app.include_router(router.create(url_prefix))
 
