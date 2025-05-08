@@ -32,7 +32,6 @@ def test_happy_path(
     body["member"] = [1]
     body["contact_details"] = 1
     body["turnover"] = "<1m €"
-    body["number_of_employees"] = "n/a"
 
     response = client.post("/organisations/v1", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
@@ -52,7 +51,6 @@ def test_happy_path(
     assert response_json["member"] == [1]
     assert response_json["contact_details"] == 1
     assert response_json["turnover"] == "<1m €"
-    assert response_json["number_of_employees"] == "n/a"
 
     # response = client.delete("/organisations/v1/1", headers={"Authorization": "Fake token"})
     # assert response.status_code == 200
@@ -79,7 +77,7 @@ def test_happy_path(
 
 @pytest.mark.parametrize("field, invalid_value, expected_values", [
     ("turnover", "100m €", ["<1m €", ">1m €", ">3m €", ">5m €", ">50m €", ">1.5b €"]),
-    ("number_of_employees", "1000", ["<10", "<50", "<250", ">250", "n/a"]),
+    ("number_of_employees", "1000", ["<10", "<50", "<250", ">250"]),
 
 ])
 def test_invalid_literal_values_for_turnover_and_employees(

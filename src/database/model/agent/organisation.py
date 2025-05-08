@@ -101,10 +101,10 @@ class Organisation(OrganisationBase, Agent, table=True):  # type: ignore [call-a
             )
         )
 
-        number_of_employees: Optional[Literal["<10", "<50", "<250", ">250", "n/a"]] = ManyToOne(
+        number_of_employees: Optional[Literal["<10", "<50", "<250", ">250"]] = ManyToOne(
             description=(
                 "The number of employees of the organisation. "
-                "Allowed values: [<10, <50, <250, >250, n/a]"
+                "Allowed values: [<10, <50, <250, >250]"
             ),
             identifier_name="number_of_employees_identifier",
             _serializer=AttributeSerializer("name"),
