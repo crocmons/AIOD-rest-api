@@ -29,7 +29,11 @@ def many_to_many_link_factory(
             Field(
                 sa_column=Column(
                     Integer,
-                    ForeignKey(f"{table_from}.{table_from_identifier}", ondelete="CASCADE"),
+                    ForeignKey(
+                        f"{table_from}.{table_from_identifier}",
+                        ondelete="CASCADE",
+                        onupdate="CASCADE",
+                    ),
                     primary_key=True,
                 )
             ),
@@ -37,8 +41,14 @@ def many_to_many_link_factory(
         linked_identifier=(
             int,
             Field(
-                foreign_key=f"{table_to}.{table_to_identifier}",
-                primary_key=True,
+                sa_column=Column(
+                    Integer,
+                    ForeignKey(
+                        f"{table_to}.{table_to_identifier}",
+                        onupdate="CASCADE",
+                    ),
+                    primary_key=True,
+                )
             ),
         ),
     )
