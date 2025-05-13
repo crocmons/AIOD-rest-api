@@ -1,6 +1,7 @@
 from typing import Optional
 
 from pydantic import condecimal
+from sqlalchemy import Column, Integer, ForeignKey
 from sqlmodel import Relationship, Field
 
 from database.model.agent.agent import AgentBase, Agent
@@ -47,6 +48,16 @@ class PersonBase(AgentBase):
 
 class Person(PersonBase, Agent, table=True):  # type: ignore [call-arg]
     __tablename__ = "person"
+    agent_id: int | None = Field(
+        # foreign_key=AgentTable.__tablename__ + ".identifier",
+        # index=True,
+        sa_column=Column(
+            Integer,
+            ForeignKey("agent.identifier", onupdate="CASCADE"),
+            nullable=True,
+            index=True,
+        )
+    )
 
     expertise: list[Expertise] = Relationship(
         link_model=many_to_many_link_factory("person", Expertise.__tablename__)

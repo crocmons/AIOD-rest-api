@@ -1,6 +1,7 @@
 from datetime import date
 from typing import Optional
 
+from sqlalchemy import Column, Integer, ForeignKey
 from sqlmodel import Field, Relationship
 
 from database.model.agent.agent import AgentBase, Agent
@@ -38,6 +39,16 @@ class OrganisationBase(AgentBase):
 
 class Organisation(OrganisationBase, Agent, table=True):  # type: ignore [call-arg]
     __tablename__ = "organisation"
+    agent_id: int | None = Field(
+        # foreign_key=AgentTable.__tablename__ + ".identifier",
+        # index=True,
+        sa_column=Column(
+            Integer,
+            ForeignKey("agent.identifier", onupdate="CASCADE"),
+            nullable=True,
+            index=True,
+        )
+    )
 
     contact_details: Optional[Contact] = Relationship(sa_relationship_kwargs={"uselist": False})
 
