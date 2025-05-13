@@ -48,16 +48,6 @@ class PersonBase(AgentBase):
 
 class Person(PersonBase, Agent, table=True):  # type: ignore [call-arg]
     __tablename__ = "person"
-    agent_id: int | None = Field(
-        # foreign_key=AgentTable.__tablename__ + ".identifier",
-        # index=True,
-        sa_column=Column(
-            Integer,
-            ForeignKey("agent.identifier", onupdate="CASCADE"),
-            nullable=True,
-            index=True,
-        )
-    )
 
     expertise: list[Expertise] = Relationship(
         link_model=many_to_many_link_factory("person", Expertise.__tablename__)

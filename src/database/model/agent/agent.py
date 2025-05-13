@@ -1,5 +1,6 @@
 import copy
 
+from sqlalchemy import ForeignKey
 from sqlmodel import Field, Relationship
 
 from database.model.agent.agent_table import AgentTable
@@ -17,6 +18,11 @@ class AgentBase(AIResourceBase):
 
 
 class Agent(AgentBase, AIResource):
+    agent_id: int | None = Field(
+        # Initializing `sa_column` instead doesn't work. Perhaps because it'd be used twice?
+        sa_column_args=[ForeignKey(AgentTable.__tablename__ + ".identifier", onupdate="CASCADE")],
+        sa_column_kwargs=dict(nullable=True, index=True),
+    )
     agent_identifier: AgentTable | None = Relationship()
 
     def __init_subclass__(cls):
