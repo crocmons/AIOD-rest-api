@@ -13,18 +13,26 @@ from sqlmodel import SQLModel
 from database.model.helper_functions import get_relationships, non_abstract_subclasses
 
 
-def create_sync_trigger(parent_class: Type[SQLModel], src, dst):
-    classes: list[Type[SQLModel]] = non_abstract_subclasses(parent_class)
-    # For each class which has identifiers which are used as foreign keys, generate an
-    # update trigger
-    # cls = nonabstract(AIResource)
-    # for cl in cls: create trigger SET ai_resource.identifier=NEW.aiod_entry_identifier
+def create_identifier_synchronization_triggers():
+    # Sync triggers make sure all identifiers of an asset are identical.
+    # See also: docs/developer/schema/index.md#a_note_on_identifiers
+
+    # These objects are imported here to avoid circular imports,
+    # these classes indirectly import triggers through their relationships.
+    from database.model.agent.agent import Agent
+    from database.model.agent.agent_table import AgentTable
+    from database.model.ai_asset.ai_asset import AIAsset
+    from database.model.ai_asset.ai_asset_table import AIAssetTable
+    from database.model.ai_resource.resource import AIResource
+    from database.model.ai_resource.resource_table import AIResourceORM
+    from database.model.concept.concept import AIoDConcept
+
     triggers = []
-    for cls in classes:
+    for cls in non_abstract_subclasses(AIoDConcept):
         triggers.append(
             DDL(
                 f"""
-                CREATE TRIGGER IF NOT EXISTS sync_{cls.__tablename__}_identifiers
+                CREATE TRIGGER IF NOT EXISTS sync_{cls.__tablename__}_identifier
                 BEFORE INSERT ON {cls.__tablename__}
                 FOR EACH ROW
                 BEGIN
@@ -33,19 +41,28 @@ def create_sync_trigger(parent_class: Type[SQLModel], src, dst):
                 """  # noqa: S608  # never user input
             )
         )
-        triggers.append(
-            DDL(
-                f"""
-                CREATE TRIGGER IF NOT EXISTS sync_{cls.__tablename__}_identifiers
-                AFTER INSERT ON {cls.__tablename__}
-                FOR EACH ROW
-                BEGIN
-                    UPDATE agent SET agent.identifier=NEW.aiod_entry_identifier where agent.identifier=NEW.agent_id;
-                    UPDATE ai_resource SET ai_resource.identifier=NEW.aiod_entry_identifier where ai_resource.identifier=NEW.ai_resource_id;
-                END;
-                """  # noqa: S608  # never user input
+    for parent_class, reference_table in [
+        (AIResource, AIResourceORM),
+        (AIAsset, AIAssetTable),
+        (Agent, AgentTable),
+    ]:
+        reference_table_name = reference_table.__tablename__
+        for cls in non_abstract_subclasses(parent_class):
+            reference_column = f"{reference_table_name}_id"
+            msg = f"Cannot create trigger to update {reference_column} on {parent_class} since the column is not defined."
+            assert reference_column in parent_class.__fields__, msg  # noqa: S101  # We *want* the server to not start if there are issues here
+            triggers.append(
+                DDL(
+                    f"""
+                    CREATE TRIGGER IF NOT EXISTS sync_{cls.__tablename__}_{reference_table_name}_identifier
+                    AFTER INSERT ON {cls.__tablename__}
+                    FOR EACH ROW
+                    BEGIN
+                        UPDATE {reference_table_name} SET {reference_table_name}.identifier = NEW.aiod_entry_identifier WHERE {reference_table_name}.identifier = NEW.{reference_column};
+                    END;
+                    """  # noqa: S608  # never user input
+                )
             )
-        )
     return triggers
 
 

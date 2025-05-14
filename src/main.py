@@ -16,7 +16,10 @@ from sqlmodel import select, SQLModel
 
 from authentication import get_user_or_raise, KeycloakUser, assert_required_settings_configured
 from config import KEYCLOAK_CONFIG
-from database.deletion.triggers import create_delete_triggers, create_sync_trigger
+from database.deletion.triggers import (
+    create_delete_triggers,
+    create_identifier_synchronization_triggers,
+)
 import database.authorization  # noqa  # Trigger registration of User, Permission -> likely obsolete when couple with aiod_entry is done
 from database.model.concept.concept import AIoDConcept
 from database.model.platform.platform import Platform
@@ -160,7 +163,7 @@ def build_database(args):
     SQLModel.metadata.create_all(EngineSingleton().engine, checkfirst=True)
     with DbSession() as session:
         triggers = create_delete_triggers(AIoDConcept)
-        sync_triggers = create_sync_trigger(Agent, "", "")
+        sync_triggers = create_identifier_synchronization_triggers()
         for trigger in triggers + sync_triggers:
             session.execute(trigger)
         existing_platforms = session.scalars(select(Platform)).all()

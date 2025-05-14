@@ -69,3 +69,47 @@ The subsections in the sidebar document how to execute these steps depending on 
  - [Attributes](attributes.md) explains how to work with attributes that do not refer to any external tables. For example, adding a field which stores a URL.
  - [Relationships](relationships.md) explains how to work with attributes which define relationships between objects. For example, an asset's creator which is represented with a link to an `Agent`.
  - [Objects](objects.md) explains how work with objects as a whole. For example, adding an entirely new entity to the schema.
+
+
+#### A Note on Identifiers
+This note describes a change made around May 2025, and explains why objects have so many different identifiers that are all the same.
+
+To represent inheritance in the database, auxiliary tables were introduced to provide unique identifiers at the parent level.
+For example, every AI Resource has a unique identifier.
+This allows for assets to specify relationships to AI Resources at a database level (as opposed to a union of all its subclasses).
+
+???- "An example of the resulting tables"
+
+    `ai_resource` table
+
+    | identifier | type       |
+    |------------|------------|
+    | 1          | case study |
+    | 2          | dataset    |
+    | 3          | person     |
+
+    `agent` table
+
+    | identifier | type         |
+    |------------|--------------|
+    | 1          | organisation |
+    | 2          | person       |
+
+    `person` table
+
+    | identifier | agent_id | ai_resource_id | aiod_entry_identifier | ... |
+    |------------|----------|----------------|-----------------------|-----|
+    | 1          | 2        | 3              | 4                     | ... |
+
+
+These identifiers were all generated independently, which meant that one single asset could have many different identifiers.
+For example, a Person which is an Agent, AIResource, and AIoDConcept, would have an `agent_id`, `ai_resource_id`, and `identifier`.
+Depending on the relationship, a different one would have to be used, and they had different values.
+This made it easy to unintentionally reference the wrong object, e.g., making "agent 1" a member of an organisation,
+where "person 1" was meant instead (agent 1 can be a different person or organisation, as in the example!).
+
+To avoid these kind of issues going forward, we created triggers which sync all these identifiers to be identical to the asset's `aiod_entry_identifier`.
+This is because _all_ assets have an `aiod_entry_identifier`, and this identifier is guaranteed to be unique (since they originate from the same primary key column).
+There are currently no plans to remove these additional identifiers in the back-end, but they may be hidden from users in the future.
+If the different identifiers were to be merged into one, we would need to still be able to somehow guarantee validity of the relationships.
+For example, this mechanism currently enforces that an Organisation's `members` attribute can only be populated with Agents and not e.g., Datasets.
