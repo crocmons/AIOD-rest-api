@@ -1,6 +1,6 @@
 from typing import Optional, TYPE_CHECKING
 
-from sqlalchemy import Column, Integer, ForeignKey, CheckConstraint
+from sqlalchemy import Column, Integer, ForeignKey
 from sqlmodel import Field, Relationship
 
 from database.model.agent.email import Email
@@ -94,12 +94,3 @@ class Contact(ContactBase, AIoDConcept, table=True):  # type: ignore [call-arg]
                 [name for name in (self.person.surname, self.person.given_name) if name]
             )
         return self.name
-
-    @classmethod
-    def table_arguments(cls) -> list:
-        return super().table_arguments() + [
-            CheckConstraint(
-                "NOT(person_identifier IS NOT NULL AND organisation_identifier IS NOT NULL)",
-                name="contact_person_and_organisation_not_both_filled",
-            )
-        ]

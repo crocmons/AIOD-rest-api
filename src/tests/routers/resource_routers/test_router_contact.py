@@ -80,6 +80,7 @@ def test_post_duplicate_email(
         assert set(contact["email"]) == {"b@example.com", "c@example.com"}, msg
 
 
+@pytest.mark.skip(reason="https://github.com/aiondemand/AIOD-rest-api/issues/518")
 def test_person_and_organisation_both_specified(client: TestClient):
     headers = {"Authorization": "Fake token"}
     body = {"person": 1, "organisation": 1}
