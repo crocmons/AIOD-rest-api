@@ -95,22 +95,33 @@ def upgrade() -> None:
         children=["organisation", "person"],
     )
     # We store a map for the old->new identifiers so we can support backwards compatibility (maybe)
-    for parent in [aiod_concept, ai_resource, ai_asset, agent]:
-        for table in parent.children:
-            identifier_map_table_name = f"_{table}_{parent.name}_identifier_map"
-            op.create_table(
-                identifier_map_table_name,
-                Column("old_identifier", Integer, index=True),
-                Column("new_identifier", Integer, index=True),
-            )
-            op.execute(
-                text(
-                    f"INSERT INTO {identifier_map_table_name} "
-                    f"SELECT {parent.fk_identifier} as old_identifier, aiod_entry_identifier as new_identifier "
-                    f"FROM {table};"
-                ),
-            )
+    # For regular identifiers, we store this per concept, as this is how they are likely accessed
+    # (e.g., /dataset/1). For parent identifiers we store it all together for parent routers.
+    for child in aiod_concept.children:
+        map_table = f"_{child}_identifier_map"
+        op.create_table(
+            map_table,
+            Column("old", Integer, index=True),
+            Column("new", Integer, index=True),
+        )
+        op.execute(
+            f"INSERT INTO {map_table} SELECT identifier, aiod_entry_identifier FROM {child} "
+        )
 
+    for parent in [ai_resource, ai_asset, agent]:
+        map_table = f"_{parent.name}_identifier_map"
+        op.create_table(
+            map_table,
+            Column("old", Integer, index=True),
+            Column("new", Integer, index=True),
+        )
+        child_data = "UNION ".join(
+            f"SELECT {parent.fk_identifier}, aiod_entry_identifier FROM {child_table} "
+            for child_table in parent.children
+        )
+        op.execute(f"INSERT INTO {map_table} SELECT * FROM ({child_data}) as child")
+
+    # Now we can continue with data migration
     # First we delete a conflicting CHECK constraint: https://github.com/aiondemand/AIOD-rest-api/issues/518
     op.execute(
         "ALTER TABLE contact DROP CONSTRAINT contact_person_and_organisation_not_both_filled"
