@@ -16,7 +16,7 @@ from sqlmodel import select, SQLModel
 
 from authentication import get_user_or_raise, KeycloakUser, assert_required_settings_configured
 from config import KEYCLOAK_CONFIG
-from database.deletion.triggers import create_delete_triggers
+from database.deletion.triggers import create_delete_triggers, create_sync_trigger
 import database.authorization  # noqa  # Trigger registration of User, Permission -> likely obsolete when couple with aiod_entry is done
 from database.model.concept.concept import AIoDConcept
 from database.model.platform.platform import Platform
@@ -24,6 +24,7 @@ from database.model.platform.platform_names import PlatformName
 from database.session import EngineSingleton, DbSession
 from database.setup import create_database, database_exists
 from error_handling import http_exception_handler
+from database.model.agent.agent import Agent
 from routers import (
     resource_routers,
     parent_routers,
@@ -159,7 +160,8 @@ def build_database(args):
     SQLModel.metadata.create_all(EngineSingleton().engine, checkfirst=True)
     with DbSession() as session:
         triggers = create_delete_triggers(AIoDConcept)
-        for trigger in triggers:
+        sync_triggers = create_sync_trigger(Agent, "", "")
+        for trigger in triggers + sync_triggers:
             session.execute(trigger)
         existing_platforms = session.scalars(select(Platform)).all()
         missing_platforms = set(PlatformName) - {p.name for p in existing_platforms}

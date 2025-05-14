@@ -13,6 +13,42 @@ from sqlmodel import SQLModel
 from database.model.helper_functions import get_relationships, non_abstract_subclasses
 
 
+def create_sync_trigger(parent_class: Type[SQLModel], src, dst):
+    classes: list[Type[SQLModel]] = non_abstract_subclasses(parent_class)
+    # For each class which has identifiers which are used as foreign keys, generate an
+    # update trigger
+    # cls = nonabstract(AIResource)
+    # for cl in cls: create trigger SET ai_resource.identifier=NEW.aiod_entry_identifier
+    triggers = []
+    for cls in classes:
+        triggers.append(
+            DDL(
+                f"""
+                CREATE TRIGGER IF NOT EXISTS sync_{cls.__tablename__}_identifiers
+                BEFORE INSERT ON {cls.__tablename__}
+                FOR EACH ROW
+                BEGIN
+                    SET NEW.identifier=NEW.aiod_entry_identifier;
+                END;
+                """  # noqa: S608  # never user input
+            )
+        )
+        triggers.append(
+            DDL(
+                f"""
+                CREATE TRIGGER IF NOT EXISTS sync_{cls.__tablename__}_identifiers
+                AFTER INSERT ON {cls.__tablename__}
+                FOR EACH ROW
+                BEGIN
+                    UPDATE agent SET agent.identifier=NEW.aiod_entry_identifier where agent.identifier=NEW.agent_id;
+                    UPDATE ai_resource SET ai_resource.identifier=NEW.aiod_entry_identifier where ai_resource.identifier=NEW.ai_resource_id;
+                END;
+                """  # noqa: S608  # never user input
+            )
+        )
+    return triggers
+
+
 def create_delete_triggers(parent_class: Type[SQLModel]):
     classes: list[Type[SQLModel]] = non_abstract_subclasses(parent_class)
     triggers = []

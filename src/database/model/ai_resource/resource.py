@@ -10,6 +10,7 @@ import copy
 from datetime import datetime
 from typing import Any, Optional
 
+from sqlalchemy import ForeignKey
 from sqlmodel import Field, Relationship
 
 from database.model.agent.contact import Contact
@@ -59,7 +60,9 @@ class AIResourceBase(AIoDConceptBase, metaclass=abc.ABCMeta):
 
 class AIResource(AIResourceBase, AIoDConcept, metaclass=abc.ABCMeta):
     ai_resource_id: int | None = Field(
-        foreign_key="ai_resource.identifier", index=True, unique=True
+        # Initializing `sa_column` instead doesn't work. Perhaps because it'd be used twice?
+        sa_column_args=[ForeignKey("ai_resource.identifier", onupdate="CASCADE")],
+        sa_column_kwargs=dict(nullable=True, index=True, unique=True),
     )
     ai_resource_identifier: AIResourceORM | None = Relationship()
 
