@@ -21,6 +21,8 @@ def create(url_prefix: str) -> APIRouter:
 
     # We define a custom response class here to ensure all the asset
     # types are included, and the (schema) documentation is generated.
+    # It also makes sure assets are deserialized the same way as
+    # direct access would have.
     Catalogue = create_model(
         "Catalogue",
         **{
