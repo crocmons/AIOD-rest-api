@@ -17,8 +17,8 @@ def get_all_typed_schemas():
         if name not in ["testresource", "test_object"]
     }
     responses = [
-        (clz.__name__, {"$ref": f"#/components/schemas/{clz.__name__}"})
-        for clz in read_classes_dict.values()
+        (name, {"$ref": f"#/components/schemas/{clz.__name__}"})
+        for name, clz in read_classes_dict.items()
     ]
     return responses
 

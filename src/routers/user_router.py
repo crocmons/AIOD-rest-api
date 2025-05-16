@@ -42,11 +42,11 @@ def create(url_prefix: str) -> APIRouter:
 def get_resources_for_logged_in_user(
     user: KeycloakUser = Depends(get_user_or_raise),
     session: Session = Depends(get_session),
-) -> list[tuple[str, AIoDConcept]]:
+) -> dict[str, list[AIoDConcept]]:
     return _get_resources_for_user(user, session)
 
 
-def _get_resources_for_user(user: KeycloakUser, session: Session) -> list[tuple[str, AIoDConcept]]:
+def _get_resources_for_user(user: KeycloakUser, session: Session) -> dict[str, list[AIoDConcept]]:
     # "Ownership" is currently equivalent to having ADMIN permissions
     stmt = (
         select(AIoDEntryORM)
@@ -61,12 +61,12 @@ def _get_resources_for_user(user: KeycloakUser, session: Session) -> list[tuple[
     # We have AIoD entries, but want their respective asset information (e.g. publication).
     # We lack the information about what the type of the asset is, so unfortunately we
     # have to check all tables:
-    found_assets: list[tuple[str, AIoDConcept]] = []
+    found_assets: dict[str, list[AIoDConcept]] = {}
     for asset_type in non_abstract_subclasses(AIoDConcept):
         query = select(asset_type).where(asset_type.aiod_entry_identifier.in_(assets_to_fetch))
         assets = session.scalars(query).all()
-        found_assets.extend((asset_type.__name__, asset) for asset in assets)
-        if len(found_assets) == len(assets_to_fetch):
+        found_assets[asset_type.__tablename__] = list(assets)
+        if sum(map(len, found_assets.values())) == len(assets_to_fetch):
             return found_assets  # minor optimization since queries may be expensive
 
     raise RuntimeError(
