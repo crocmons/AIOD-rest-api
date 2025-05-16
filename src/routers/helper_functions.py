@@ -3,7 +3,8 @@ from database.model.concept.concept import AIoDConcept
 from database.model.helper_functions import non_abstract_subclasses
 
 
-def get_all_asset_schemas():
+def get_all_typed_schemas():
+    """Returns a list of all schema types and a reference to their definition."""
     available_schemas: list[AIoDConcept] = list(non_abstract_subclasses(AIoDConcept))
     classes_dict = {clz.__tablename__: clz for clz in available_schemas if clz.__tablename__}
     resrouters = {
@@ -16,6 +17,11 @@ def get_all_asset_schemas():
         if name not in ["testresource", "test_object"]
     }
     responses = [
-        {"$ref": f"#/components/schemas/{clz.__name__}"} for clz in read_classes_dict.values()
+        (clz.__name__, {"$ref": f"#/components/schemas/{clz.__name__}"})
+        for clz in read_classes_dict.values()
     ]
     return responses
+
+
+def get_all_asset_schemas():
+    return [schema for name, schema in get_all_typed_schemas()]

@@ -42,8 +42,11 @@ def test_my_resources_shows_mixed_assets(client: TestClient, publication: Public
         response = client.get("/user/resources/v1", headers={"Authorization": "fake token"})
     assert response.status_code == HTTPStatus.OK
 
-    pub = next(asset for asset in response.json() if asset["aiod_entry_identifier"] == 1)
-    org = next(asset for asset in response.json() if asset["aiod_entry_identifier"] == 2)
+    pub_type, pub = next((type_, asset) for type_, asset in response.json() if asset["aiod_entry_identifier"] == 1)
+    org_type, org = next((type_, asset) for type_, asset in response.json() if asset["aiod_entry_identifier"] == 2)
+    assert pub_type == "Publication"
+    assert org_type == "Organisation"
+
     dataset_property = "legal_name"
     publication_property = "isbn"
 
@@ -82,7 +85,7 @@ def test_my_resources_counts_only_if_admin(client: TestClient, publication_facto
     with logged_in_user(BOB):
         response = client.get("/user/resources/v1", headers={"Authorization": "fake token"})
         assert len(response.json()) == 1, "Bob has ADMIN permission to one asset."
-        assert response.json()[0]["identifier"] == identifier_three
+        assert response.json()[0][1]["identifier"] == identifier_three
 
 
 def test_my_resources_must_be_authorized(client: TestClient) -> None:

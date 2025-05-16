@@ -10,7 +10,7 @@ from database.session import get_session
 from database.model.concept.aiod_entry import AIoDEntryORM
 from database.model.concept.concept import AIoDConcept
 from database.model.helper_functions import non_abstract_subclasses
-from routers.helper_functions import get_all_asset_schemas
+from routers.helper_functions import get_all_asset_schemas, get_all_typed_schemas
 
 
 def create(url_prefix: str) -> APIRouter:
@@ -29,7 +29,7 @@ def create(url_prefix: str) -> APIRouter:
                         "schema": {
                             "title": "List of assets owned by the user.",
                             "type": "array",
-                            "items": {"anyOf": get_all_asset_schemas()},
+                            "items": {"anyOf": get_all_typed_schemas()},
                         }
                     }
                 },
@@ -42,11 +42,11 @@ def create(url_prefix: str) -> APIRouter:
 def get_resources_for_logged_in_user(
     user: KeycloakUser = Depends(get_user_or_raise),
     session: Session = Depends(get_session),
-) -> list[AIoDConcept]:
+) -> list[tuple[str, AIoDConcept]]:
     return _get_resources_for_user(user, session)
 
 
-def _get_resources_for_user(user: KeycloakUser, session: Session) -> list[AIoDConcept]:
+def _get_resources_for_user(user: KeycloakUser, session: Session) -> list[tuple[str, AIoDConcept]]:
     # "Ownership" is currently equivalent to having ADMIN permissions
     stmt = (
         select(AIoDEntryORM)
@@ -61,11 +61,11 @@ def _get_resources_for_user(user: KeycloakUser, session: Session) -> list[AIoDCo
     # We have AIoD entries, but want their respective asset information (e.g. publication).
     # We lack the information about what the type of the asset is, so unfortunately we
     # have to check all tables:
-    found_assets = []
+    found_assets: list[tuple[str, AIoDConcept]] = []
     for asset_type in non_abstract_subclasses(AIoDConcept):
         query = select(asset_type).where(asset_type.aiod_entry_identifier.in_(assets_to_fetch))
         assets = session.scalars(query).all()
-        found_assets.extend(assets)
+        found_assets.extend((asset_type.__name__, asset) for asset in assets)
         if len(found_assets) == len(assets_to_fetch):
             return found_assets  # minor optimization since queries may be expensive
 
