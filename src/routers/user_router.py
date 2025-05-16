@@ -1,6 +1,8 @@
 from http import HTTPStatus
+from typing import List
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel, create_model, Field
 from sqlalchemy import select
 from sqlmodel import Session
 
@@ -10,31 +12,28 @@ from database.session import get_session
 from database.model.concept.aiod_entry import AIoDEntryORM
 from database.model.concept.concept import AIoDConcept
 from database.model.helper_functions import non_abstract_subclasses
-from routers.helper_functions import get_all_asset_schemas, get_all_typed_schemas
+from routers.helper_functions import get_all_read_classes
 
 
 def create(url_prefix: str) -> APIRouter:
     router = APIRouter()
     version = "v1"
 
+    # We define a custom response class here to ensure all the asset
+    # types are included, and the (schema) documentation is generated.
+    Catalogue = create_model(
+        "Catalogue",
+        **{
+            asset_type: (List[asset_read_class], Field())  # type: ignore[valid-type]
+            for asset_type, asset_read_class in get_all_read_classes().items()
+        },
+    )
+
     router.get(
         f"{url_prefix}/user/resources/{version}",
         tags=["User"],
         description="Return all assets for which you have administrator rights",
-        response_model=None,  # Required! Otherwise FastAPI infers it from type annotation.
-        responses={
-            HTTPStatus.OK: {
-                "content": {
-                    "application/json": {
-                        "schema": {
-                            "title": "List of assets owned by the user.",
-                            "type": "array",
-                            "items": {"anyOf": get_all_typed_schemas()},
-                        }
-                    }
-                },
-            }
-        },
+        response_model=Catalogue,
     )(get_resources_for_logged_in_user)
     return router
 

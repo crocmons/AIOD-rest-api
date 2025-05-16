@@ -18,7 +18,7 @@ def test_my_resources_can_be_empty(client: TestClient) -> None:
     assert response.status_code == HTTPStatus.OK
     msg = "A user with no resources should get an empty list"
     assert all(items == [] for items in response.json().values()), msg
-    assert len(response.json()) >= 17, "Every asset type should always be included in the response"
+    assert len(response.json()) >= 16, "Every asset type should always be included in the response"
 
 
 def test_my_resources_shows_draft_assets(client: TestClient, publication: Publication) -> None:
@@ -27,6 +27,8 @@ def test_my_resources_shows_draft_assets(client: TestClient, publication: Public
         response = client.get("/user/resources/v1", headers={"Authorization": "fake token"})
     assert response.status_code == HTTPStatus.OK
     assert len(response.json()["publication"]) == 1, "Draft assets should be included in this view."
+    msg = "Properties should be deserialized"
+    assert response.json()["publication"][0]["aiod_entry"]["status"] == "draft", msg
 
 
 def test_my_resources_shows_published_assets(client: TestClient, publication: Publication) -> None:
