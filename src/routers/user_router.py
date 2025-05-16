@@ -32,7 +32,7 @@ def create(url_prefix: str) -> APIRouter:
     router.get(
         f"{url_prefix}/user/resources/{version}",
         tags=["User"],
-        description="Return all assets for which you have administrator rights",
+        description="Return all assets for which you have administrator rights.",
         response_model=Catalogue,
     )(get_resources_for_logged_in_user)
     return router
@@ -63,13 +63,13 @@ def _get_resources_for_user(user: KeycloakUser, session: Session) -> dict[str, l
     asset_types = list(non_abstract_subclasses(AIoDConcept))
     found_assets: dict[str, list[AIoDConcept]] = {type_.__tablename__: [] for type_ in asset_types}
     for asset_type in asset_types:
-        query = select(asset_type).where(asset_type.aiod_entry_identifier.in_(assets_to_fetch))
+        query = (
+            select(asset_type)
+            .where(asset_type.aiod_entry_identifier.in_(assets_to_fetch))
+            .where(asset_type.date_deleted.is_(None))
+        )
         assets = session.scalars(query).all()
         found_assets[asset_type.__tablename__] = list(assets)
         if sum(map(len, found_assets.values())) == len(assets_to_fetch):
-            return found_assets  # minor optimization since queries may be expensive
-
-    raise RuntimeError(
-        f"Expected to find assets for identifiers {assets_to_fetch}, "
-        f"but only found {sum(map(len, found_assets.values()))} in total: {found_assets}."
-    )
+            break
+    return found_assets  # minor optimization since queries may be expensive
