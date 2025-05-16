@@ -18,6 +18,7 @@ def test_my_resources_can_be_empty(client: TestClient) -> None:
     assert response.status_code == HTTPStatus.OK
     msg = "A user with no resources should get an empty list"
     assert all(items == [] for items in response.json().values()), msg
+    assert len(response.json()) >= 17, "Every asset type should always be included in the response"
 
 
 def test_my_resources_shows_draft_assets(client: TestClient, publication: Publication) -> None:

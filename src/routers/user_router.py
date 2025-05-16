@@ -61,8 +61,9 @@ def _get_resources_for_user(user: KeycloakUser, session: Session) -> dict[str, l
     # We have AIoD entries, but want their respective asset information (e.g. publication).
     # We lack the information about what the type of the asset is, so unfortunately we
     # have to check all tables:
-    found_assets: dict[str, list[AIoDConcept]] = {}
-    for asset_type in non_abstract_subclasses(AIoDConcept):
+    asset_types = list(non_abstract_subclasses(AIoDConcept))
+    found_assets: dict[str, list[AIoDConcept]] = {type_.__tablename__: [] for type_ in asset_types}
+    for asset_type in asset_types:
         query = select(asset_type).where(asset_type.aiod_entry_identifier.in_(assets_to_fetch))
         assets = session.scalars(query).all()
         found_assets[asset_type.__tablename__] = list(assets)
@@ -71,5 +72,5 @@ def _get_resources_for_user(user: KeycloakUser, session: Session) -> dict[str, l
 
     raise RuntimeError(
         f"Expected to find assets for identifiers {assets_to_fetch}, "
-        f"but only found {len(found_assets)} in total: {found_assets}."
+        f"but only found {sum(map(len, found_assets.values()))} in total: {found_assets}."
     )
