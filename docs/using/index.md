@@ -4,7 +4,7 @@ The REST API allows you to retrieve, update, or remove asset metadata in the met
 The assets are indexed from many different platforms, such as educational resources from [AIDA](https://www.i-aida.org),
 datasets from [HuggingFace](https://huggingface.co), models from [OpenML](https://openml.org), and many more.
 
-The REST API is available at [`https://api.aiod.eu`](https://api.aiod.eu) and documentation on endpoints
+The REST API is available at [https://api.aiod.eu](https://api.aiod.eu) and documentation on endpoints
 is available on complementary [Swagger](https://api.aiod.eu/docs) and [ReDoc](https://api.aiod.eu/redoc) pages.
 
 To use the REST API, simply make HTTP requests to the different endpoints.

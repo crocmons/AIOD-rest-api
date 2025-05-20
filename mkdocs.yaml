@@ -4,7 +4,7 @@ repo_url: https://github.com/aiondemand/AIOD-rest-api
 edit_uri: edit/develop/docs/
 theme:
   name: material
-  logo: assets/secondary-neg-white-25p.webp
+  logo: media/secondary-neg-white-25p.webp
   features:
     - content.code.copy
     - navigation.footer

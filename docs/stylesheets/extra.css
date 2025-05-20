@@ -1,6 +1,16 @@
 :root  > * {
-  --md-primary-fg-color:        #0047BB;
+  --md-primary-fg-color:  #0047BB; /* banner */
 }
+
+[data-md-color-scheme=slate] {
+    --md-default-fg-color: #C5C6C8;
+    --md-default-fg-color--light: #C5C6C8;
+}
+
+[data-md-color-scheme=default] {
+    --md-default-fg-color: #545557;
+}
+
 
 /* AIOD colors
 dark blue: #0047BB
