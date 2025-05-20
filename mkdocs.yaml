@@ -4,6 +4,7 @@ repo_url: https://github.com/aiondemand/AIOD-rest-api
 edit_uri: edit/develop/docs/
 theme:
   name: material
+  logo: assets/secondary-neg-white-25p.webp
   features:
     - content.code.copy
     - navigation.footer
@@ -12,6 +13,8 @@ theme:
   icon:
     edit: material/pencil
     view: material/eye
+  font:
+    text: 'Montserrat'
   palette:
     # Palette toggle for light mode
     - media: "(prefers-color-scheme: light)"
@@ -26,6 +29,9 @@ theme:
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
+
+extra_css:
+  - stylesheets/extra.css
 
 
 nav:
