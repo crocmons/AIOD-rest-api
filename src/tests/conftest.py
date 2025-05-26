@@ -1,3 +1,5 @@
+import pytest
+
 pytest_plugins = ["tests.testutils.default_instances", "tests.testutils.default_sqlalchemy"]
 
 
@@ -6,8 +8,25 @@ def pytest_generate_tests(metafunc):
     # and allow version-specific tests to be written using a
     # @pytest.mark.versions("vX") marker
     if "client" in metafunc.fixturenames:
+        default_versions = ("", "v2")
         version_marker = next((m for m in metafunc.definition.own_markers if m.name == "versions"), None)
-        versions = version_marker.args if version_marker else ["", "v2"]
+        selected_versions = version_marker.args if version_marker else default_versions
+
+        # Allow to skip anything not defined in the command line:
+        versions_to_include = metafunc.config.getoption("versions") or default_versions
+        versions = set(selected_versions).intersection(set(versions_to_include))
+        if not versions:
+            pytest.skip(f"Test not defined for selection: {versions_to_include}")
+
         metafunc.parametrize(
             "client", versions, indirect=True
         )
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--versions",
+        action="append",
+        default=[],
+        help="list of versions for which to run tests",
+    )
