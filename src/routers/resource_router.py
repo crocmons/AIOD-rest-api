@@ -242,8 +242,8 @@ class ResourceRouter(abc.ABC):
 
             for path in [
                 f"{url_prefix}/platforms/{{platform}}/{self.resource_name_plural}/{version}/{{identifier}}",
-                f"{url_prefix}/v2/platforms/{{platform}}/{self.resource_name_plural}/{version}",
-                f"{url_prefix}/platforms/{{platform}}/{self.resource_name_plural}/{version}",
+                f"{url_prefix}/v2/platforms/{{platform}}/{self.resource_name_plural}/{{identifier}}",
+                f"{url_prefix}/platforms/{{platform}}/{self.resource_name_plural}/{{identifier}}",
             ]:
                 router.add_api_route(
                     path=path,

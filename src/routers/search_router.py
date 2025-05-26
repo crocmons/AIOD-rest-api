@@ -225,7 +225,7 @@ class SearchRouter(Generic[RESOURCE], abc.ABC):
                     offset=offset,
                 )
 
-            return router
+        return router
 
     def _db_query(
         self,
