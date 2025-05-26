@@ -87,14 +87,16 @@ def add_routes(app: FastAPI, url_prefix=""):
         """
         return user
 
-    @app.get(url_prefix + "/counts/v1")
-    def counts() -> dict:
-        return {
-            router.resource_name_plural: count
-            for router in resource_routers.router_list
-            if issubclass(router.resource_class, AIoDConcept)
-            and (count := router.get_resource_count_func()(detailed=True))
-        }
+    for path in ["/v2/counts", "/counts", "/counts/v1"]:
+
+        @app.get(url_prefix + path)
+        def counts() -> dict:
+            return {
+                router.resource_name_plural: count
+                for router in resource_routers.router_list
+                if issubclass(router.resource_class, AIoDConcept)
+                and (count := router.get_resource_count_func()(detailed=True))
+            }
 
     for router in (
         resource_routers.router_list
