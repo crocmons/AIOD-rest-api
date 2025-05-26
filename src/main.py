@@ -80,16 +80,16 @@ def add_routes(app: FastAPI, url_prefix=""):
         </html>
         """
 
-    @app.get(url_prefix + "/authorization_test")
-    def test_authorization(user: KeycloakUser = Depends(get_user_or_raise)) -> KeycloakUser:
-        """
-        Returns the user, if authenticated correctly.
-        """
-        return user
+    for path in ["/v2/{endpoint}", "/{endpoint}", "/{endpoint}/v1"]:
 
-    for path in ["/v2/counts", "/counts", "/counts/v1"]:
+        @app.get(url_prefix + path.format(endpoint="authorization_test"))
+        def test_authorization(user: KeycloakUser = Depends(get_user_or_raise)) -> KeycloakUser:
+            """
+            Returns the user, if authenticated correctly.
+            """
+            return user
 
-        @app.get(url_prefix + path)
+        @app.get(url_prefix + path.format(endpoint="counts"))
         def counts() -> dict:
             return {
                 router.resource_name_plural: count
