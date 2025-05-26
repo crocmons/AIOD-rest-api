@@ -27,7 +27,7 @@ def test_get_count_happy_path(client_test_resource: TestClient):
             ]
         )
         session.commit()
-    response = client_test_resource.get("/counts/test_resources/v1")
+    response = client_test_resource.get("/counts/test_resources")
     assert response.status_code == 200, response.json()
     response_json = response.json()
 
@@ -53,7 +53,7 @@ def test_get_count_detailed_happy_path(client_test_resource: TestClient):
             ]
         )
         session.commit()
-    response = client_test_resource.get("/counts/test_resources/v1?detailed=true")
+    response = client_test_resource.get("/counts/test_resources?detailed=true")
     assert response.status_code == 200, response.json()
     response_json = response.json()
 
@@ -73,7 +73,7 @@ def test_get_count_total(
     register_asset(Publication(name="3"))
     register_asset(contact)
 
-    response = client.get("/counts/v1")
+    response = client.get("/counts")
     assert response.status_code == 200, response.json()
     response_json = response.json()
 

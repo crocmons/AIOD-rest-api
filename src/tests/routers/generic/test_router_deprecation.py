@@ -25,11 +25,11 @@ class DeprecatedRouter(RouterTestResource):
 @pytest.mark.parametrize(
     ("verb", "url", "user"),
     [
-        ("get", "/test_resources/v1/", kc_user_with_roles()),
-        ("get", "/test_resources/v1/1", kc_user_with_roles()),
-        ("post", "/test_resources/v1/",  kc_user_with_roles()),
-        ("put", "/test_resources/v1/1", kc_user_with_roles("update_test_resources")),
-        ("delete", "/test_resources/v1/1",  kc_user_with_roles("delete_test_resources")),
+        ("get", "/test_resources/", kc_user_with_roles()),
+        ("get", "/test_resources/1", kc_user_with_roles()),
+        ("post", "/test_resources/",  kc_user_with_roles()),
+        ("put", "/test_resources/1", kc_user_with_roles("update_test_resources")),
+        ("delete", "/test_resources/1",  kc_user_with_roles("delete_test_resources")),
     ]
 )
 def test_deprecated_router(
