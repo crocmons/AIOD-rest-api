@@ -14,7 +14,7 @@ from tests.testutils.default_instances import publication_factory, publication
 
 def test_my_resources_can_be_empty(client: TestClient) -> None:
     with logged_in_user(ALICE):
-        response = client.get("/user/resources/v1", headers={"Authorization": "fake token"})
+        response = client.get("/user/resources", headers={"Authorization": "fake token"})
     assert response.status_code == HTTPStatus.OK
     assert response.json() == [], "A user with no resources should get an empty list"
 
@@ -22,7 +22,7 @@ def test_my_resources_can_be_empty(client: TestClient) -> None:
 def test_my_resources_shows_draft_assets(client: TestClient, publication: Publication) -> None:
     register_asset(publication, owner=ALICE, status=EntryStatus.DRAFT)
     with logged_in_user(ALICE):
-        response = client.get("/user/resources/v1", headers={"Authorization": "fake token"})
+        response = client.get("/user/resources", headers={"Authorization": "fake token"})
     assert response.status_code == HTTPStatus.OK
     assert len(response.json()) == 1, "Draft assets should be included in this view."
 
@@ -30,7 +30,7 @@ def test_my_resources_shows_draft_assets(client: TestClient, publication: Public
 def test_my_resources_shows_published_assets(client: TestClient, publication: Publication) -> None:
     register_asset(publication, owner=ALICE, status=EntryStatus.PUBLISHED)
     with logged_in_user(ALICE):
-        response = client.get("/user/resources/v1", headers={"Authorization": "fake token"})
+        response = client.get("/user/resources", headers={"Authorization": "fake token"})
     assert response.status_code == HTTPStatus.OK
     assert len(response.json()) == 1, "Published assets should be included in this view."
 
@@ -39,7 +39,7 @@ def test_my_resources_shows_mixed_assets(client: TestClient, publication: Public
     register_asset(publication, owner=ALICE, status=EntryStatus.DRAFT)
     register_asset(organisation, owner=ALICE, status=EntryStatus.PUBLISHED)
     with logged_in_user(ALICE):
-        response = client.get("/user/resources/v1", headers={"Authorization": "fake token"})
+        response = client.get("/user/resources", headers={"Authorization": "fake token"})
     assert response.status_code == HTTPStatus.OK
 
     pub = next(asset for asset in response.json() if asset["aiod_entry_identifier"] == 1)
@@ -56,11 +56,11 @@ def test_my_resources_shows_only_own_resources(client: TestClient, publication_f
     register_asset(publication_factory(), owner=BOB, status=EntryStatus.PUBLISHED)
 
     with logged_in_user(ALICE):
-        response = client.get("/user/resources/v1", headers={"Authorization": "fake token"})
+        response = client.get("/user/resources", headers={"Authorization": "fake token"})
         assert len(response.json()) == 2
 
     with logged_in_user(BOB):
-        response = client.get("/user/resources/v1", headers={"Authorization": "fake token"})
+        response = client.get("/user/resources", headers={"Authorization": "fake token"})
         assert len(response.json()) == 1
 
 
@@ -80,11 +80,11 @@ def test_my_resources_counts_only_if_admin(client: TestClient, publication_facto
         session.commit()
 
     with logged_in_user(BOB):
-        response = client.get("/user/resources/v1", headers={"Authorization": "fake token"})
+        response = client.get("/user/resources", headers={"Authorization": "fake token"})
         assert len(response.json()) == 1, "Bob has ADMIN permission to one asset."
         assert response.json()[0]["identifier"] == identifier_three
 
 
 def test_my_resources_must_be_authorized(client: TestClient) -> None:
-    response = client.get("/user/resources/v1")
+    response = client.get("/user/resources")
     assert response.status_code == HTTPStatus.UNAUTHORIZED
