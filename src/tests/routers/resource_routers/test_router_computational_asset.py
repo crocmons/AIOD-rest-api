@@ -12,11 +12,11 @@ def test_happy_path(client: TestClient, body_asset: dict, auto_publish: None):
 
     with logged_in_user():
         response = client.post(
-            "/computational_assets/v1", json=body, headers={"Authorization": "Fake token"}
+            "/computational_assets", json=body, headers={"Authorization": "Fake token"}
         )
     assert response.status_code == 200, response.json()
 
-    response = client.get("/computational_assets/v1/1")
+    response = client.get("/computational_assets/1")
     assert response.status_code == 200, response.json()
 
     response_json = response.json()

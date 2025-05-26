@@ -25,13 +25,13 @@ def test_entry_status_does_not_update_on_put(
 ):
     with logged_in_user(ALICE):
         response = client.post(
-            "/publications/v1", json=publication_body, headers={"Authorization": "Fake token"}
+            "/publications", json=publication_body, headers={"Authorization": "Fake token"}
         )
     assert response.status_code == 200, response.json()
 
     # Default is DRAFT
     with logged_in_user(ALICE):
-        response = client.get("/publications/v1/1", headers={"Authorization": "Fake token"})
+        response = client.get("/publications/1", headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
     assert response.json()["aiod_entry"]["status"] == EntryStatus.DRAFT
     identifier = response.json()["identifier"]
@@ -39,7 +39,7 @@ def test_entry_status_does_not_update_on_put(
     publication_body["aiod_entry"]["status"] = EntryStatus.PUBLISHED
     with logged_in_user(ALICE):
         response = client.put(
-            f"/publications/v1/{identifier}",
+            f"/publications/{identifier}",
             json=publication_body,
             headers={"Authorization": "Fake token"},
         )
@@ -47,6 +47,6 @@ def test_entry_status_does_not_update_on_put(
 
     # Status is not updated to published
     with logged_in_user(ALICE):
-        response = client.get("/publications/v1/1", headers={"Authorization": "Fake token"})
+        response = client.get("/publications/1", headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
     assert response.json()["aiod_entry"]["status"] == EntryStatus.DRAFT
