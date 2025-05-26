@@ -37,10 +37,10 @@ def test_happy_path(
     body["contact_details"] = 1
     body["member_of"] = [1]
 
-    response = client.post("/persons/v1", json=body, headers={"Authorization": "Fake token"})
+    response = client.post("/persons", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
 
-    response = client.get("/persons/v1/2")
+    response = client.get("/persons/2")
     assert response.status_code == 200, response.json()
 
     response_json = response.json()
@@ -59,10 +59,10 @@ def test_happy_path(
 
 @pytest.fixture(
     params=[
-        "/persons/v1",
-        "/persons/v1/1",
-        "/platforms/ai4europe_cms/persons/v1",
-        "/platforms/ai4europe_cms/persons/v1/2",
+        "/persons",
+        "/persons/1",
+        "/platforms/ai4europe_cms/persons",
+        "/platforms/ai4europe_cms/persons/2",
     ]
 )
 def endpoint(request) -> str:
