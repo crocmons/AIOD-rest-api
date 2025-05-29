@@ -26,6 +26,8 @@ services:
     environment:
       - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN}
       - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
+    volumes:
+      - ./authentication/import:/opt/keycloak/data/import
     command: >
       start
       --hostname-url http://${HOSTNAME}/aiod-auth
