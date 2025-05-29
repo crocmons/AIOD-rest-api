@@ -76,14 +76,6 @@ class ResourceRouter(abc.ABC):
         """
 
     @property
-    def deprecated_from(self) -> datetime.date | None:
-        """
-        The deprecation date. This should be the date of the release in which the resource has
-        been deprecated.
-        """
-        return None
-
-    @property
     @abc.abstractmethod
     def resource_name(self) -> str:
         pass
@@ -115,7 +107,6 @@ class ResourceRouter(abc.ABC):
         router = APIRouter()
         default_kwargs = {
             "response_model_exclude_none": True,
-            "deprecated": self.deprecated_from is not None,
             "tags": [self.resource_name_plural],
         }
         available_schemas: list[Type] = [c.to_class for c in self.schema_converters.values()]
@@ -276,7 +267,7 @@ class ResourceRouter(abc.ABC):
                 resources: Any = self._retrieve_resources_and_post_process(
                     session, pagination, resource_filters, user, platform
                 )
-                return self._wrap_with_headers([convert_schema(resource) for resource in resources])
+                return [convert_schema(resource) for resource in resources]
             except Exception as e:
                 raise as_http_exception(e)
 
@@ -310,7 +301,7 @@ class ResourceRouter(abc.ABC):
                         )
                 if schema != "aiod":
                     return self.schema_converters[schema].convert(session, resource)
-                return self._wrap_with_headers(self.resource_class_read.from_orm(resource))
+                return self.resource_class_read.from_orm(resource)
         except Exception as e:
             raise as_http_exception(e)
 
@@ -431,7 +422,7 @@ class ResourceRouter(abc.ABC):
             resource = self.get_resource(
                 identifier=identifier, schema=schema, user=user, platform=None
             )
-            return self._wrap_with_headers(resource)
+            return resource
 
         return get_resource
 
@@ -486,7 +477,7 @@ class ResourceRouter(abc.ABC):
                             user, resource.aiod_entry, session, type_=PermissionType.ADMIN
                         )
                         session.commit()
-                        return self._wrap_with_headers({"identifier": resource.identifier})
+                        return {"identifier": resource.identifier}
                     except Exception as e:
                         self._raise_clean_http_exception(e, session, resource_create)
             except Exception as e:
@@ -548,7 +539,7 @@ class ResourceRouter(abc.ABC):
                         session.commit()
                     except Exception as e:
                         self._raise_clean_http_exception(e, session, resource_create_instance)
-                    return self._wrap_with_headers(None)
+                    return None
                 except Exception as e:
                     raise self._raise_clean_http_exception(e, session, resource_create_instance)
 
@@ -586,7 +577,7 @@ class ResourceRouter(abc.ABC):
                         resource.date_deleted = datetime.datetime.utcnow()
                         session.add(resource)
                     session.commit()
-                    return self._wrap_with_headers(None)
+                    return None
                 except Exception as e:
                     raise as_http_exception(e)
 
@@ -624,7 +615,7 @@ class ResourceRouter(abc.ABC):
                 )
                 session.add(review_request)
                 session.commit()
-                return self._wrap_with_headers({"submission_identifier": review_request.identifier})
+                return {"submission_identifier": review_request.identifier}
 
         return submit_resource
 
@@ -765,15 +756,6 @@ class ResourceRouter(abc.ABC):
                 include_in_schema=len(self._possible_schemas) > 1,
             ),
         ]
-
-    def _wrap_with_headers(self, resource):
-        if self.deprecated_from is None:
-            return resource
-        timestamp = datetime.datetime.combine(
-            self.deprecated_from, datetime.time.min, tzinfo=datetime.timezone.utc
-        ).timestamp()
-        headers = {"Deprecated": format_date_time(timestamp)}
-        return JSONResponse(content=jsonable_encoder(resource, exclude_none=True), headers=headers)
 
     def _raise_clean_http_exception(
         self, e: Exception, session: Session, resource_create: AIoDConcept
