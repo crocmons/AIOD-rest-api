@@ -30,10 +30,10 @@ def test_happy_path(
     body["member"] = [1]
     body["contact_details"] = 1
 
-    response = client.post("/organisations/v1", json=body, headers={"Authorization": "Fake token"})
+    response = client.post("/organisations", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
 
-    response = client.get("/organisations/v1/2")
+    response = client.get("/organisations/2")
     assert response.status_code == 200, response.json()
 
     response_json = response.json()
@@ -48,18 +48,18 @@ def test_happy_path(
     assert response_json["member"] == [1]
     assert response_json["contact_details"] == 1
 
-    # response = client.delete("/organisations/v1/1", headers={"Authorization": "Fake token"})
+    # response = client.delete("/organisations/1", headers={"Authorization": "Fake token"})
     # assert response.status_code == 200
-    # response = client.get("/organisations/v1/2")
+    # response = client.get("/organisations/2")
     # assert response.status_code == 200, response.json()
     # response_json = response.json()
     # TODO(jos): make sure Agent is deleted on CASCADE
 
     body["type"] = "Association"
-    response = client.put("organisations/v1/2", json=body, headers={"Authorization": "Fake token"})
+    response = client.put("organisations/2", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
-    response = client.get("organisations/v1/2")
+    response = client.get("organisations/2")
     assert response.json()["type"] == "association"
 
-    response = client.delete("/organisations/v1/2", headers={"Authorization": "Fake token"})
+    response = client.delete("/organisations/2", headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()

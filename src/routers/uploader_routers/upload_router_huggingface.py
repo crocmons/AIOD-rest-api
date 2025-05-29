@@ -12,36 +12,43 @@ class UploadRouterHuggingface(UploaderRouter):
 
         huggingface_uploader = HuggingfaceUploader()
 
-        @router.post(url_prefix + "/upload/datasets/{identifier}/huggingface", tags=["upload"])
-        def huggingface_upload(
-            identifier: int,
-            file: UploadFile = File(
-                ..., title="File", description="This file will be uploaded to HuggingFace"
-            ),
-            token: str = Query(
-                ..., title="Huggingface Token", description="The access token of HuggingFace"
-            ),
-            username: str = Query(
-                ..., title="Huggingface username", description="The username of HuggingFace"
-            ),
-            user: KeycloakUser = Depends(get_user_or_raise),
-        ) -> int:
-            """
-            Use this endpoint to upload a file (content) to Hugging Face using
-            the AIoD metadata identifier of the dataset.
+        for path in [
+            url_prefix + "/upload/datasets/{identifier}/huggingface",
+            url_prefix + "/v2/upload/datasets/{identifier}/huggingface",
+        ]:
 
-            Before uploading a dataset content, its metadata must exist on AIoD metadata catalogue.
+            @router.post(path, tags=["upload"])
+            def huggingface_upload(
+                identifier: int,
+                file: UploadFile = File(
+                    ..., title="File", description="This file will be uploaded to HuggingFace"
+                ),
+                token: str = Query(
+                    ..., title="Huggingface Token", description="The access token of HuggingFace"
+                ),
+                username: str = Query(
+                    ..., title="Huggingface username", description="The username of HuggingFace"
+                ),
+                user: KeycloakUser = Depends(get_user_or_raise),
+            ) -> int:
+                """
+                Use this endpoint to upload a file (content) to Hugging Face using
+                the AIoD metadata identifier of the dataset.
 
-            1. **Create Metadata**
-            - If the metadata doesn't exist on AIoD catalogue, you can create it sending a `POST`
-            request to `/datasets/{version}/`.
-            - Make sure to set `platform = "huggingface"` and
-            `platform_resource_identifier` with a string representing the repository name.
+                Before uploading a dataset content, its metadata must exist on AIoD metadata catalogue.
 
-            2. **Upload File**
-            - Use this `POST` endpoint to upload a file to Hugging Face using the AIoD
-            metadata identifier of the metadata dataset.
-            """
-            return huggingface_uploader.handle_upload(identifier, file, token, username, user=user)
+                1. **Create Metadata**
+                - If the metadata doesn't exist on AIoD catalogue, you can create it sending a `POST`
+                request to `/datasets/{version}/`.
+                - Make sure to set `platform = "huggingface"` and
+                `platform_resource_identifier` with a string representing the repository name.
+
+                2. **Upload File**
+                - Use this `POST` endpoint to upload a file to Hugging Face using the AIoD
+                metadata identifier of the metadata dataset.
+                """
+                return huggingface_uploader.handle_upload(
+                    identifier, file, token, username, user=user
+                )
 
         return router

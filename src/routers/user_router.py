@@ -30,13 +30,17 @@ def create(url_prefix: str) -> APIRouter:
             for asset_type, asset_read_class in get_all_read_classes().items()
         },
     )
-
-    router.get(
+    for path in [
         f"{url_prefix}/user/resources/{version}",
-        tags=["User"],
-        description="Return all assets for which you have administrator rights.",
-        response_model=Catalogue,
-    )(get_resources_for_logged_in_user)
+        f"{url_prefix}/v2/user/resources",
+        f"{url_prefix}/user/resources",
+    ]:
+        router.get(
+            path,
+            tags=["User"],
+            description="Return all assets for which you have administrator rights",
+            response_model=Catalogue,
+        )(get_resources_for_logged_in_user)
     return router
 
 

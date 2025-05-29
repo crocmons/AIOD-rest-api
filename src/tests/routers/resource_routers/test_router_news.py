@@ -17,10 +17,10 @@ def test_happy_path(
     body["content"] = {"plain": "plain content"}
     body["source"] = "https://tailor-network.eu/shaping-the-future-of-ai-within-the-eu/"
 
-    response = client.post("/news/v1", json=body, headers={"Authorization": "Fake token"})
+    response = client.post("/news", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
 
-    response = client.get("/news/v1/1")
+    response = client.get("/news/1")
     assert response.status_code == 200, response.json()
 
     response_json = response.json()

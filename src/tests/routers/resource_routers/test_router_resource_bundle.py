@@ -33,10 +33,10 @@ def test_resource_bundle_api(
     body["includes_external_reference"] = ["https://example.com/resource"]
 
 
-    response = client.post("/resource_bundles/v1", json=body, headers={"Authorization": "Fake token"})
+    response = client.post("/resource_bundles", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
 
-    response = client.get("/resource_bundles/v1/1")
+    response = client.get("/resource_bundles/1")
     assert response.status_code == 200, response.json()
 
 

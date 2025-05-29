@@ -18,14 +18,14 @@ def test_happy_path(
         session.merge(publication)
         session.commit()
 
-    response = client.get("/ai_assets/v1/1")
+    response = client.get("/ai_assets/1")
     assert response.status_code == 200, response.json()
     response_json = response.json()
     assert response_json["identifier"] == 1
     assert response_json["ai_asset_identifier"] == 1
     assert response_json["name"] == "Dataset"
 
-    response = client.get("/ai_assets/v1/2")
+    response = client.get("/ai_assets/2")
     assert response.status_code == 200, response.json()
     response_json = response.json()
     assert response_json["identifier"] == 1
