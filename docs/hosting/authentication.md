@@ -84,3 +84,4 @@ docker exec -it keycloak /opt/keycloak/bin/kc.sh export --dir /opt/keycloak/data
 This puts the exported files in the `${DATA_PATH}/keycloak/data/export` directory.
 
 To **import**, just place the export files into the `{DATA_PATH}/keycloak/data/import` directory.
+When running the `develop` preset using `USE_LOCAL_DEV=true`, the import directly is populated by the data found in `./authentication/import/`.

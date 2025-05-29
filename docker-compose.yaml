@@ -155,7 +155,7 @@ services:
       - ${AIOD_KEYCLOAK_PORT}:8080
     volumes:
      - ${DATA_PATH}/keycloak/data:/opt/keycloak/data
-     - ${DATA_PATH}/keycloak/themes:/opt/keycloak/themes
+     - ./authentication/themes:/opt/keycloak/themes
     command: >
       start
       --proxy edge
