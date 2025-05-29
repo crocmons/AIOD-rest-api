@@ -13,7 +13,8 @@ def pytest_generate_tests(metafunc):
         selected_versions = version_marker.args if version_marker else default_versions
 
         # Allow to skip anything not defined in the command line:
-        versions_to_include = metafunc.config.getoption("versions") or default_versions
+        all_versions = ("", "v1", "v2")
+        versions_to_include = metafunc.config.getoption("versions") or all_versions
         versions = set(selected_versions).intersection(set(versions_to_include))
         if not versions:
             pytest.skip(f"Test not defined for selection: {versions_to_include}")
