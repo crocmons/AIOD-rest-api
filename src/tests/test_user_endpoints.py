@@ -16,7 +16,9 @@ def test_my_resources_can_be_empty(client: TestClient) -> None:
     with logged_in_user(ALICE):
         response = client.get("/user/resources", headers={"Authorization": "fake token"})
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == [], "A user with no resources should get an empty list"
+    msg = "A user with no resources should get an empty list"
+    assert all(items == [] for items in response.json().values()), msg
+    assert len(response.json()) >= 16, "Every asset type should always be included in the response"
 
 
 def test_my_resources_shows_draft_assets(client: TestClient, publication: Publication) -> None:
@@ -24,7 +26,9 @@ def test_my_resources_shows_draft_assets(client: TestClient, publication: Public
     with logged_in_user(ALICE):
         response = client.get("/user/resources", headers={"Authorization": "fake token"})
     assert response.status_code == HTTPStatus.OK
-    assert len(response.json()) == 1, "Draft assets should be included in this view."
+    assert len(response.json()["publication"]) == 1, "Draft assets should be included in this view."
+    msg = "Properties should be deserialized"
+    assert response.json()["publication"][0]["aiod_entry"]["status"] == "draft", msg
 
 
 def test_my_resources_shows_published_assets(client: TestClient, publication: Publication) -> None:
@@ -32,7 +36,7 @@ def test_my_resources_shows_published_assets(client: TestClient, publication: Pu
     with logged_in_user(ALICE):
         response = client.get("/user/resources", headers={"Authorization": "fake token"})
     assert response.status_code == HTTPStatus.OK
-    assert len(response.json()) == 1, "Published assets should be included in this view."
+    assert len(response.json()["publication"]) == 1, "Published assets should be included in this view."
 
 
 def test_my_resources_shows_mixed_assets(client: TestClient, publication: Publication, organisation: Organisation) -> None:
@@ -42,13 +46,19 @@ def test_my_resources_shows_mixed_assets(client: TestClient, publication: Public
         response = client.get("/user/resources", headers={"Authorization": "fake token"})
     assert response.status_code == HTTPStatus.OK
 
-    pub = next(asset for asset in response.json() if asset["aiod_entry_identifier"] == 1)
-    org = next(asset for asset in response.json() if asset["aiod_entry_identifier"] == 2)
+    assert len(response.json()["contact"]) == 0
+    assert len(response.json()["publication"]) == 1
+    assert len(response.json()["organisation"]) == 1
+
+    pub = response.json()["publication"][0]
+    org = response.json()["organisation"][0]
+
     dataset_property = "legal_name"
     publication_property = "isbn"
 
     assert dataset_property in org and publication_property in pub, "Assets should report properties unique to their type"
     assert dataset_property not in pub and publication_property not in org, "Assets should not report properties they do not have"
+
 
 def test_my_resources_shows_only_own_resources(client: TestClient, publication_factory: Callable[[], Publication]) -> None:
     register_asset(publication_factory(), owner=ALICE, status=EntryStatus.DRAFT)
@@ -57,11 +67,11 @@ def test_my_resources_shows_only_own_resources(client: TestClient, publication_f
 
     with logged_in_user(ALICE):
         response = client.get("/user/resources", headers={"Authorization": "fake token"})
-        assert len(response.json()) == 2
+        assert len(response.json()["publication"]) == 2
 
     with logged_in_user(BOB):
         response = client.get("/user/resources", headers={"Authorization": "fake token"})
-        assert len(response.json()) == 1
+        assert len(response.json()["publication"]) == 1
 
 
 def test_my_resources_counts_only_if_admin(client: TestClient, publication_factory: Callable[[], Publication]) -> None:
@@ -81,8 +91,8 @@ def test_my_resources_counts_only_if_admin(client: TestClient, publication_facto
 
     with logged_in_user(BOB):
         response = client.get("/user/resources", headers={"Authorization": "fake token"})
-        assert len(response.json()) == 1, "Bob has ADMIN permission to one asset."
-        assert response.json()[0]["identifier"] == identifier_three
+        assert len(response.json()["publication"]) == 1, "Bob has ADMIN permission to one asset."
+        assert response.json()["publication"][0]["identifier"] == identifier_three
 
 
 def test_my_resources_must_be_authorized(client: TestClient) -> None:
