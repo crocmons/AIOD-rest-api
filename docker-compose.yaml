@@ -164,6 +164,7 @@ services:
       --import-realm
 
   nginx:
+    profiles: ["nginx"]
     image: nginx:1.25.5
     container_name: nginx
     restart: unless-stopped
