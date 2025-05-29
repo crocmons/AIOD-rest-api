@@ -39,6 +39,7 @@ nav:
   - Using the API:
       - using/index.md
       - 'Uploading Metadata': using/upload.md
+      - 'Migration v1 to v2': using/migration-v1-v2.md
   - Hosting the API:
       - hosting/index.md
       - 'Authentication': hosting/authentication.md

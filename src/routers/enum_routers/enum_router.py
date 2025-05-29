@@ -28,13 +28,19 @@ class EnumRouter(abc.ABC):
             "response_model_exclude_none": True,
             "tags": ["enums"],
         }
-        router.add_api_route(
-            path=url_prefix + f"/{self.resource_name_plural}/{version}",
-            endpoint=self.get_resources_func(),
-            response_model=list[str],
-            name=self.resource_name,
-            **default_kwargs,
-        )
+
+        for path in [
+            url_prefix + f"/{self.resource_name_plural}/{version}",
+            url_prefix + f"/v2/{self.resource_name_plural}",
+            url_prefix + f"/{self.resource_name_plural}",
+        ]:
+            router.add_api_route(
+                path=path,
+                endpoint=self.get_resources_func(),
+                response_model=list[str],
+                name=self.resource_name,
+                **default_kwargs,
+            )
         return router
 
     def get_resources_func(self):

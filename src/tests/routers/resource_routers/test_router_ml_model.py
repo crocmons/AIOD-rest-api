@@ -45,10 +45,10 @@ def test_happy_path(
     }
     body["distribution"] = [distribution]
 
-    response = client.post("/ml_models/v1", json=body, headers={"Authorization": "Fake token"})
+    response = client.post("/ml_models", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
 
-    response = client.get("/ml_models/v1/1")
+    response = client.get("/ml_models/1")
     assert response.status_code == 200, response.json()
 
     response_json = response.json()

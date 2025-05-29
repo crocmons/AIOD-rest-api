@@ -17,25 +17,30 @@ def create(url_prefix: str) -> APIRouter:
     router = APIRouter()
     version = "v1"
 
-    router.get(
+    for path in [
         f"{url_prefix}/user/resources/{version}",
-        tags=["User"],
-        description="Return all assets for which you have administrator rights",
-        response_model=None,  # Required! Otherwise FastAPI infers it from type annotation.
-        responses={
-            HTTPStatus.OK: {
-                "content": {
-                    "application/json": {
-                        "schema": {
-                            "title": "List of assets owned by the user.",
-                            "type": "array",
-                            "items": {"anyOf": get_all_asset_schemas()},
+        f"{url_prefix}/v2/user/resources",
+        f"{url_prefix}/user/resources",
+    ]:
+        router.get(
+            path,
+            tags=["User"],
+            description="Return all assets for which you have administrator rights",
+            response_model=None,  # Required! Otherwise FastAPI infers it from type annotation.
+            responses={
+                HTTPStatus.OK: {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "title": "List of assets owned by the user.",
+                                "type": "array",
+                                "items": {"anyOf": get_all_asset_schemas()},
+                            }
                         }
-                    }
-                },
-            }
-        },
-    )(get_resources_for_logged_in_user)
+                    },
+                }
+            },
+        )(get_resources_for_logged_in_user)
     return router
 
 

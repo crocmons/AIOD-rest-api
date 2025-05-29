@@ -100,7 +100,7 @@ def test_happy_path_creating_repo(
     The creation of a new repo must be triggered when platform_resource_identifier is None.
     """
     with logged_in_user():
-        response = client.post("/datasets/v1", json=body_empty, headers={"Authorization": "Fake token"})
+        response = client.post("/datasets", json=body_empty, headers={"Authorization": "Fake token"})
     assert response.status_code == status.HTTP_200_OK, response.json()
 
     with responses.RequestsMock() as mocked_requests:
@@ -116,7 +116,7 @@ def test_happy_path_creating_repo(
         assert response.status_code == status.HTTP_200_OK, response.json()
         assert response.json() == 1, response.json()
 
-    response_json = client.get("datasets/v1/1").json()
+    response_json = client.get("datasets/1").json()
     assert response_json["platform"] == "zenodo", response_json
     assert (
         response_json["platform_resource_identifier"] == f"zenodo.org:{zenodo.RESOURCE_ID}"
@@ -137,7 +137,7 @@ def test_happy_path_existing_repo(
     """
     with logged_in_user():
         response = client.post(
-            "/datasets/v1", json=body_with_dist, headers={"Authorization": "Fake token"}
+            "/datasets", json=body_with_dist, headers={"Authorization": "Fake token"}
         )
     assert response.status_code == status.HTTP_200_OK, response.json()
 
@@ -157,7 +157,7 @@ def test_happy_path_existing_repo(
         assert response.json() == 1, response.json()
     bypass_reviewer_publish_everything()
 
-    response_json = client.get("datasets/v1/1").json()
+    response_json = client.get("datasets/1").json()
     assert response_json["platform"] == "zenodo", response_json
     assert (
         response_json["platform_resource_identifier"] == f"zenodo.org:{zenodo.RESOURCE_ID}"
@@ -173,7 +173,7 @@ def test_happy_path_existing_file(
     """
     with logged_in_user():
         response = client.post(
-            "/datasets/v1", json=body_with_dist, headers={"Authorization": "Fake token"}
+            "/datasets", json=body_with_dist, headers={"Authorization": "Fake token"}
         )
     assert response.status_code == status.HTTP_200_OK, response.json()
 
@@ -192,7 +192,7 @@ def test_happy_path_existing_file(
         assert response.json() == 1, response.json()
     bypass_reviewer_publish_everything()
 
-    response_json = client.get("datasets/v1/1").json()
+    response_json = client.get("datasets/1").json()
     assert response_json["platform"] == "zenodo", response_json
     assert (
         response_json["platform_resource_identifier"] == f"zenodo.org:{zenodo.RESOURCE_ID}"
@@ -213,7 +213,7 @@ def test_happy_path_updating_an_existing_file(
 
     with logged_in_user():
         response = client.post(
-            "/datasets/v1", json=body_with_dist, headers={"Authorization": "Fake token"}
+            "/datasets", json=body_with_dist, headers={"Authorization": "Fake token"}
         )
     assert response.status_code == status.HTTP_200_OK, response.json()
     with responses.RequestsMock() as mocked_requests:
@@ -239,7 +239,7 @@ def test_happy_path_updating_an_existing_file(
         assert response.json() == 1, response.json()
     bypass_reviewer_publish_everything()
 
-    response_json = client.get("datasets/v1/1").json()
+    response_json = client.get("datasets/1").json()
     assert response_json["platform"] == "zenodo", response_json
     assert (
         response_json["platform_resource_identifier"] == f"zenodo.org:{zenodo.RESOURCE_ID}"
@@ -257,7 +257,7 @@ def test_happy_path_publishing(
     The URL of the content should not be empty
     """
     with logged_in_user():
-        response = client.post("/datasets/v1", json=body_empty, headers={"Authorization": "Fake token"})
+        response = client.post("/datasets", json=body_empty, headers={"Authorization": "Fake token"})
     assert response.status_code == status.HTTP_200_OK, response.json()
 
     with responses.RequestsMock() as mocked_requests:
@@ -277,7 +277,7 @@ def test_happy_path_publishing(
         assert response.json() == 1, response.json()
 
     bypass_reviewer_publish_everything()
-    response_json = client.get("datasets/v1/1").json()
+    response_json = client.get("datasets/1").json()
     assert response_json["aiod_entry"]["status"] == "published", response_json
     assert (
         datetime.utcnow().strftime("%Y-%m-%dT%H:%M") in response_json["date_published"]
@@ -307,7 +307,7 @@ def test_attempt_to_upload_published_resource(
         session.commit()
 
     with logged_in_user():
-        response = client.post("/datasets/v1", json=body, headers={"Authorization": "Fake token"})
+        response = client.post("/datasets", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == status.HTTP_200_OK, response.json()
 
     with DbSession() as session:
@@ -335,7 +335,7 @@ def test_attempt_to_upload_published_resource(
             f"You can access and modify it at {zenodo.HTML_URL}/{zenodo.RESOURCE_ID}"
         ), response.json()
 
-    response_json = client.get("datasets/v1/1").json()
+    response_json = client.get("datasets/1").json()
     assert response_json["distribution"] == body["distribution"], response_json
 
 
@@ -361,7 +361,7 @@ def test_platform_name_conflict(
         session.commit()
 
     with logged_in_user():
-        response = client.post("/datasets/v1", json=body, headers={"Authorization": "Fake token"})
+        response = client.post("/datasets", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == status.HTTP_200_OK, response.json()
 
     with responses.RequestsMock() as mocked_request:
@@ -377,7 +377,7 @@ def test_platform_name_conflict(
         ), response.json()
 
     bypass_reviewer_publish_everything()
-    response_json = client.get("datasets/v1/1").json()
+    response_json = client.get("datasets/1").json()
     assert response_json["platform"] == "huggingface", response_json
     assert response_json["platform_resource_identifier"] == "fake-id", response_json
     assert response_json["distribution"] == []
@@ -399,7 +399,7 @@ def test_fail_due_to_missing_contact_name(
         session.add(person)
         session.commit()
     with logged_in_user():
-        response = client.post("/datasets/v1", json=body, headers={"Authorization": "Fake token"})
+        response = client.post("/datasets", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == status.HTTP_200_OK, response.json()
 
     with responses.RequestsMock():

@@ -88,12 +88,16 @@ def sqlite_enable_foreign_key_constraints(dbapi_connection, connection_record):
 
 
 @pytest.fixture(scope="session")
-def client(engine: Engine) -> TestClient:
+def client(request, engine: Engine) -> TestClient:
     """
     Create a TestClient that can be used to mock sending requests to our application
     """
     app = build_app(version="unittest")
-    yield TestClient(app, base_url="http://localhost")
+    if request.param != "v1":
+        yield TestClient(app, base_url=f"http://localhost/{request.param}")
+    else:
+        # v1 still has a deviating versioning schema, can remove with sunset release
+        yield TestClient(app, base_url=f"http://localhost/")
 
 
 # *NEVER* broaden the scope of this fixture, bypassing reviews should be on a test-by-test basis

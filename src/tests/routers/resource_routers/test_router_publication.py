@@ -20,10 +20,10 @@ def test_happy_path(
     body["type"] = "journal"
     body["content"] = {"plain": "plain content"}
 
-    response = client.post("/publications/v1", json=body, headers={"Authorization": "Fake token"})
+    response = client.post("/publications", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
 
-    response = client.get("/publications/v1/1")
+    response = client.get("/publications/1")
     assert response.status_code == 200, response.json()
     response_json = response.json()
 
