@@ -25,6 +25,7 @@ from database.model.platform.platform import Platform
 from database.model.platform.platform_names import PlatformName
 from database.session import EngineSingleton, DbSession
 from database.setup import create_database, database_exists
+from triggers import disable_review_process, enable_review_process
 from error_handling import http_exception_handler
 from routers import (
     resource_routers,
@@ -60,6 +61,12 @@ def _parse_args() -> argparse.Namespace:
         "--reload",
         action=argparse.BooleanOptionalAction,
         help="Use `--reload` for FastAPI.",
+    )
+    parser.add_argument(
+        "--disable-reviews",
+        action="store_true",
+        help="Use --disable-reviews to disable the review process for new assets."
+        "This does not affect the state of assets already created or under review.",
     )
     return parser.parse_args()
 
@@ -198,6 +205,12 @@ def build_database(args):
         triggers = create_delete_triggers(AIoDConcept)
         for trigger in triggers:
             session.execute(trigger)
+
+        if args.disable_reviews:
+            disable_review_process(session)
+        else:
+            enable_review_process(session)
+
         existing_platforms = session.scalars(select(Platform)).all()
         missing_platforms = set(PlatformName) - {p.name for p in existing_platforms}
         if any(missing_platforms):
