@@ -17,7 +17,7 @@ from sqlmodel import select, SQLModel
 from starlette.requests import Request
 
 from authentication import get_user_or_raise, KeycloakUser, assert_required_settings_configured
-from config import KEYCLOAK_CONFIG
+from config import KEYCLOAK_CONFIG, DB_CONFIG, DEV_CONFIG
 from database.deletion.triggers import create_delete_triggers
 import database.authorization  # noqa  # Trigger registration of User, Permission -> likely obsolete when couple with aiod_entry is done
 from database.model.concept.concept import AIoDConcept
@@ -37,38 +37,6 @@ from routers import (
     user_router,
 )
 from setup_logger import setup_logger
-
-
-def _parse_args() -> argparse.Namespace:
-    # TODO: refactor configuration (https://github.com/aiondemand/AIOD-rest-api/issues/82)
-    parser = argparse.ArgumentParser(description="Please refer to the README.")
-    parser.add_argument("--url-prefix", default="", help="Prefix for the api url.")
-    parser.add_argument(
-        "--build-db",
-        default="if-absent",
-        choices=["never", "if-absent", "drop-then-build"],
-        help="""
-        Determines if the database is created:\n
-            - never: *never* creates the database, not even if there does not exist one yet.
-                Use this only if you expect the database to be created through other means, such
-                as MySQL group replication.\n
-            - if-absent: Creates a database only if none exists.\n
-            - drop-then-build: Drops the database on startup to recreate it from scratch.
-                THIS REMOVES ALL DATA PERMANENTLY. NO RECOVERY POSSIBLE.
-        """,
-    )
-    parser.add_argument(
-        "--reload",
-        action=argparse.BooleanOptionalAction,
-        help="Use `--reload` for FastAPI.",
-    )
-    parser.add_argument(
-        "--disable-reviews",
-        action="store_true",
-        help="Use --disable-reviews to disable the review process for new assets."
-        "This does not affect the state of assets already created or under review.",
-    )
-    return parser.parse_args()
 
 
 def add_routes(app: FastAPI, url_prefix=""):
@@ -121,9 +89,9 @@ def add_routes(app: FastAPI, url_prefix=""):
 def create_app() -> FastAPI:
     """Create the FastAPI application, complete with routes."""
     setup_logger()
-    args = _parse_args()
     assert_required_settings_configured()
-    if args.build_db == "never":
+    build_database_setting = DB_CONFIG.get("build_database", "never")
+    if build_database_setting == "never":
         if not database_exists():
             logging.warning(
                 "AI-on-Demand database does not exist on the MySQL server, "
@@ -132,14 +100,15 @@ def create_app() -> FastAPI:
                 "this likely means that you will get errors or undefined behavior."
             )
     else:
-        build_database(args)
+        drop_database = build_database_setting == "drop-then-build"
+        build_database(drop_database=drop_database)
 
     pyproject_toml = pkg_resources.get_distribution("aiod_metadata_catalogue")
-    app = build_app(args.url_prefix, pyproject_toml.version)
+    app = build_app(url_prefix=DEV_CONFIG.get("url_prefix", ""), version=pyproject_toml.version)
     return app
 
 
-def build_app(url_prefix: str = "", version: str = "dev"):
+def build_app(*, url_prefix: str = "", version: str = "dev"):
     app = FastAPI(
         openapi_url=f"{url_prefix}/openapi.json",
         docs_url=f"{url_prefix}/docs",
@@ -197,8 +166,7 @@ def build_app(url_prefix: str = "", version: str = "dev"):
     return app
 
 
-def build_database(args):
-    drop_database = args.build_db == "drop-then-build"
+def build_database(drop_database: bool = False):
     create_database(delete_first=drop_database)
     SQLModel.metadata.create_all(EngineSingleton().engine, checkfirst=True)
     with DbSession() as session:
@@ -206,7 +174,7 @@ def build_database(args):
         for trigger in triggers:
             session.execute(trigger)
 
-        if args.disable_reviews:
+        if DEV_CONFIG.get("disable_reviews", False):
             disable_review_process(session)
         else:
             enable_review_process(session)
@@ -220,11 +188,19 @@ def build_database(args):
 
 def main():
     """Run the application. Placed in a separate function, to avoid having global variables"""
-    args = _parse_args()
+
+    # TODO: unify configuration and environment file?  GH#82
+    # This parsing allows users to see the message on `--help` or incorrect (old) invocations.
+    msg = (
+        "Configuration options can be set in the configuration file. "
+        "Please refer to the documentation pages."
+    )
+    argparse.ArgumentParser(description=msg).parse_args()
+
     uvicorn.run(
         "main:create_app",
         host="0.0.0.0",  # noqa: S104  # required to make the interface available outside of docker
-        reload=args.reload,
+        reload=DEV_CONFIG.get("reload", False),
         factory=True,
     )
 

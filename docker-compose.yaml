@@ -14,9 +14,7 @@ services:
       - ES_PASSWORD=$ES_PASSWORD
     ports:
       - ${AIOD_REST_PORT}:8000
-    command: >
-      python main.py
-      --build-db if-absent
+    command: python main.py
     healthcheck:
       test: ["CMD", "python", "-c",  "import requests; requests.get('http://localhost:8000')"]
       start_interval: 1s
