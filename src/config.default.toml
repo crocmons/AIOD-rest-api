@@ -9,6 +9,19 @@ database = "aiod"
 username = "root"
 password = "ok"
 
+# One of: 'never', 'if-absent', or 'drop-then-build'
+# Determines if the database is created:
+#    - never:
+#        *never* creates the database, not even if there does not exist one yet.
+#        Use this only if you expect the database to be created through other means, such
+#        as MySQL group replication.
+#    - if-absent:
+#        Creates a database only if none exists.
+#    - drop-then-build:
+#        Drops the database on startup to recreate it from scratch.
+#        THIS REMOVES ALL DATA PERMANENTLY. NO RECOVERY POSSIBLE.
+build_database = "if-absent"
+
 # Additional options for development
 [dev]
 reload = true
