@@ -17,7 +17,7 @@ from sqlmodel import select, SQLModel
 from starlette.requests import Request
 
 from authentication import get_user_or_raise, KeycloakUser, assert_required_settings_configured
-from config import KEYCLOAK_CONFIG, DISABLE_REVIEWS, DB_CONFIG
+from config import KEYCLOAK_CONFIG, DB_CONFIG, DEV_CONFIG
 from database.deletion.triggers import create_delete_triggers
 import database.authorization  # noqa  # Trigger registration of User, Permission -> likely obsolete when couple with aiod_entry is done
 from database.model.concept.concept import AIoDConcept
@@ -37,18 +37,6 @@ from routers import (
     user_router,
 )
 from setup_logger import setup_logger
-
-
-def _parse_args() -> argparse.Namespace:
-    # TODO: refactor configuration (https://github.com/aiondemand/AIOD-rest-api/issues/82)
-    parser = argparse.ArgumentParser(description="Please refer to the README.")
-    parser.add_argument("--url-prefix", default="", help="Prefix for the api url.")
-    parser.add_argument(
-        "--reload",
-        action=argparse.BooleanOptionalAction,
-        help="Use `--reload` for FastAPI.",
-    )
-    return parser.parse_args()
 
 
 def add_routes(app: FastAPI, url_prefix=""):
@@ -101,7 +89,6 @@ def add_routes(app: FastAPI, url_prefix=""):
 def create_app() -> FastAPI:
     """Create the FastAPI application, complete with routes."""
     setup_logger()
-    args = _parse_args()
     assert_required_settings_configured()
     build_database_setting = DB_CONFIG.get("build_database", "never")
     if build_database_setting == "never":
@@ -117,11 +104,11 @@ def create_app() -> FastAPI:
         build_database(drop_database=drop_database)
 
     pyproject_toml = pkg_resources.get_distribution("aiod_metadata_catalogue")
-    app = build_app(args.url_prefix, pyproject_toml.version)
+    app = build_app(version=pyproject_toml.version)
     return app
 
 
-def build_app(url_prefix: str = "", version: str = "dev"):
+def build_app(*, url_prefix: str = "", version: str = "dev"):
     app = FastAPI(
         openapi_url=f"{url_prefix}/openapi.json",
         docs_url=f"{url_prefix}/docs",
@@ -187,7 +174,7 @@ def build_database(drop_database: bool = False):
         for trigger in triggers:
             session.execute(trigger)
 
-        if DISABLE_REVIEWS:
+        if DEV_CONFIG.get("disable_reviews", False):
             disable_review_process(session)
         else:
             enable_review_process(session)
@@ -201,11 +188,19 @@ def build_database(drop_database: bool = False):
 
 def main():
     """Run the application. Placed in a separate function, to avoid having global variables"""
-    args = _parse_args()
+
+    # TODO: unify configuration and environment file?  GH#82
+    # This parsing allows users to see the message on `--help` or incorrect (old) invocations.
+    msg = (
+        "Configuration options can be set in the configuration file. "
+        "Please refer to the documentation pages."
+    )
+    argparse.ArgumentParser(description=msg).parse_args()
+
     uvicorn.run(
         "main:create_app",
         host="0.0.0.0",  # noqa: S104  # required to make the interface available outside of docker
-        reload=args.reload,
+        reload=DEV_CONFIG.get("reload", False),
         factory=True,
     )
 

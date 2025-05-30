@@ -3,9 +3,7 @@ services:
     stdin_open: true
     volumes:
       - ./src:/app:ro
-    command: >
-      python main.py
-      --reload
+    command: python main.py
 
   fill-db-with-examples:
     volumes:
