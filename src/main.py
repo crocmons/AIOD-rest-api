@@ -104,7 +104,7 @@ def create_app() -> FastAPI:
         build_database(drop_database=drop_database)
 
     pyproject_toml = pkg_resources.get_distribution("aiod_metadata_catalogue")
-    app = build_app(version=pyproject_toml.version)
+    app = build_app(url_prefix=DEV_CONFIG.get("url_prefix", ""), version=pyproject_toml.version)
     return app
 
 
