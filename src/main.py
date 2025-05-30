@@ -17,7 +17,7 @@ from sqlmodel import select, SQLModel
 from starlette.requests import Request
 
 from authentication import get_user_or_raise, KeycloakUser, assert_required_settings_configured
-from config import KEYCLOAK_CONFIG
+from config import KEYCLOAK_CONFIG, DISABLE_REVIEWS
 from database.deletion.triggers import create_delete_triggers
 import database.authorization  # noqa  # Trigger registration of User, Permission -> likely obsolete when couple with aiod_entry is done
 from database.model.concept.concept import AIoDConcept
@@ -61,12 +61,6 @@ def _parse_args() -> argparse.Namespace:
         "--reload",
         action=argparse.BooleanOptionalAction,
         help="Use `--reload` for FastAPI.",
-    )
-    parser.add_argument(
-        "--disable-reviews",
-        action="store_true",
-        help="Use --disable-reviews to disable the review process for new assets."
-        "This does not affect the state of assets already created or under review.",
     )
     return parser.parse_args()
 
@@ -206,7 +200,7 @@ def build_database(args):
         for trigger in triggers:
             session.execute(trigger)
 
-        if args.disable_reviews:
+        if DISABLE_REVIEWS:
             disable_review_process(session)
         else:
             enable_review_process(session)

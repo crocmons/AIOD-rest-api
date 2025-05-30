@@ -14,6 +14,7 @@ password = "ok"
 reload = true
 request_timeout = 10  # seconds
 log_level = "INFO"  # Python log levels: https://docs.python.org/3/library/logging.html#logging-levels
+disable_reviews = false  # set to true to automatically publish submissions
 
 # Authentication and authorization
 [keycloak]
