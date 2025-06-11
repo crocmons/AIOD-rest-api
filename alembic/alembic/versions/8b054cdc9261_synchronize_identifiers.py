@@ -12,7 +12,7 @@ from typing import Sequence, Union, NamedTuple
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy import Column, Integer, text
+from sqlalchemy import Column, Integer, text, String
 from sqlmodel import Session
 
 from database.session import DbSession
@@ -114,6 +114,28 @@ def upgrade() -> None:
         "team": "team",
         "resource_bundle": "res",
     }
+
+    # We create a function to generate a random sequence
+    # We could've gone for UUID also, but it's more verbose and
+    # MySQL natively only has UUID1.
+    op.execute(
+        text(
+            """
+            CREATE FUNCTION rand_id() RETURNS VARCHAR(24)
+            DETERMINISTIC
+            BEGIN
+                DECLARE chars VARCHAR(62) DEFAULT '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+                DECLARE result VARCHAR(24) DEFAULT '';
+                DECLARE i INT DEFAULT 0;
+                WHILE i < 24 DO
+                    SET result = CONCAT(result, SUBSTRING(chars, FLOOR(1 + RAND() * 62), 1));
+                    SET i = i + 1;
+                END WHILE;
+                RETURN result;
+            END;
+            """
+        )
+    )
     # We store a map for the old->new identifiers so we can support backwards compatibility (maybe)
     # For regular identifiers, we store this per concept, as this is how they are likely accessed
     # (e.g., /dataset/1). For parent identifiers we store it all together for parent routers.
@@ -124,10 +146,10 @@ def upgrade() -> None:
         op.create_table(
             map_table,
             Column("old", Integer, index=True),
-            Column("new", Integer, index=True),
+            Column("new", String(30), index=True),
         )
         op.execute(
-            f"INSERT INTO {map_table} SELECT identifier, aiod_entry_identifier FROM {child} "
+            f"INSERT INTO {map_table} SELECT identifier, CONCAT('{abbreviations[child]}', '_', rand_id()) FROM {child} "
         )
 
     for parent in [ai_resource, ai_asset, agent]:
@@ -136,10 +158,13 @@ def upgrade() -> None:
         op.create_table(
             map_table,
             Column("old", Integer, index=True),
-            Column("new", Integer, index=True),
+            Column("new", String(30), index=True),
         )
         child_data = "UNION ".join(
-            f"SELECT {parent.fk_identifier}, aiod_entry_identifier FROM {child_table} "
+            f"SELECT child.{parent.fk_identifier} as parent_identifier, child_map_table.new as new_identifier "
+            f"FROM {child_table} as child "
+            f"JOIN _{child_table}_identifier_map as child_map_table "
+            f"ON child_map_table.old=child.identifier "
             for child_table in parent.children
         )
         op.execute(f"INSERT INTO {map_table} SELECT * FROM ({child_data}) as child")
@@ -178,8 +203,8 @@ def upgrade() -> None:
     for constraint, delete_rule, from_table, from_column, to_table, to_column in constraints:
         for table, column in [(to_table, to_column), (from_table, from_column)]:
             if (table, column) not in updated_columns:
-                logger.info(f"Altering {table}.{column} to VARCHAR(40).")
-                op.execute(f"ALTER TABLE {table} CHANGE COLUMN {column} {column} VARCHAR(40);")
+                logger.info(f"Altering {table}.{column} to VARCHAR(30).")
+                op.execute(f"ALTER TABLE {table} CHANGE COLUMN {column} {column} VARCHAR(30);")
                 updated_columns.add((table, column))
 
     for constraint, delete_rule, from_table, from_column, to_table, to_column in constraints:
