@@ -5,7 +5,9 @@ Revises: 1662d64ebe23
 Create Date: 2025-05-14 09:07:47.064937
 
 """
+
 import logging
+
 # no user input
 # ruff: noqa: S608
 from typing import Sequence, Union, NamedTuple
@@ -225,7 +227,10 @@ def upgrade() -> None:
     for table in aiod_concept.children:
         logger.info(f"Assigning new identifiers to {table}.")
         op.execute(
-            f"UPDATE {table} SET identifier=CONCAT('{abbreviations[table]}', '_', aiod_entry_identifier)"
+            f"UPDATE {table} "
+            f"JOIN _{table}_identifier_map as map "
+            "ON identifier=map.old "
+            "SET identifier=map.new "
         )
 
     for table in [agent, ai_asset, ai_resource]:
