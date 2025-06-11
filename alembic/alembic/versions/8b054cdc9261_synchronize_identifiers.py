@@ -94,9 +94,28 @@ def upgrade() -> None:
         fk_identifier="agent_id",
         children=["organisation", "person"],
     )
+    abbreviations = {
+        "contact": "con",
+        "organisation": "org",
+        "person": "prsn",
+        "dataset": "data",
+        "publication": "pub",
+        "case_study": "case",
+        "computational_asset": "comp",
+        "experiment": "exp",
+        "ml_model": "mdl",
+        "educational_resource": "edu",
+        "event": "evnt",
+        "news": "news",
+        "project": "proj",
+        "service": "srvc",
+        "team": "team",
+        "resource_bundle": "res",
+    }
     # We store a map for the old->new identifiers so we can support backwards compatibility (maybe)
     # For regular identifiers, we store this per concept, as this is how they are likely accessed
     # (e.g., /dataset/1). For parent identifiers we store it all together for parent routers.
+    # TODO: Actually generate new identifiers
     for child in aiod_concept.children:
         map_table = f"_{child}_identifier_map"
         op.create_table(
@@ -126,6 +145,7 @@ def upgrade() -> None:
     op.execute(
         "ALTER TABLE contact DROP CONSTRAINT contact_person_and_organisation_not_both_filled"
     )
+
     # Then we update foreign key constraints to ON UPDATE CASCADE to make data migration easier
     with DbSession() as session:
         tables_with_referenced_key = [
@@ -136,19 +156,28 @@ def upgrade() -> None:
         ]
         constraints = session.execute(
             text(
-                "SELECT refs.CONSTRAINT_NAME, refs.DELETE_RULE, refs.TABLE_NAME, kcu.COLUMN_NAME, refs.REFERENCED_TABLE_NAME "
+                "SELECT refs.CONSTRAINT_NAME, refs.DELETE_RULE, kcu.TABLE_NAME, kcu.COLUMN_NAME, kcu.REFERENCED_TABLE_NAME, kcu.REFERENCED_COLUMN_NAME"
                 "FROM information_schema.REFERENTIAL_CONSTRAINTS as refs "
                 "JOIN information_schema.KEY_COLUMN_USAGE as kcu "
                 "ON refs.CONSTRAINT_NAME=kcu.CONSTRAINT_NAME "
                 f"WHERE refs.REFERENCED_TABLE_NAME IN ({', '.join(map(repr, tables_with_referenced_key))});"
             )
         )
-    for constraint, delete_rule, from_table, from_column, to_table in constraints:
+    for constraint, delete_rule, from_table, from_column, to_table, to_column in constraints:
         op.execute(f"ALTER TABLE {from_table} DROP FOREIGN KEY {constraint}")
+
+    updated_columns = set()
+    for constraint, delete_rule, from_table, from_column, to_table, to_column in constraints:
+        for table, column in [(to_table, to_column), (from_table, from_column)]:
+            if (table, column) not in updated_columns:
+                op.execute(f"ALTER TABLE {table} CHANGE COLUMN {column} {column} VARCHAR(40);")
+                updated_columns.add((table, column))
+
+    for constraint, delete_rule, from_table, from_column, to_table, to_column in constraints:
         op.execute(
             f"ALTER TABLE {from_table} "
             f"ADD CONSTRAINT {constraint} "
-            f"FOREIGN KEY ({from_column}) REFERENCES {to_table}(identifier) "
+            f"FOREIGN KEY ({from_column}) REFERENCES {to_table}({to_column}) "
             f"ON DELETE {delete_rule} "
             f"ON UPDATE CASCADE;"
         )
@@ -158,24 +187,22 @@ def upgrade() -> None:
     # We cannot directly set identifiers to be aiod_entry_identifiers: those ranges overlap,
     # which leads to (temporary) duplicate keys. To avoid that, we add a temporary offset during
     # the update, and recover the original identifier afterwards.
-    OFFSET = 2_000_000_000
     for table in aiod_concept.children:
-        op.execute(f"UPDATE {table} SET identifier=aiod_entry_identifier+{OFFSET}")
-        op.execute(f"UPDATE {table} SET identifier=identifier-{OFFSET}")
+        op.execute(
+            f"UPDATE {table} SET identifier=CONCAT('{abbreviations[table]}', aiod_entry_identifier)"
+        )
 
     for table in [agent, ai_asset, ai_resource]:
         child_data = "UNION ".join(
-            f"SELECT {table.fk_identifier}, aiod_entry_identifier + {OFFSET} as aiod_entry_identifier "
-            f"FROM {child_table} "
+            f"SELECT {table.fk_identifier}, identifierFROM {child_table} "
             for child_table in table.children
         )
         op.execute(
             f"UPDATE {table.name} "
             f"JOIN ({child_data}) as child "
             f"ON {table.name}.identifier=child.{table.fk_identifier} "
-            f"SET {table.name}.identifier=child.aiod_entry_identifier;"
+            f"SET {table.name}.identifier=child.identifier;"
         )
-        op.execute(f"UPDATE {table.name} SET identifier=identifier-{OFFSET}")
 
 
 def downgrade() -> None:
