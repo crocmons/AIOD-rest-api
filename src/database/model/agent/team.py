@@ -27,14 +27,16 @@ class TeamBase(AIResourceBase):
 
 class Team(TeamBase, AIResource, table=True):  # type: ignore [call-arg]
     __tablename__ = "team"
+    __abbreviation__ = "team"
 
     organisation_identifier: str | None = Field(
-        max_length=IDENTIFIER_LENGTH,
-        foreign_key=Organisation.__tablename__ + ".identifier"
+        max_length=IDENTIFIER_LENGTH, foreign_key=Organisation.__tablename__ + ".identifier"
     )
     organisation: Optional[Organisation] = Relationship()
     member: list[Person] = Relationship(
-        link_model=many_to_many_link_factory("team", Person.__tablename__, "member", from_identifier_type=str, to_identifier_type=str),
+        link_model=many_to_many_link_factory(
+            "team", Person.__tablename__, "member", from_identifier_type=str, to_identifier_type=str
+        ),
     )
 
     class RelationshipConfig(AIResource.RelationshipConfig):

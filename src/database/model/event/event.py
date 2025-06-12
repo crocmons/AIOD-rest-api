@@ -51,6 +51,7 @@ class EventBase(AIResourceBase):
 
 class Event(EventBase, AIResource, table=True):  # type: ignore [call-arg]
     __tablename__ = "event"
+    __abbreviation__ = "evnt"
 
     content_identifier: int | None = Field(
         index=True,
@@ -64,14 +65,24 @@ class Event(EventBase, AIResource, table=True):  # type: ignore [call-arg]
     location: list[LocationORM] = Relationship(sa_relationship_kwargs={"cascade": "all, delete"})
     performer: list["AgentTable"] = Relationship(
         link_model=many_to_many_link_factory(
-            "event", AgentTable.__tablename__, table_prefix="performer", from_identifier_type=str, to_identifier_type=str
+            "event",
+            AgentTable.__tablename__,
+            table_prefix="performer",
+            from_identifier_type=str,
+            to_identifier_type=str,
         ),
     )
-    organiser_identifier: str | None = Field(max_length=IDENTIFIER_LENGTH, foreign_key=AgentTable.__tablename__ + ".identifier")
+    organiser_identifier: str | None = Field(
+        max_length=IDENTIFIER_LENGTH, foreign_key=AgentTable.__tablename__ + ".identifier"
+    )
     organiser: Optional[AgentTable] = Relationship()
-    status_identifier: str | None = Field(max_length=IDENTIFIER_LENGTH, foreign_key=EventStatus.__tablename__ + ".identifier")
+    status_identifier: str | None = Field(
+        max_length=IDENTIFIER_LENGTH, foreign_key=EventStatus.__tablename__ + ".identifier"
+    )
     status: Optional[EventStatus] = Relationship()
-    mode_identifier: str | None = Field(max_length=IDENTIFIER_LENGTH, foreign_key=EventMode.__tablename__ + ".identifier")
+    mode_identifier: str | None = Field(
+        max_length=IDENTIFIER_LENGTH, foreign_key=EventMode.__tablename__ + ".identifier"
+    )
     mode: Optional[EventMode] = Relationship()
 
     class RelationshipConfig(AIResource.RelationshipConfig):

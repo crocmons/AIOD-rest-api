@@ -37,14 +37,18 @@ class ContactBase(AIoDConceptBase):
 
 class Contact(ContactBase, AIoDConcept, table=True):  # type: ignore [call-arg]
     __tablename__ = "contact"
-    identifier: str = Field(max_length=IDENTIFIER_LENGTH, default=None, primary_key=True)
+    __abbreviation__ = "con"
 
     email: list[Email] = Relationship(
-        link_model=many_to_many_link_factory(table_from="contact", from_identifier_type=str, table_to=Email.__tablename__)
+        link_model=many_to_many_link_factory(
+            table_from="contact", from_identifier_type=str, table_to=Email.__tablename__
+        )
     )
     location: list[LocationORM] = Relationship(sa_relationship_kwargs={"cascade": "all, delete"})
     telephone: list[Telephone] = Relationship(
-        link_model=many_to_many_link_factory(table_from="contact", from_identifier_type=str, table_to=Telephone.__tablename__)
+        link_model=many_to_many_link_factory(
+            table_from="contact", from_identifier_type=str, table_to=Telephone.__tablename__
+        )
     )
     organisation_identifier: str | None = Field(
         sa_column=Column(String(IDENTIFIER_LENGTH), ForeignKey("organisation.identifier"))

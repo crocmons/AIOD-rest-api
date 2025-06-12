@@ -8,7 +8,6 @@ from database.model.ai_resource.resource import AIResourceBase, AIResource
 from database.model.relationships import OneToOne
 from database.model.serializers import AttributeSerializer
 from database.model.field_length import IDENTIFIER_LENGTH
-from database.identifiers import generate_id_with_prefix
 
 
 class AgentBase(AIResourceBase):

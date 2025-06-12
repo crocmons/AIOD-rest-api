@@ -39,6 +39,7 @@ class OrganisationBase(AgentBase):
 
 class Organisation(OrganisationBase, Agent, table=True):  # type: ignore [call-arg]
     __tablename__ = "organisation"
+    __abbreviation__ = "org"
 
     contact_details: Optional[Contact] = Relationship(sa_relationship_kwargs={"uselist": False})
 
@@ -46,7 +47,12 @@ class Organisation(OrganisationBase, Agent, table=True):  # type: ignore [call-a
     type: Optional[OrganisationType] = Relationship()
 
     member: list[AgentTable] = Relationship(
-        link_model=many_to_many_link_factory("organisation", AgentTable.__tablename__,  from_identifier_type=str, to_identifier_type=str,),
+        link_model=many_to_many_link_factory(
+            "organisation",
+            AgentTable.__tablename__,
+            from_identifier_type=str,
+            to_identifier_type=str,
+        ),
     )
 
     class RelationshipConfig(Agent.RelationshipConfig):

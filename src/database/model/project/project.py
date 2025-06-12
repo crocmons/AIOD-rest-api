@@ -36,30 +36,46 @@ class ProjectBase(AIResourceBase):
 
 class Project(ProjectBase, AIResource, table=True):  # type: ignore [call-arg]
     __tablename__ = "project"
+    __abbreviation__ = "proj"
 
     funder: list[Organisation] = Relationship(
         link_model=many_to_many_link_factory(
-            "project", Organisation.__tablename__, table_prefix="funder", from_identifier_type=str, to_identifier_type=str
+            "project",
+            Organisation.__tablename__,
+            table_prefix="funder",
+            from_identifier_type=str,
+            to_identifier_type=str,
         ),
     )
     participant: list[Organisation] = Relationship(
         link_model=many_to_many_link_factory(
-            "project", Organisation.__tablename__, table_prefix="participant", from_identifier_type=str, to_identifier_type=str
+            "project",
+            Organisation.__tablename__,
+            table_prefix="participant",
+            from_identifier_type=str,
+            to_identifier_type=str,
         ),
     )
     coordinator_identifier: str | None = Field(
-        max_length=IDENTIFIER_LENGTH,
-        foreign_key=Organisation.__tablename__ + ".identifier"
+        max_length=IDENTIFIER_LENGTH, foreign_key=Organisation.__tablename__ + ".identifier"
     )
     coordinator: Optional[Organisation] = Relationship()
     produced: list[AIAssetTable] = Relationship(
         link_model=many_to_many_link_factory(
-            "project", AIAssetTable.__tablename__, table_prefix="produced", from_identifier_type=str, to_identifier_type=str
+            "project",
+            AIAssetTable.__tablename__,
+            table_prefix="produced",
+            from_identifier_type=str,
+            to_identifier_type=str,
         ),
     )
     used: list[AIAssetTable] = Relationship(
         link_model=many_to_many_link_factory(
-            "project", AIAssetTable.__tablename__, table_prefix="used", from_identifier_type=str, to_identifier_type=str,
+            "project",
+            AIAssetTable.__tablename__,
+            table_prefix="used",
+            from_identifier_type=str,
+            to_identifier_type=str,
         ),
     )
 

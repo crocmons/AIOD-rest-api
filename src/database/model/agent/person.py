@@ -48,17 +48,24 @@ class PersonBase(AgentBase):
 
 class Person(PersonBase, Agent, table=True):  # type: ignore [call-arg]
     __tablename__ = "person"
+    __abbreviation__ = "prsn"
 
     expertise: list[Expertise] = Relationship(
-        link_model=many_to_many_link_factory("person", Expertise.__tablename__, from_identifier_type=str)
+        link_model=many_to_many_link_factory(
+            "person", Expertise.__tablename__, from_identifier_type=str
+        )
     )
     languages: list[Language] = Relationship(
-        link_model=many_to_many_link_factory("person", Language.__tablename__, from_identifier_type=str)
+        link_model=many_to_many_link_factory(
+            "person", Language.__tablename__, from_identifier_type=str
+        )
     )
     contact_details: Optional[Contact] = Relationship(sa_relationship_kwargs={"uselist": False})
 
     member_of: list[Organisation] = Relationship(
-        link_model=many_to_many_link_factory("person", Organisation.__tablename__, from_identifier_type=str, to_identifier_type=str)
+        link_model=many_to_many_link_factory(
+            "person", Organisation.__tablename__, from_identifier_type=str, to_identifier_type=str
+        )
     )
 
     class RelationshipConfig(Agent.RelationshipConfig):
