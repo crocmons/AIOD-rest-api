@@ -70,7 +70,7 @@ def test_resource_aiod(
     schema_string: str,
 ):
     for client in [client_test_resource_other_schema, client_test_resource]:
-        response = client.get("/test_resources/v0/1" + schema_string)
+        response = client.get(f"/test_resources/v0/{engine_test_resource_filled}" + schema_string)
         assert response.status_code == 200, response.json()
         json_ = response.json()
         assert json_["title"] == "A title"
@@ -98,7 +98,7 @@ def test_resources_other_schema(
 def test_resource_other_schema(
     client_test_resource_other_schema: TestClient, engine_test_resource_filled: Engine
 ):
-    response = client_test_resource_other_schema.get("/test_resources/v0/1?schema=other-schema")
+    response = client_test_resource_other_schema.get(f"/test_resources/v0/{engine_test_resource_filled}?schema=other-schema")
     assert response.status_code == 200, response.json()
     json_ = response.json()
     assert json_["title_with_alternative_name"] == "A title"

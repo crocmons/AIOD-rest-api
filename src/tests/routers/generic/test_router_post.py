@@ -17,9 +17,9 @@ def test_unicode(client_test_resource: TestClient, title: str, auto_publish: Non
             headers={"Authorization": "Fake token"},
         )
     assert response.status_code == 200, response.json()
-    assert response.json() == {"identifier": 1}
+    identifier = response.json()['identifier']
 
-    response = client_test_resource.get("/test_resources/v0/1")
+    response = client_test_resource.get(f"/test_resources/v0/{identifier}")
     assert response.status_code == 200, response.json()
     response_json = response.json()
     assert response_json["title"] == title
@@ -59,13 +59,14 @@ def test_posting_same_item_twice(client_test_resource: TestClient):
     with logged_in_user():
         response = client_test_resource.post("/test_resources/v0", json=body, headers=headers)
     assert response.status_code == 200, response.json()
+    identifier = response.json()['identifier']
     body = {"title": "title2", "platform": "example", "platform_resource_identifier": "1"}
     with logged_in_user():
         response = client_test_resource.post("/test_resources/v0", json=body, headers=headers)
     assert response.status_code == 409, response.json()
     assert (
         response.json()["detail"] == "There already exists a test_resource with the same "
-        "platform and platform_resource_identifier, with identifier=1."
+        f"platform and platform_resource_identifier, with identifier={identifier}."
     )
 
 
@@ -77,9 +78,10 @@ def test_posting_same_item_twice_but_deleted(
     with logged_in_user():
         response = client_test_resource.post("/test_resources/v0", json=body, headers=headers)
     assert response.status_code == 200, response.json()
+    identifier = response.json()['identifier']
 
     with logged_in_user():
-        response = client_test_resource.delete("/test_resources/v0/1", headers=headers)
+        response = client_test_resource.delete(f"/test_resources/v0/{identifier}", headers=headers)
     assert response.status_code == 200, response.json()
 
     body = {"title": "title2", "platform": "example", "platform_resource_identifier": "1"}

@@ -42,11 +42,11 @@ def engine() -> Iterator[Engine]:
 
 
 @pytest.fixture
-def engine_test_resource_filled(engine: Engine) -> Iterator[Engine]:
+def engine_test_resource_filled(engine: Engine) -> Iterator[str]:
     """
     Engine will be filled with an example value after before each test, in clear_db.
     """
-    yield engine
+    yield DEFAULT_TEST_RESOURCE_IDENTIFIER
 
 
 @pytest.fixture(autouse=True)
@@ -63,7 +63,7 @@ def clear_db(request, engine: Engine):
         if any("engine" in fixture and "filled" in fixture for fixture in request.fixturenames):
             test_resource = factory_test_resource(title="A title", platform="example",
                                   platform_resource_identifier="1")
-            test_resource.identifier = "test"
+            test_resource.identifier = DEFAULT_TEST_RESOURCE_IDENTIFIER
             session.add(test_resource)
         session.commit()
         bypass_reviewer_publish_everything()
