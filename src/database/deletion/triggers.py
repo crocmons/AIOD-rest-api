@@ -25,22 +25,22 @@ def create_identifier_synchronization_triggers():
     from database.model.ai_asset.ai_asset_table import AIAssetTable
     from database.model.ai_resource.resource import AIResource
     from database.model.ai_resource.resource_table import AIResourceORM
-    from database.model.concept.concept import AIoDConcept
+    # from database.model.concept.concept import AIoDConcept
 
     triggers = []
-    for cls in non_abstract_subclasses(AIoDConcept):
-        triggers.append(
-            DDL(
-                f"""
-                CREATE TRIGGER IF NOT EXISTS sync_{cls.__tablename__}_identifier
-                BEFORE INSERT ON {cls.__tablename__}
-                FOR EACH ROW
-                BEGIN
-                    SET NEW.identifier=rand_id();
-                END;
-                """  # noqa: S608  # never user input
-            )
-        )
+    # for cls in non_abstract_subclasses(AIoDConcept):
+    #     triggers.append(
+    #         DDL(
+    #             f"""
+    #             CREATE TRIGGER IF NOT EXISTS sync_{cls.__tablename__}_identifier
+    #             BEFORE INSERT ON {cls.__tablename__}
+    #             FOR EACH ROW
+    #             BEGIN
+    #                 SET NEW.identifier=rand_id();
+    #             END;
+    #             """  # noqa: S608  # never user input
+    #         )
+    #     )
     for parent_class, reference_table in [
         (AIResource, AIResourceORM),
         (AIAsset, AIAssetTable),
