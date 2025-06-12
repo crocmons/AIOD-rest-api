@@ -22,7 +22,7 @@ class AgentBase(AIResourceBase):
 class Agent(AgentBase, AIResource):
     agent_id: str | None = Field(
         # Initializing `sa_column` instead doesn't work. Perhaps because it'd be used twice?
-        default_factory=generate_id_with_prefix(),
+        # default_factory=generate_id_with_prefix(),
         max_length=IDENTIFIER_LENGTH,
         sa_column_args=[ForeignKey(AgentTable.__tablename__ + ".identifier", onupdate="CASCADE")],
         sa_column_kwargs=dict(nullable=True, index=True),
