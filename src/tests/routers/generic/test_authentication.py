@@ -17,7 +17,7 @@ def test_get_all_unauthenticated(
 
 def test_get_unauthenticated(client_test_resource: TestClient, auto_publish: None, engine_test_resource_filled: Engine):
     """You don't need authentication for GET"""
-    response = client_test_resource.get("/test_resources/v0/1")
+    response = client_test_resource.get(f"/test_resources/v0/{engine_test_resource_filled}")
     assert response.status_code == 200, response.json()
 
 

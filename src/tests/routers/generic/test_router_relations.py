@@ -80,6 +80,7 @@ class TestObjectBase(AIoDConceptBase):
 
 class TestObject(TestObjectBase, AIoDConcept, table=True):  # type: ignore [call-arg]
     __tablename__ = "test_object"
+    __abbreviation__ = "test"
 
     identifier: int = Field(default=None, primary_key=True)
     named_string_identifier: Optional[int] = Field(default=None, foreign_key="test_enum.identifier")

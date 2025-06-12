@@ -32,6 +32,10 @@ def test_happy_path(
     contact: Contact,
     auto_publish: None,
 ):
+    person_identifier = person.identifier
+    contact_identifier = contact.identifier
+    publication_identifier = publication.identifier
+
     with DbSession() as session:
         session.add(person)
         session.merge(publication)
@@ -39,10 +43,10 @@ def test_happy_path(
         session.commit()
 
     body = copy.deepcopy(body_asset)
-    body["aiod_entry"]["editor"] = [1]
-    body["contact"] = [1]
-    body["creator"] = [1]
-    body["citation"] = [1]
+    body["aiod_entry"]["editor"] = [person_identifier]
+    body["contact"] = [contact_identifier]
+    body["creator"] = [contact_identifier]
+    body["citation"] = [publication_identifier]
     description_plain = "a" * field_length.MAX_TEXT
     description_html = f"<p>{'a' * (field_length.MAX_TEXT - 7)}</p>"
     body["description"] = {"plain": description_plain, "html": description_html}
@@ -51,18 +55,19 @@ def test_happy_path(
     with logged_in_user():
         response = client.post("/datasets/v1", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
+    identifier = response.json()['identifier']
 
-    response = client.get("/datasets/v1/1")
+    response = client.get(f"/datasets/v1/{identifier}")
     assert response.status_code == 200, response.json()
 
     response_json = response.json()
-    assert response_json["identifier"] == 1
-    assert response_json["ai_resource_identifier"] == 3
-    assert response_json["ai_asset_identifier"] == 2
+    assert response_json["identifier"] == identifier
+    assert response_json["ai_resource_identifier"] == identifier
+    assert response_json["ai_asset_identifier"] == identifier
 
     assert response_json["platform"] == "example"
     assert response_json["platform_resource_identifier"] == "1"
-    assert response_json["aiod_entry"]["editor"] == [1]
+    assert response_json["aiod_entry"]["editor"] == [person_identifier]
     assert response_json["aiod_entry"]["status"] == EntryStatus.PUBLISHED
     date_created = dateutil.parser.parse(response_json["aiod_entry"]["date_created"] + "Z")
     date_modified = dateutil.parser.parse(response_json["aiod_entry"]["date_modified"] + "Z")
@@ -84,9 +89,9 @@ def test_happy_path(
     assert response_json["industrial_sector"] == ["ecommerce"]
     assert response_json["research_area"] == ["explainable ai"]
     assert response_json["scientific_domain"] == ["voice recognition"]
-    assert response_json["contact"] == [1]
-    assert response_json["creator"] == [1]
-    assert response_json["citation"] == [1]
+    assert response_json["contact"] == [contact_identifier]
+    assert response_json["creator"] == [person_identifier]
+    assert response_json["citation"] == [publication_identifier]
 
     (media,) = response_json["media"]
     assert media["name"] == "Resource logo"
@@ -125,14 +130,14 @@ def test_happy_path(
     time.sleep(0.15)
     datetime_update_request = datetime.utcnow().replace(tzinfo=pytz.utc)
     with logged_in_user():
-        response = client.put("/datasets/v1/1", json=body, headers={"Authorization": "Fake token"})
+        response = client.put(f"/datasets/v1/{identifier}", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
 
     response = client.get("/datasets/v1/1")
     response_json = response.json()
-    assert response_json["identifier"] == 1
-    assert response_json["ai_resource_identifier"] == 3
-    assert response_json["ai_asset_identifier"] == 2
+    assert response_json["identifier"] == identifier
+    assert response_json["ai_resource_identifier"] == identifier
+    assert response_json["ai_asset_identifier"] == identifier
 
     date_created = dateutil.parser.parse(response_json["aiod_entry"]["date_created"] + "Z")
     date_modified = dateutil.parser.parse(response_json["aiod_entry"]["date_modified"] + "Z")
