@@ -12,10 +12,10 @@ from tests.testutils.test_resource import factory_test_resource
 from tests.testutils.users import register_asset, ALICE, logged_in_user, BOB
 
 
-@pytest.mark.parametrize("identifier", [1, 2])
+@pytest.mark.parametrize("index", [0, 1])
 def test_happy_path(
     client_test_resource: TestClient,
-    identifier: int,
+    index: int,
 ):
     resources = [
         factory_test_resource(title="my_test_resource", status=EntryStatus.DRAFT,
@@ -23,8 +23,12 @@ def test_happy_path(
         factory_test_resource(title="second_test_resource", status=EntryStatus.DRAFT,
                               platform="example", platform_resource_identifier=2),
     ]
+
     for resource in resources:
         register_asset(resource, owner=ALICE, status=EntryStatus.PUBLISHED)
+
+    identifiers = [test.identifier for test in resources]
+    identifier = identifiers[index]
 
     with logged_in_user(ALICE):
         response = client_test_resource.delete(
@@ -35,7 +39,7 @@ def test_happy_path(
     assert response.status_code == 200, response.json()
     response_json = response.json()
     assert len(response_json) == 1
-    assert {r["identifier"] for r in response_json} == {1, 2} - {identifier}
+    assert {r["identifier"] for r in response_json} == set(identifiers) - {identifier}
 
 
 @pytest.mark.parametrize(

@@ -22,6 +22,7 @@ from main import build_app
 from tests.testutils.test_resource import RouterTestResource, factory_test_resource
 from tests.testutils.users import bypass_reviewer_publish_everything
 
+DEFAULT_TEST_RESOURCE_IDENTIFIER = "test_KwfnsoJOAejyRdv2PaXUPAbW"
 
 @pytest.fixture(scope="session")
 def engine() -> Iterator[Engine]:
@@ -60,10 +61,10 @@ def clear_db(request, engine: Engine):
     with Session(engine) as session:
         session.add_all([Platform(name=name) for name in PlatformName])
         if any("engine" in fixture and "filled" in fixture for fixture in request.fixturenames):
-            session.add(
-                factory_test_resource(title="A title", platform="example",
-                                      platform_resource_identifier="1")
-            )
+            test_resource = factory_test_resource(title="A title", platform="example",
+                                  platform_resource_identifier="1")
+            test_resource.identifier = "test"
+            session.add(test_resource)
         session.commit()
         bypass_reviewer_publish_everything()
 

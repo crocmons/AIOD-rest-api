@@ -9,12 +9,12 @@ from tests.testutils.test_resource import factory_test_resource
 
 
 def test_get_happy_path(client_test_resource: TestClient, engine_test_resource_filled: Engine):
-    response = client_test_resource.get("/test_resources/v0/1")
+    response = client_test_resource.get("/test_resources/v0/test")
     assert response.status_code == HTTPStatus.OK, response.json()
     response_json = response.json()
 
     assert response_json["title"] == "A title"
-    assert response_json["identifier"] == 1
+    assert response_json["identifier"].startswith("test")
     assert "deprecated" not in response.headers
 
 
