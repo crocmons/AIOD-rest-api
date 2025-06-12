@@ -10,11 +10,12 @@ from sqlalchemy.sql.functions import coalesce
 from sqlmodel import SQLModel, Field, Relationship
 
 from database.model.concept.aiod_entry import AIoDEntryORM, AIoDEntryRead, AIoDEntryCreate
-from database.model.field_length import SHORT, NORMAL
+from database.model.field_length import SHORT, NORMAL, IDENTIFIER_LENGTH
 from database.model.platform.platform_names import PlatformName
 from database.model.relationships import OneToOne
 from database.model.serializers import CastDeserializer
 from database.validators import huggingface_validators, openml_validators, zenodo_validators
+from database.identifiers import generate_id_with_prefix
 
 IS_SQLITE = os.getenv("DB") == "SQLite"
 CONSTRAINT_LOWERCASE = f"{'platform' if IS_SQLITE else 'BINARY(platform)'} = LOWER(platform)"
@@ -67,7 +68,11 @@ class AIoDConceptBase(SQLModel):
 
 
 class AIoDConcept(AIoDConceptBase):
-    identifier: int = Field(default=None, primary_key=True)
+    identifier: str = Field(
+        max_length=IDENTIFIER_LENGTH,
+        default_factory=generate_id_with_prefix(),
+        primary_key=True,
+    )
     date_deleted: datetime.datetime | None = Field()
     aiod_entry_identifier: int | None = Field(
         foreign_key=AIoDEntryORM.__tablename__ + ".identifier",

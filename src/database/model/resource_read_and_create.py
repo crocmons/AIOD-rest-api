@@ -14,6 +14,7 @@ from sqlmodel.main import FieldInfo
 from database.model.annotations import all_annotations
 from database.model.helper_functions import get_relationships
 from database.model.serializers import create_getter_dict
+from database.model.field_length import IDENTIFIER_LENGTH
 
 if TYPE_CHECKING:
     from database.model.concept.concept import AIoDConcept
@@ -90,7 +91,7 @@ def resource_read(resource_class: Type["AIoDConcept"] | Type["Platform"]) -> Typ
     """
     relationships = get_relationships(resource_class)
     field_definitions = _get_field_definitions_read(resource_class, relationships)
-    field_definitions.update({"identifier": (int, Field())})
+    field_definitions.update({"identifier": (str, Field(max_length=IDENTIFIER_LENGTH))})
     model = create_model(
         resource_class.__name__ + "Read", __base__=resource_class.__base__, **field_definitions
     )

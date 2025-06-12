@@ -7,6 +7,7 @@ from database.model.agent.agent_table import AgentTable
 from database.model.ai_resource.resource import AIResourceBase, AIResource
 from database.model.relationships import OneToOne
 from database.model.serializers import AttributeSerializer
+from database.model.field_length import IDENTIFIER_LENGTH
 
 
 class AgentBase(AIResourceBase):
@@ -18,8 +19,9 @@ class AgentBase(AIResourceBase):
 
 
 class Agent(AgentBase, AIResource):
-    agent_id: int | None = Field(
+    agent_id: str | None = Field(
         # Initializing `sa_column` instead doesn't work. Perhaps because it'd be used twice?
+        max_length=IDENTIFIER_LENGTH,
         sa_column_args=[ForeignKey(AgentTable.__tablename__ + ".identifier", onupdate="CASCADE")],
         sa_column_kwargs=dict(nullable=True, index=True),
     )
@@ -37,7 +39,7 @@ class Agent(AgentBase, AIResource):
         cls.__sqlmodel_relationships__.update(relationships)
 
     class RelationshipConfig(AIResource.RelationshipConfig):
-        agent_identifier: int | None = OneToOne(
+        agent_identifier: str | None = OneToOne(
             identifier_name="agent_id",
             _serializer=AttributeSerializer("identifier"),
             include_in_create=False,

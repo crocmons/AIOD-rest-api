@@ -70,6 +70,33 @@ The subsections in the sidebar document how to execute these steps depending on 
  - [Relationships](relationships.md) explains how to work with attributes which define relationships between objects. For example, an asset's creator which is represented with a link to an `Agent`.
  - [Objects](objects.md) explains how work with objects as a whole. For example, adding an entirely new entity to the schema.
 
+## Tips For Making Migrations
+The migration you write should work on a populated database from the `develop` branch.
+The easiest way to easily reconstruct a database in that state quickly while iterating over the migration script, is to first create a back up:
+```bash
+git checkout develop
+./scripts/down.sh
+./scripts/clean.sh
+./scripts/up.sh examples
+```
+Then wait for the examples to be populated (the fill-db-with-examples container should have stopped).
+Next, figure out which revision your migration builds on (the `down_revision` in the script).
+We can then make sure Alembic is aware the generated database schema mimics that revision:
+```bash
+# from the alembic docker container
+alembic stamp <down_revision>
+```
+Now we have a database state we want to restore easily, so we create a back up:
+```bash
+# back in our own console
+./scripts/mysql_dump.sh
+```
+you can now checkout your branch (`git checkout <branch>`) and test the migration.
+It's now easy to restore state with the backup:
+```bash
+docker exec -it sqlserver mysql -uroot -pok -e "drop database aiod; create database aiod;"; ./scripts/mysql_restore.sh
+```
+and run the migration script as normal.
 
 #### A Note on Identifiers
 This note describes a change made around May 2025, and explains why objects have so many different identifiers that are all the same.

@@ -50,15 +50,15 @@ class Person(PersonBase, Agent, table=True):  # type: ignore [call-arg]
     __tablename__ = "person"
 
     expertise: list[Expertise] = Relationship(
-        link_model=many_to_many_link_factory("person", Expertise.__tablename__)
+        link_model=many_to_many_link_factory("person", Expertise.__tablename__, from_identifier_type=str)
     )
     languages: list[Language] = Relationship(
-        link_model=many_to_many_link_factory("person", Language.__tablename__)
+        link_model=many_to_many_link_factory("person", Language.__tablename__, from_identifier_type=str)
     )
     contact_details: Optional[Contact] = Relationship(sa_relationship_kwargs={"uselist": False})
 
     member_of: list[Organisation] = Relationship(
-        link_model=many_to_many_link_factory("person", Organisation.__tablename__)
+        link_model=many_to_many_link_factory("person", Organisation.__tablename__, from_identifier_type=str, to_identifier_type=str)
     )
 
     class RelationshipConfig(Agent.RelationshipConfig):
@@ -83,7 +83,7 @@ class Person(PersonBase, Agent, table=True):  # type: ignore [call-arg]
             default_factory_pydantic=list,
         )
 
-        member_of: list[int] = ManyToMany(
+        member_of: list[str] = ManyToMany(
             description="The list of Organisations that a Person affiliates with.",
             _serializer=AttributeSerializer("identifier"),
             deserializer=FindByIdentifierDeserializerList(Organisation),

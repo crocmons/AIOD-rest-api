@@ -1,13 +1,13 @@
 from typing import Optional, TYPE_CHECKING
 
-from sqlalchemy import Column, Integer, ForeignKey
+from sqlalchemy import Column, Integer, ForeignKey, String
 from sqlmodel import Field, Relationship
 
 from database.model.agent.email import Email
 from database.model.agent.location import LocationORM, Location
 from database.model.agent.telephone import Telephone
 from database.model.concept.concept import AIoDConceptBase, AIoDConcept
-from database.model.field_length import NORMAL
+from database.model.field_length import NORMAL, IDENTIFIER_LENGTH
 from database.model.helper_functions import many_to_many_link_factory
 from database.model.relationships import ManyToMany, OneToMany, OneToOne
 from database.model.serializers import (
@@ -37,23 +37,23 @@ class ContactBase(AIoDConceptBase):
 
 class Contact(ContactBase, AIoDConcept, table=True):  # type: ignore [call-arg]
     __tablename__ = "contact"
-    identifier: int = Field(default=None, primary_key=True)
+    identifier: str = Field(max_length=IDENTIFIER_LENGTH, default=None, primary_key=True)
 
     email: list[Email] = Relationship(
-        link_model=many_to_many_link_factory(table_from="contact", table_to=Email.__tablename__)
+        link_model=many_to_many_link_factory(table_from="contact", from_identifier_type=str, table_to=Email.__tablename__)
     )
     location: list[LocationORM] = Relationship(sa_relationship_kwargs={"cascade": "all, delete"})
     telephone: list[Telephone] = Relationship(
-        link_model=many_to_many_link_factory(table_from="contact", table_to=Telephone.__tablename__)
+        link_model=many_to_many_link_factory(table_from="contact", from_identifier_type=str, table_to=Telephone.__tablename__)
     )
-    organisation_identifier: int | None = Field(
-        sa_column=Column(Integer, ForeignKey("organisation.identifier"))
+    organisation_identifier: str | None = Field(
+        sa_column=Column(String(IDENTIFIER_LENGTH), ForeignKey("organisation.identifier"))
     )
     organisation: Optional["Organisation"] = Relationship(
         back_populates="contact_details", sa_relationship_kwargs={"uselist": False}
     )
-    person_identifier: int | None = Field(
-        sa_column=Column(Integer, ForeignKey("person.identifier"))
+    person_identifier: str | None = Field(
+        sa_column=Column(String(IDENTIFIER_LENGTH), ForeignKey("person.identifier"))
     )
     person: Optional["Person"] = Relationship(
         back_populates="contact_details", sa_relationship_kwargs={"uselist": False}

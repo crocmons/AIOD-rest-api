@@ -36,7 +36,7 @@ def create_identifier_synchronization_triggers():
                 BEFORE INSERT ON {cls.__tablename__}
                 FOR EACH ROW
                 BEGIN
-                    SET NEW.identifier=NEW.aiod_entry_identifier;
+                    SET NEW.identifier=rand_id();
                 END;
                 """  # noqa: S608  # never user input
             )
@@ -46,19 +46,19 @@ def create_identifier_synchronization_triggers():
         (AIAsset, AIAssetTable),
         (Agent, AgentTable),
     ]:
-        reference_table_name = reference_table.__tablename__
+        parent_table_name = reference_table.__tablename__
         for cls in non_abstract_subclasses(parent_class):
-            reference_column = f"{reference_table_name}_id"
+            reference_column = f"{parent_table_name}_id"
             msg = f"Cannot create trigger to update {reference_column} on {parent_class} since the column is not defined."
             assert reference_column in parent_class.__fields__, msg  # noqa: S101  # We *want* the server to not start if there are issues here
             triggers.append(
                 DDL(
                     f"""
-                    CREATE TRIGGER IF NOT EXISTS sync_{cls.__tablename__}_{reference_table_name}_identifier
+                    CREATE TRIGGER IF NOT EXISTS sync_{cls.__tablename__}_{parent_table_name}_identifier
                     AFTER INSERT ON {cls.__tablename__}
                     FOR EACH ROW
                     BEGIN
-                        UPDATE {reference_table_name} SET {reference_table_name}.identifier = NEW.aiod_entry_identifier WHERE {reference_table_name}.identifier = NEW.{reference_column};
+                        UPDATE {parent_table_name} SET {parent_table_name}.identifier = NEW.identifier WHERE {parent_table_name}.identifier = NEW.{reference_column};
                     END;
                     """  # noqa: S608  # never user input
                 )
