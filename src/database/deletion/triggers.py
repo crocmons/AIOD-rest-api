@@ -13,7 +13,7 @@ from sqlmodel import SQLModel
 from database.model.helper_functions import get_relationships, non_abstract_subclasses
 
 
-def create_identifier_synchronization_triggers():
+def create_identifier_synchronization_triggers(dialect: str = "mysql"):
     # Sync triggers make sure all identifiers of an asset are identical.
     # See also: docs/developer/schema/index.md#a_note_on_identifiers
 
@@ -25,44 +25,40 @@ def create_identifier_synchronization_triggers():
     from database.model.ai_asset.ai_asset_table import AIAssetTable
     from database.model.ai_resource.resource import AIResource
     from database.model.ai_resource.resource_table import AIResourceORM
-    # from database.model.concept.concept import AIoDConcept
 
     triggers = []
-    # for cls in non_abstract_subclasses(AIoDConcept):
-    #     triggers.append(
-    #         DDL(
-    #             f"""
-    #             CREATE TRIGGER IF NOT EXISTS sync_{cls.__tablename__}_identifier
-    #             BEFORE INSERT ON {cls.__tablename__}
-    #             FOR EACH ROW
-    #             BEGIN
-    #                 SET NEW.identifier=rand_id();
-    #             END;
-    #             """  # noqa: S608  # never user input
-    #         )
-    #     )
     for parent_class, reference_table in [
         (AIResource, AIResourceORM),
         (AIAsset, AIAssetTable),
         (Agent, AgentTable),
     ]:
-        parent_table_name = reference_table.__tablename__
+        parent_table_name = reference_table.__tablename__  # type: ignore[attr-defined]
         for cls in non_abstract_subclasses(parent_class):
             reference_column = f"{parent_table_name}_id"
             msg = f"Cannot create trigger to update {reference_column} on {parent_class} since the column is not defined."
             assert reference_column in parent_class.__fields__, msg  # noqa: S101  # We *want* the server to not start if there are issues here
-            triggers.append(
-                DDL(
-                    f"""
-                    CREATE TRIGGER IF NOT EXISTS sync_{cls.__tablename__}_{parent_table_name}_identifier
-                    AFTER INSERT ON {cls.__tablename__}
-                    FOR EACH ROW
-                    BEGIN
-                        UPDATE {parent_table_name} SET {parent_table_name}.identifier = NEW.identifier WHERE {parent_table_name}.identifier = NEW.{reference_column};
-                    END;
-                    """  # noqa: S608  # never user input
-                )
+            sqlite_ddl = DDL(
+                f"""
+                CREATE TRIGGER IF NOT EXISTS sync_{cls.__tablename__}_{parent_table_name}_identifier
+                AFTER INSERT ON {cls.__tablename__}
+                BEGIN
+                    UPDATE {parent_table_name}
+                    SET identifier = NEW.identifier
+                    WHERE identifier = NEW.{reference_column};
+                END;
+                """  # noqa: S608  # never user input
             )
+            mysql_ddl = DDL(
+                f"""
+                CREATE TRIGGER IF NOT EXISTS sync_{cls.__tablename__}_{parent_table_name}_identifier
+                AFTER INSERT ON {cls.__tablename__}
+                FOR EACH ROW
+                BEGIN
+                    UPDATE {parent_table_name} SET {parent_table_name}.identifier = NEW.identifier WHERE {parent_table_name}.identifier = NEW.{reference_column};
+                END;
+                """  # noqa: S608  # never user input
+            )
+            triggers.append(mysql_ddl if dialect == "mysql" else sqlite_ddl)
     return triggers
 
 

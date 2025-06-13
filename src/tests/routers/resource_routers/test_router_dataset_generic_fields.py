@@ -38,8 +38,8 @@ def test_happy_path(
 
     with DbSession() as session:
         session.add(person)
-        session.merge(publication)
         session.add(contact)
+        session.merge(publication)
         session.commit()
 
     body = copy.deepcopy(body_asset)
@@ -90,7 +90,7 @@ def test_happy_path(
     assert response_json["research_area"] == ["explainable ai"]
     assert response_json["scientific_domain"] == ["voice recognition"]
     assert response_json["contact"] == [contact_identifier]
-    assert response_json["creator"] == [person_identifier]
+    assert response_json["creator"] == [contact_identifier]
     assert response_json["citation"] == [publication_identifier]
 
     (media,) = response_json["media"]
@@ -133,7 +133,7 @@ def test_happy_path(
         response = client.put(f"/datasets/v1/{identifier}", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
 
-    response = client.get("/datasets/v1/1")
+    response = client.get(f"/datasets/v1/{identifier}")
     response_json = response.json()
     assert response_json["identifier"] == identifier
     assert response_json["ai_resource_identifier"] == identifier

@@ -33,7 +33,7 @@ class UploadRouterZenodo(UploaderRouter):
             ] = False,
             token: str = Query(title="Zenodo Token", description="The access token of Zenodo"),
             user: KeycloakUser = Depends(get_user_or_raise),
-        ) -> int:
+        ) -> str:
             """
             Use this endpoint to upload a file (content) to Zenodo using
             the AIoD metadata identifier of the dataset.

@@ -12,7 +12,8 @@ from sqlmodel import create_engine, SQLModel, Session, select
 from starlette.testclient import TestClient
 
 from authentication import keycloak_openid
-from database.deletion.triggers import create_delete_triggers
+from database.deletion.triggers import create_delete_triggers, \
+    create_identifier_synchronization_triggers
 from database.model.concept.aiod_entry import EntryStatus, AIoDEntryORM
 from database.model.concept.concept import AIoDConcept
 from database.model.platform.platform import Platform
@@ -34,6 +35,8 @@ def engine() -> Iterator[Engine]:
     AIoDConcept.metadata.create_all(engine)
     with Session(engine) as session:
         for trigger in create_delete_triggers(AIoDConcept):
+            session.execute(trigger)
+        for trigger in create_identifier_synchronization_triggers(dialect='sqlite'):
             session.execute(trigger)
     EngineSingleton().patch(engine)
 

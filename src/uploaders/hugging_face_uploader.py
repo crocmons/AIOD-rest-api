@@ -19,7 +19,7 @@ class HuggingfaceUploader(Uploader):
 
     def handle_upload(
         self, identifier: int, file: UploadFile, token: str, *args: str, user: KeycloakUser
-    ) -> int:
+    ) -> str:
         self._check_authorization(user)
 
         username = args[0]

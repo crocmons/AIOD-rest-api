@@ -15,7 +15,7 @@ class Uploader(abc.ABC):
     @abc.abstractmethod
     def handle_upload(
         self, identifier: int, file: UploadFile, token: str, *args: Any, user: KeycloakUser
-    ) -> int:
+    ) -> str:
         """Handle upload of a file to the platform and return its AIoD identifier."""
 
     @staticmethod

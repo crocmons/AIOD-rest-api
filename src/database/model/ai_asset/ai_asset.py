@@ -3,6 +3,7 @@ import copy
 from typing import Optional, Any
 from typing import TYPE_CHECKING
 
+from sqlalchemy import ForeignKey
 from sqlmodel import Field, Relationship
 
 from database.model.ai_asset.ai_asset_table import AIAssetTable
@@ -40,7 +41,9 @@ class AIAssetBase(AIResourceBase, metaclass=abc.ABCMeta):
 class AIAsset(AIAssetBase, AIResource, metaclass=abc.ABCMeta):
     ai_asset_id: str | None = Field(
         max_length=IDENTIFIER_LENGTH,
-        foreign_key=AIAssetTable.__tablename__ + ".identifier", unique=True, index=True
+        # Initializing `sa_column` instead doesn't work. Perhaps because it'd be used twice?
+        sa_column_args=[ForeignKey("ai_asset.identifier", onupdate="CASCADE")],
+        sa_column_kwargs=dict(nullable=True, index=True, unique=True),
     )
     ai_asset_identifier: AIAssetTable | None = Relationship()
 
@@ -102,7 +105,9 @@ class AIAsset(AIAssetBase, AIResource, metaclass=abc.ABCMeta):
         relationships["citation"].link_model = many_to_many_link_factory(
             table_from=cls.__tablename__,
             table_to="publication",
-            table_prefix="citation", from_identifier_type=str, to_identifier_type=str,
+            table_prefix="citation",
+            from_identifier_type=str,
+            to_identifier_type=str,
         )
         if cls.__tablename__ == "publication":
 

@@ -31,7 +31,7 @@ class ZenodoUploader(Uploader):
 
     def handle_upload(
         self, identifier: int, file: UploadFile, token: str, *args: bool, user: KeycloakUser
-    ) -> int:
+    ) -> str:
         """
         Method to upload content to the Zenodo platform.
         """
