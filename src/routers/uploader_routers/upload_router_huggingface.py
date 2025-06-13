@@ -14,7 +14,7 @@ class UploadRouterHuggingface(UploaderRouter):
 
         @router.post(url_prefix + "/upload/datasets/{identifier}/huggingface", tags=["upload"])
         def huggingface_upload(
-            identifier: int,
+            identifier: str,
             file: UploadFile = File(
                 ..., title="File", description="This file will be uploaded to HuggingFace"
             ),

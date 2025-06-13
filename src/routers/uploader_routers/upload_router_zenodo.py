@@ -16,7 +16,7 @@ class UploadRouterZenodo(UploaderRouter):
 
         @router.post(url_prefix + "/upload/datasets/{identifier}/zenodo", tags=["upload"])
         def zenodo_upload(
-            identifier: int = Path(
+            identifier: str = Path(
                 description="The AIoD dataset identifier",
             ),
             file: UploadFile = File(
