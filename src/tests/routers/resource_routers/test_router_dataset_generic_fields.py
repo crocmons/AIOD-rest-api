@@ -365,13 +365,14 @@ def test_update_distribution(client: TestClient, mocked_privileged_token: Mock, 
 
 def assert_relations(
     client: TestClient,
+    identifier: str,
     type_: str,
     has_part: list[int] | None = None,
     is_part_of: list[int] | None = None,
     relevant_resource: list[int] | None = None,
     relevant_to: list[int] | None = None,
 ):
-    response = client.get(f"/{type_}/v1/1")
+    response = client.get(f"/{type_}/v1/{identifier}")
     resource = response.json()
     assert response.status_code == 200, resource
     assert resource["has_part"] == (has_part or [])
@@ -380,7 +381,6 @@ def assert_relations(
     assert resource["relevant_to"] == (relevant_to or [])
 
 
-@pytest.mark.skip("revisit")
 def test_relations_between_resources(
     client: TestClient,
     mocked_privileged_token: Mock,
@@ -396,16 +396,14 @@ def test_relations_between_resources(
         session.merge(organisation)
         session.commit()
         session.refresh(dataset)
-        session.refresh(publication)
-        session.refresh(organisation)
 
     body = {"name": "news", "has_part": [dataset.identifier], "is_part_of": [publication.identifier], "relevant_resource": [organisation.identifier]}
     response = client.post("/news/v1", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
     identifier = response.json()["identifier"]
-    assert_relations(client, "datasets", is_part_of=[identifier])
-    assert_relations(client, "publications", has_part=[identifier])
-    assert_relations(client, "organisations", relevant_to=[identifier])
+    assert_relations(client, dataset.identifier, "datasets", is_part_of=[identifier])
+    assert_relations(client, publication.identifier, "publications", has_part=[identifier])
+    assert_relations(client, organisation.identifier,"organisations", relevant_to=[identifier])
 
     body = {
         "name": "news",
@@ -415,9 +413,9 @@ def test_relations_between_resources(
     }
     response = client.put(f"/news/v1/{identifier}", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
-    assert_relations(client, "datasets", has_part=[identifier])
-    assert_relations(client, "publications", is_part_of=[identifier])
-    assert_relations(client, "organisations", has_part=[identifier])
+    assert_relations(client, dataset.identifier, "datasets", has_part=[identifier])
+    assert_relations(client, publication.identifier, "publications", is_part_of=[identifier])
+    assert_relations(client, organisation.identifier, "organisations", has_part=[identifier])
 
     body = {
         "name": "news",
@@ -428,9 +426,9 @@ def test_relations_between_resources(
     }
     response = client.put(f"/news/v1/{identifier}", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
-    assert_relations(client, "datasets", relevant_to=[identifier])
-    assert_relations(client, "publications", relevant_to=[identifier])
-    assert_relations(client, "organisations", relevant_resource=[identifier])
+    assert_relations(client, dataset.identifier, "datasets", relevant_to=[identifier])
+    assert_relations(client, publication.identifier, "publications", relevant_to=[identifier])
+    assert_relations(client, organisation.identifier, "organisations", relevant_resource=[identifier])
 
     body = {"name": "news", "has_part": [], "is_part_of": [], "relevant_resource": []}
     response = client.put(f"/news/v1/{identifier}", json=body, headers={"Authorization": "Fake token"})
@@ -439,6 +437,6 @@ def test_relations_between_resources(
         session.exec(delete(News))  # hard delete
         session.commit()
     assert response.status_code == 200, response.json()
-    assert_relations(client, "datasets")
-    assert_relations(client, "publications")
-    assert_relations(client, "organisations")
+    assert_relations(client,dataset.identifier, "datasets")
+    assert_relations(client,publication.identifier, "publications")
+    assert_relations(client, organisation.identifier, "organisations")

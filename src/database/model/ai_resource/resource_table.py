@@ -2,6 +2,7 @@
 The AIResource table, which is linked to every child of the AbstractAIResource (e.g. Dataset).
 """
 
+from sqlalchemy import ForeignKey
 from sqlmodel import SQLModel, Field, Relationship
 
 from database.model.field_length import IDENTIFIER_LENGTH
@@ -11,20 +12,32 @@ from database.identifiers import create_id_generator
 class AIResourcePartLink(SQLModel, table=True):  # type: ignore [call-arg]
     __tablename__ = "ai_resource_part_link"
     parent_identifier: str = Field(
-        max_length=IDENTIFIER_LENGTH, foreign_key="ai_resource.identifier", primary_key=True
+        max_length=IDENTIFIER_LENGTH,
+        sa_column_args=[ForeignKey("ai_resource.identifier", onupdate="CASCADE")],
+        sa_column_kwargs=dict(nullable=True, index=True),
+        primary_key=True,
     )
     child_identifier: str = Field(
-        max_length=IDENTIFIER_LENGTH, foreign_key="ai_resource.identifier", primary_key=True
+        max_length=IDENTIFIER_LENGTH,
+        sa_column_args=[ForeignKey("ai_resource.identifier", onupdate="CASCADE")],
+        sa_column_kwargs=dict(nullable=True, index=True),
+        primary_key=True,
     )
 
 
 class AIResourceRelevantLink(SQLModel, table=True):  # type: ignore [call-arg]
     __tablename__ = "ai_resource_relevant_link"
     parent_identifier: str = Field(
-        max_length=IDENTIFIER_LENGTH, foreign_key="ai_resource.identifier", primary_key=True
+        max_length=IDENTIFIER_LENGTH,
+        sa_column_args=[ForeignKey("ai_resource.identifier", onupdate="CASCADE")],
+        sa_column_kwargs=dict(nullable=True, index=True),
+        primary_key=True,
     )
     relevant_identifier: str = Field(
-        max_length=IDENTIFIER_LENGTH, foreign_key="ai_resource.identifier", primary_key=True
+        max_length=IDENTIFIER_LENGTH,
+        sa_column_args=[ForeignKey("ai_resource.identifier", onupdate="CASCADE")],
+        sa_column_kwargs=dict(nullable=True, index=True),
+        primary_key=True,
     )
 
 
