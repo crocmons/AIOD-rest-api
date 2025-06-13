@@ -40,7 +40,7 @@ class Team(TeamBase, AIResource, table=True):  # type: ignore [call-arg]
     )
 
     class RelationshipConfig(AIResource.RelationshipConfig):
-        organisation: int | None = ManyToOne(
+        organisation: str | None = ManyToOne(
             description="The organisation of which this team is a part.",
             identifier_name="organisation_identifier",
             _serializer=AttributeSerializer("identifier"),

@@ -18,14 +18,15 @@ def test_happy_path(
     with DbSession() as session:
         session.add(person)
         session.commit()
+        session.refresh(person)
 
     body = copy.copy(body_resource)
     body["start_date"] = "2021-02-03T15:15:00"
     body["end_date"] = "2022-02-03T15:15:00"
     body["schedule"] = "Some text"
     body["registration_link"] = "https://example.com/registration-form"
-    body["performer"] = [1]
-    body["organiser"] = 1
+    body["performer"] = [person.identifier]
+    body["organiser"] = person.identifier
     body["status"] = "scheduled"
     body["mode"] = "offline"
     locations = [
@@ -41,8 +42,9 @@ def test_happy_path(
 
     response = client.post("/events/v1", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
+    identifier = response.json()['identifier']
 
-    response = client.get("/events/v1/1")
+    response = client.get(f"/events/v1/{identifier}")
     assert response.status_code == 200, response.json()
 
     response_json = response.json()
@@ -50,8 +52,8 @@ def test_happy_path(
     assert response_json["end_date"] == "2022-02-03T15:15:00"
     assert response_json["schedule"] == "Some text"
     assert response_json["registration_link"] == "https://example.com/registration-form"
-    assert response_json["performer"] == [1]
-    assert response_json["organiser"] == 1
+    assert response_json["performer"] == [person.identifier]
+    assert response_json["organiser"] == person.identifier
     assert response_json["status"] == "scheduled"
     assert response_json["mode"] == "offline"
     assert response_json["location"] == locations
@@ -60,5 +62,5 @@ def test_happy_path(
     # Cleanup, so that all resources can be deleted in the teardown
     body["performer"] = []
     body["organiser"] = None
-    response = client.put("/events/v1/1", json=body, headers={"Authorization": "Fake token"})
+    response = client.put(f"/events/v1/{identifier}", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()

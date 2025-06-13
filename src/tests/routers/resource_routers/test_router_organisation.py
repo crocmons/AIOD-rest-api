@@ -16,37 +16,38 @@ def test_happy_path(
     body_agent: dict,
     auto_publish: None,
 ):
-    with DbSession() as session:
-        session.add(organisation)  # The new organisation will be a member of this organisation
-        session.add(contact)
-        session.commit()
-
     body = copy.copy(body_agent)
     body["platform_resource_identifier"] = "2"
     body["date_founded"] = "2023-01-01"
     body["legal_name"] = "A name for the organisation"
     body["ai_relevance"] = "Part of CLAIRE"
     body["type"] = "Research Institute"
-    body["member"] = [1]
-    body["contact_details"] = 1
+    with DbSession() as session:
+        session.add(organisation)  # The new organisation will be a member of this organisation
+        session.add(contact)
+        session.commit()
+
+        body["member"] = [organisation.identifier]
+        body["contact_details"] = contact.identifier
 
     response = client.post("/organisations/v1", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
+    identifier = response.json()['identifier']
 
-    response = client.get("/organisations/v1/2")
+    response = client.get(f"/organisations/v1/{identifier}")
     assert response.status_code == 200, response.json()
 
     response_json = response.json()
-    assert response_json["identifier"] == 2
-    assert response_json["ai_resource_identifier"] == 2
-    assert response_json["agent_identifier"] == 2
+    assert response_json["identifier"] == identifier
+    assert response_json["ai_resource_identifier"] == identifier
+    assert response_json["agent_identifier"] == identifier
 
     assert response_json["date_founded"] == "2023-01-01"
     assert response_json["legal_name"] == "A name for the organisation"
     assert response_json["ai_relevance"] == "Part of CLAIRE"
     assert response_json["type"] == "research institute"
-    assert response_json["member"] == [1]
-    assert response_json["contact_details"] == 1
+    assert response_json["member"] == body["member"]
+    assert response_json["contact_details"] == body["contact_details"]
 
     # response = client.delete("/organisations/v1/1", headers={"Authorization": "Fake token"})
     # assert response.status_code == 200
@@ -56,10 +57,10 @@ def test_happy_path(
     # TODO(jos): make sure Agent is deleted on CASCADE
 
     body["type"] = "Association"
-    response = client.put("organisations/v1/2", json=body, headers={"Authorization": "Fake token"})
+    response = client.put(f"organisations/v1/{identifier}", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
-    response = client.get("organisations/v1/2")
+    response = client.get(f"organisations/v1/{identifier}")
     assert response.json()["type"] == "association"
 
-    response = client.delete("/organisations/v1/2", headers={"Authorization": "Fake token"})
+    response = client.delete(f"/organisations/v1/{identifier}", headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()

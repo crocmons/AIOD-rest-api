@@ -102,7 +102,7 @@ class Event(EventBase, AIResource, table=True):  # type: ignore [call-arg]
             default_factory_pydantic=list,
             example=[],
         )
-        organiser: Optional[int] = ManyToOne(
+        organiser: Optional[str] = ManyToOne(
             identifier_name="organiser_identifier",
             description="The person or organisation responsible for organising the event.",
             _serializer=AttributeSerializer("identifier"),

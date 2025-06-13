@@ -17,11 +17,12 @@ def test_happy_path(
     with DbSession() as session:
         session.add(experiment)
         session.commit()
+        session.refresh(experiment)
 
     body = copy.copy(body_asset)
     body["pid"] = "https://doi.org/10.1000/182"
     body["type"] = "Large Language Model"
-    body["related_experiment"] = [1]
+    body["related_experiment"] = [experiment.identifier]
     distribution = {
         "checksum": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "checksum_algorithm": "sha256",
@@ -47,12 +48,13 @@ def test_happy_path(
 
     response = client.post("/ml_models/v1", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
+    identifier = response.json()['identifier']
 
-    response = client.get("/ml_models/v1/1")
+    response = client.get(f"/ml_models/v1/{identifier}")
     assert response.status_code == 200, response.json()
 
     response_json = response.json()
     assert response_json["pid"] == "https://doi.org/10.1000/182"
     assert response_json["type"] == "large language model"
-    assert response_json["related_experiment"] == [1]
+    assert response_json["related_experiment"] == [experiment.identifier]
     assert response_json["distribution"] == [distribution]

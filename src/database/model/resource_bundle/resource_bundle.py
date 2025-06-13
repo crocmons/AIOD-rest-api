@@ -51,7 +51,7 @@ class ResourceBundle(ResourceBundleBase, AIResource, table=True):  # type: ignor
             default_factory_pydantic=list,
         )
 
-        includes_resource: List[int] = ManyToMany(
+        includes_resource: List[str] = ManyToMany(
             description="AIResources included in this bundle.",
             _serializer=AttributeSerializer("identifier"),
             deserializer=FindByIdentifierDeserializerList(AIResourceORM),

@@ -16,9 +16,10 @@ from tests.testutils.users import logged_in_user
 
 def test_happy_path(client: TestClient, body_asset: dict, auto_publish: None):
     with logged_in_user():
-        client.post(
+        response = client.post(
             "/persons/v1", json={"name": "test person"}, headers={"Authorization": "Fake token"}
         )
+    person_identifier = response.json()['identifier']
 
     body = copy.deepcopy(body_asset)
     body["name"] = "Contact name"
@@ -30,14 +31,15 @@ def test_happy_path(client: TestClient, body_asset: dict, auto_publish: None):
             "geo": {"latitude": 37.42242, "longitude": -122.08585, "elevation_millimeters": 2000},
         }
     ]
-    body["person"] = 1
+    body["person"] = person_identifier
 
     with logged_in_user():
         response = client.post("/contacts/v1", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
+    identifier = response.json()['identifier']
 
     with logged_in_user():  # Authenticated users should not get masked e-mail addresses
-        response = client.get("/contacts/v1/1", headers={"Authorization": "Fake token"})
+        response = client.get(f"/contacts/v1/{identifier}", headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
 
     response_json = response.json()
@@ -50,7 +52,7 @@ def test_happy_path(client: TestClient, body_asset: dict, auto_publish: None):
             "geo": {"latitude": 37.42242, "longitude": -122.08585, "elevation_millimeters": 2000},
         }
     ]
-    assert response_json["person"] == 1
+    assert response_json["person"] == person_identifier
 
 
 def test_post_duplicate_email(
@@ -66,16 +68,18 @@ def test_post_duplicate_email(
     with logged_in_user():
         response = client.post("/contacts/v1", json=body1, headers={"Authorization": "Fake token"})
         assert response.status_code == 200, response.json()
+        first_contact_identifier = response.json()['identifier']
 
         response = client.post("/contacts/v1", json=body2, headers={"Authorization": "Fake token"})
         assert response.status_code == 200, response.json()
+        second_contact_identifier = response.json()['identifier']
 
-        contact = client.get("/contacts/v1/2", headers={"Authorization": "Fake token"}).json()
+        contact = client.get(f"/contacts/v1/{second_contact_identifier}", headers={"Authorization": "Fake token"}).json()
         assert set(contact["email"]) == {"b@example.com", "c@example.com"}
 
         body3 = {"email": ["d@example.com", "b@example.com"]}
-        client.put("/contacts/v1/1", json=body3, headers={"Authorization": "Fake token"})
-        contact = client.get("/contacts/v1/2", headers={"Authorization": "Fake token"}).json()
+        client.put(f"/contacts/v1/{first_contact_identifier}", json=body3, headers={"Authorization": "Fake token"})
+        contact = client.get(f"/contacts/v1/{second_contact_identifier}", headers={"Authorization": "Fake token"}).json()
         msg = "changing emails of contact 1 should not change emails of contact 2."
         assert set(contact["email"]) == {"b@example.com", "c@example.com"}, msg
 
@@ -100,32 +104,32 @@ def contact2(body_concept) -> Contact:
     return _create_class_with_body(Contact, body)
 
 
-@pytest.fixture(
-    params=[
+@pytest.mark.parametrize(
+    "endpoint",
+    [
         "/contacts/v1",
         "/contacts/v1/1",
         "/platforms/example/contacts/v1",
         "/platforms/example/contacts/v1/fake:100",
     ]
 )
-def endpoint_from_fixture1(request) -> str:
-    return request.param
-
-
 def test_email_mask_for_not_authenticated_user(
     client: TestClient,
     mocked_privileged_token: Mock,
     contact: Contact,
     contact2: Contact,
-    endpoint_from_fixture1: str,
+    endpoint: str,
     auto_publish: None,
 ):
     with DbSession() as session:
         session.add(contact)
         session.add(contact2)
         session.commit()
+        session.refresh(contact)
 
-    guest_response = client.get(endpoint_from_fixture1)
+    # clunky way to account for random identifier because only 1 endpoint matches this pattern
+    endpoint = endpoint.replace("/1", f"/{contact.identifier}")
+    guest_response = client.get(endpoint)
     assert guest_response.status_code == 200, guest_response.json()
     guest_response_json = guest_response.json()
     if not isinstance(guest_response_json, list):
@@ -149,6 +153,7 @@ def test_email_mask_for_authenticated_user(
         session.add(contact)
         session.add(contact2)
         session.commit()
+        session.refresh(contact2)
 
     response = client.get("/contacts/v1", headers=headers)
     response_json = response.json()
@@ -157,7 +162,7 @@ def test_email_mask_for_authenticated_user(
     assert response_json[0]["email"] == ["a@b.com"]
     assert set(response_json[1]["email"]) == {"fake2@email.com", "fake@email.com"}
 
-    response = client.get("/contacts/v1/2", headers=headers)
+    response = client.get(f"/contacts/v1/{contact2.identifier}", headers=headers)
     assert response.status_code == 200, response.json()
     response_json = response.json()
     assert set(response_json["email"]) == {"fake2@email.com", "fake@email.com"}
@@ -175,24 +180,21 @@ def test_email_mask_for_authenticated_user(
     assert set(response_json["email"]) == {"fake2@email.com", "fake@email.com"}
 
 
-@pytest.fixture(
-    params=[
+@pytest.mark.parametrize(
+    "endpoint",
+    [
         "/contacts/v1",
         "/contacts/v1/1",
         "/platforms/ai4europe_cms/contacts/v1",
         "/platforms/ai4europe_cms/contacts/v1/fake:100",
     ]
 )
-def endpoint_from_fixture2(request) -> str:
-    return request.param
-
-
 def test_email_privacy_for_ai4europe_cms(
     client: TestClient,
     mocked_privileged_token: Mock,
     contact: Contact,
     platform: Platform,
-    endpoint_from_fixture2: str,
+    endpoint: str,
     auto_publish: None,
 ):
 
@@ -204,10 +206,12 @@ def test_email_privacy_for_ai4europe_cms(
         contact.email = [email, another_email]
         session.add(contact)
         session.commit()
+        session.refresh(contact)
 
     headers = {"Authorization": "Fake token"}
 
-    response = client.get(endpoint_from_fixture2, headers=headers)
+    endpoint = endpoint.replace("/1", f"/{contact.identifier}")
+    response = client.get(endpoint, headers=headers)
     response_json = response.json()
     if isinstance(response_json, list):
         response_json = response_json[0]
@@ -218,7 +222,7 @@ def test_email_privacy_for_ai4europe_cms(
 
     keycloak_openid.introspect = AI4EUROPE_CMS_TOKEN
 
-    response = client.get(endpoint_from_fixture2, headers=headers)
+    response = client.get(endpoint, headers=headers)
     response_json = response.json()
     if isinstance(response_json, list):
         response_json = response_json[0]

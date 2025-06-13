@@ -82,10 +82,10 @@ class Contact(ContactBase, AIoDConcept, table=True):  # type: ignore [call-arg]
             on_delete_trigger_orphan_deletion=lambda: ["contact_telephone_link"],
             default_factory_pydantic=list,
         )
-        organisation: Optional[int] = OneToOne(
+        organisation: Optional[str] = OneToOne(
             _serializer=AttributeSerializer("identifier"),
         )
-        person: Optional[int] = OneToOne(
+        person: Optional[str] = OneToOne(
             _serializer=AttributeSerializer("identifier"),
         )
 

@@ -22,53 +22,51 @@ def test_happy_path(
     organisation: Organisation,
     auto_publish: None,
 ):
+    body = copy.copy(body_agent)
+    body["expertise"] = ["machine learning"]
+    body["languages"] = ["eng", "nld"]
+    body["price_per_hour_euro"] = 10.50
+    body["wants_to_be_contacted"] = True
     with DbSession() as session:
         person.platform_resource_identifier = "2"
         session.add(person)
         session.add(contact)
         session.merge(organisation)
         session.commit()
+        body["contact_details"] = contact.identifier
+        body["member_of"] = [organisation.identifier]
 
-    body = copy.copy(body_agent)
-    body["expertise"] = ["machine learning"]
-    body["languages"] = ["eng", "nld"]
-    body["price_per_hour_euro"] = 10.50
-    body["wants_to_be_contacted"] = True
-    body["contact_details"] = 1
-    body["member_of"] = [1]
 
     response = client.post("/persons/v1", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
+    identifier = response.json()['identifier']
 
-    response = client.get("/persons/v1/2")
+    response = client.get(f"/persons/v1/{identifier}")
     assert response.status_code == 200, response.json()
 
     response_json = response.json()
-    assert response_json["identifier"] == 2
-    assert response_json["ai_resource_identifier"] == 3
-    assert response_json["agent_identifier"] == 3
+    assert response_json["identifier"] == identifier
+    assert response_json["ai_resource_identifier"] == identifier
+    assert response_json["agent_identifier"] == identifier
 
     assert set(response_json["expertise"]) == {"machine learning"}
     assert set(response_json["languages"]) == {"eng", "nld"}
 
     assert response_json["price_per_hour_euro"] == 10.50
     assert response_json["wants_to_be_contacted"]
-    assert response_json["contact_details"] == 1
-    assert response_json["member_of"] == [1]
+    assert response_json["contact_details"] == body["contact_details"]
+    assert response_json["member_of"] == body["member_of"]
 
 
-@pytest.fixture(
-    params=[
+@pytest.mark.parametrize(
+    "endpoint",
+    [
         "/persons/v1",
         "/persons/v1/1",
         "/platforms/ai4europe_cms/persons/v1",
         "/platforms/ai4europe_cms/persons/v1/2",
     ]
 )
-def endpoint(request) -> str:
-    return request.param
-
-
 def test_privacy_for_ai4europe_cms(
     client: TestClient,
     mocked_privileged_token: Mock,
@@ -93,9 +91,12 @@ def test_privacy_for_ai4europe_cms(
         session.add(person)
         session.add(contact)
         session.commit()
+        session.refresh(person)
+        session.refresh(contact)
 
     headers = {"Authorization": "Fake token"}
 
+    endpoint = endpoint.replace("/1", f"/{person.identifier}")
     response = client.get(endpoint, headers=headers)
     response_json = response.json()
     response_json = [response_json] if isinstance(response_json, dict) else response_json
