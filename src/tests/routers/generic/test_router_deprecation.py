@@ -8,6 +8,7 @@ from starlette.testclient import TestClient
 from authentication import KeycloakUser
 from tests.testutils.test_resource import RouterTestResource
 from tests.testutils.users import kc_user_with_roles, logged_in_user
+from tests.testutils.default_sqlalchemy import DEFAULT_TEST_RESOURCE_IDENTIFIER
 
 
 class DeprecatedRouter(RouterTestResource):
@@ -26,10 +27,10 @@ class DeprecatedRouter(RouterTestResource):
     ("verb", "url", "user"),
     [
         ("get", "/test_resources/v1/", kc_user_with_roles()),
-        ("get", "/test_resources/v1/1", kc_user_with_roles()),
+        ("get", f"/test_resources/v1/{DEFAULT_TEST_RESOURCE_IDENTIFIER}", kc_user_with_roles()),
         ("post", "/test_resources/v1/",  kc_user_with_roles()),
-        ("put", "/test_resources/v1/1", kc_user_with_roles("update_test_resources")),
-        ("delete", "/test_resources/v1/1",  kc_user_with_roles("delete_test_resources")),
+        ("put", f"/test_resources/v1/{DEFAULT_TEST_RESOURCE_IDENTIFIER}", kc_user_with_roles("update_test_resources")),
+        ("delete", f"/test_resources/v1/{DEFAULT_TEST_RESOURCE_IDENTIFIER}",  kc_user_with_roles("delete_test_resources")),
     ]
 )
 def test_deprecated_router(
