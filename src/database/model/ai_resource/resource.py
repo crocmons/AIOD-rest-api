@@ -260,12 +260,16 @@ class AIResource(AIResourceBase, AIoDConcept, metaclass=abc.ABCMeta):
         link_model_contact = many_to_many_link_factory(
             table_from=cls.__tablename__,
             table_to=Contact.__tablename__,
-            table_prefix="contact", from_identifier_type=str, to_identifier_type=str,
+            table_prefix="contact",
+            from_identifier_type=str,
+            to_identifier_type=str,
         )
         link_model_creator = many_to_many_link_factory(
             table_from=cls.__tablename__,
             table_to=Contact.__tablename__,
-            table_prefix="creator", from_identifier_type=str, to_identifier_type=str,
+            table_prefix="creator",
+            from_identifier_type=str,
+            to_identifier_type=str,
         )
         relationships["contact"].link_model = link_model_contact
         relationships["creator"].link_model = link_model_creator

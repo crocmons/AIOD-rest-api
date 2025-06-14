@@ -113,10 +113,14 @@ class LocationORM(LocationBase, table=True):  # type: ignore [call-arg]
         back_populates="location", sa_relationship_kwargs={"uselist": False}
     )
     contact_identifier: str | None = Field(
-        sa_column=Column(String(IDENTIFIER_LENGTH), ForeignKey("contact.identifier", ondelete="CASCADE"))
+        sa_column=Column(
+            String(IDENTIFIER_LENGTH), ForeignKey("contact.identifier", ondelete="CASCADE")
+        )
     )
     event_identifier: str | None = Field(
-        sa_column=Column(String(IDENTIFIER_LENGTH), ForeignKey("event.identifier", ondelete="CASCADE"))
+        sa_column=Column(
+            String(IDENTIFIER_LENGTH), ForeignKey("event.identifier", ondelete="CASCADE")
+        )
     )
 
     class RelationshipConfig:

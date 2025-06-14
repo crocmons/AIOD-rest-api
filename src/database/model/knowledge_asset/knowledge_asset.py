@@ -33,7 +33,11 @@ class KnowledgeAsset(KnowledgeAssetBase, AIAsset):
         cls.update_relationships_asset(relationships)
 
         relationships["documents"].link_model = many_to_many_link_factory(
-            table_from=cls.__tablename__, table_to="ai_asset", table_prefix="documents", from_identifier_type=str, to_identifier_type=str
+            table_from=cls.__tablename__,
+            table_to="ai_asset",
+            table_prefix="documents",
+            from_identifier_type=str,
+            to_identifier_type=str,
         )
         cls.__sqlmodel_relationships__.update(relationships)
 
