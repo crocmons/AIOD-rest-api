@@ -3,10 +3,7 @@ services:
     stdin_open: true
     volumes:
       - ./src:/app:ro
-    command: >
-      python main.py
-      --build-db if-absent
-      --reload
+    command: python main.py
 
   fill-db-with-examples:
     volumes:
@@ -26,6 +23,8 @@ services:
     environment:
       - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN}
       - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
+    volumes:
+      - ./authentication/import:/opt/keycloak/data/import
     command: >
       start
       --hostname-url http://${HOSTNAME}/aiod-auth

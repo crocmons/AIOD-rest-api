@@ -76,14 +76,6 @@ class ResourceRouter(abc.ABC):
         """
 
     @property
-    def deprecated_from(self) -> datetime.date | None:
-        """
-        The deprecation date. This should be the date of the release in which the resource has
-        been deprecated.
-        """
-        return None
-
-    @property
     @abc.abstractmethod
     def resource_name(self) -> str:
         pass
@@ -113,10 +105,8 @@ class ResourceRouter(abc.ABC):
 
     def create(self, url_prefix: str) -> APIRouter:
         router = APIRouter()
-        version = f"v{self.version}"
         default_kwargs = {
             "response_model_exclude_none": True,
-            "deprecated": self.deprecated_from is not None,
             "tags": [self.resource_name_plural],
         }
         available_schemas: list[Type] = [c.to_class for c in self.schema_converters.values()]
@@ -124,84 +114,137 @@ class ResourceRouter(abc.ABC):
         response_model_plural = Union[  # type:ignore
             list[self.resource_class_read], *[list[s] for s in available_schemas]  # type:ignore
         ]
+        version = f"v{self.version}"
 
-        router.add_api_route(
-            path=f"{url_prefix}/{self.resource_name_plural}/{version}",
-            endpoint=self.get_resources_func(),
-            response_model=response_model_plural,  # type: ignore
-            name=f"List {self.resource_name_plural}",
-            description=f"Retrieve all meta-data of the {self.resource_name_plural}.",
-            **default_kwargs,
-        )
-        router.add_api_route(
-            path=f"{url_prefix}/counts/{self.resource_name_plural}/v1",
-            endpoint=self.get_resource_count_func(),
-            response_model=int | dict[str, int],
-            name=f"Count of {self.resource_name_plural}",
-            description=f"Retrieve the number of {self.resource_name_plural}.",
-            **default_kwargs,
-        )
-        router.add_api_route(
-            path=f"{url_prefix}/{self.resource_name_plural}/submit/{version}/{{identifier}}",
-            methods={"POST"},
-            endpoint=self.get_submit_func(),
-            name=self.resource_name,
-            description=f"Submit a {self.resource_name} for review.",
-            **default_kwargs,
-        )
-        router.add_api_route(
-            path=f"{url_prefix}/{self.resource_name_plural}/{version}",
-            methods={"POST"},
-            endpoint=self.register_resource_func(),
-            name=self.resource_name,
-            description=f"Register a {self.resource_name} with AIoD.",
-            **default_kwargs,
-        )
-        router.add_api_route(
-            path=url_prefix + f"/{self.resource_name_plural}/{version}/{{identifier}}",
-            endpoint=self.get_resource_func(),
-            response_model=response_model,  # type: ignore
-            name=self.resource_name,
-            description=f"Retrieve all meta-data for a {self.resource_name} identified by the AIoD "
-            "identifier.",
-            **default_kwargs,
-        )
-        router.add_api_route(
-            path=f"{url_prefix}/{self.resource_name_plural}/{version}/{{identifier}}",
-            methods={"PUT"},
-            endpoint=self.put_resource_func(),
-            name=self.resource_name,
-            description=f"Update an existing {self.resource_name}.",
-            **default_kwargs,
-        )
-        router.add_api_route(
-            path=f"{url_prefix}/{self.resource_name_plural}/{version}/{{identifier}}",
-            methods={"DELETE"},
-            endpoint=self.delete_resource_func(),
-            name=self.resource_name,
-            description=f"Delete a {self.resource_name}.",
-            **default_kwargs,
-        )
-        if hasattr(self.resource_class, "platform"):
+        for path in [
+            f"{url_prefix}/{self.resource_name_plural}/{version}",
+            f"{url_prefix}/v2/{self.resource_name_plural}",
+            f"{url_prefix}/{self.resource_name_plural}",
+        ]:
             router.add_api_route(
-                path=f"{url_prefix}/platforms/{{platform}}/{self.resource_name_plural}/{version}",
-                endpoint=self.get_platform_resources_func(),
+                path=path,
+                endpoint=self.get_resources_func(),
                 response_model=response_model_plural,  # type: ignore
                 name=f"List {self.resource_name_plural}",
-                description=f"Retrieve all meta-data of the {self.resource_name_plural} of given "
-                f"platform.",
+                description=f"Retrieve all meta-data of the {self.resource_name_plural}.",
                 **default_kwargs,
             )
+
+        for path in [
+            f"{url_prefix}/counts/{self.resource_name_plural}/v1",
+            f"{url_prefix}/v2/counts/{self.resource_name_plural}",
+            f"{url_prefix}/counts/{self.resource_name_plural}",
+        ]:
             router.add_api_route(
-                path=f"{url_prefix}/platforms/{{platform}}/{self.resource_name_plural}/{version}"
-                f"/{{identifier}}",
-                endpoint=self.get_platform_resource_func(),
+                path=path,
+                endpoint=self.get_resource_count_func(),
+                response_model=int | dict[str, int],
+                name=f"Count of {self.resource_name_plural}",
+                description=f"Retrieve the number of {self.resource_name_plural}.",
+                **default_kwargs,
+            )
+
+        for path in [
+            f"{url_prefix}/{self.resource_name_plural}/submit/{version}/{{identifier}}",
+            f"{url_prefix}/v2/{self.resource_name_plural}/submit/{{identifier}}",
+            f"{url_prefix}/{self.resource_name_plural}/submit/{{identifier}}",
+        ]:
+            router.add_api_route(
+                path=path,
+                methods={"POST"},
+                endpoint=self.get_submit_func(),
+                name=self.resource_name,
+                description=f"Submit a {self.resource_name} for review.",
+                **default_kwargs,
+            )
+
+        for path in [
+            f"{url_prefix}/{self.resource_name_plural}/{version}",
+            f"{url_prefix}/v2/{self.resource_name_plural}",
+            f"{url_prefix}/{self.resource_name_plural}",
+        ]:
+            router.add_api_route(
+                path=path,
+                methods={"POST"},
+                endpoint=self.register_resource_func(),
+                name=self.resource_name,
+                description=f"Register a {self.resource_name} with AIoD.",
+                **default_kwargs,
+            )
+
+        for path in [
+            url_prefix + f"/{self.resource_name_plural}/{version}/{{identifier}}",
+            url_prefix + f"/v2/{self.resource_name_plural}/{{identifier}}",
+            url_prefix + f"/{self.resource_name_plural}/{{identifier}}",
+        ]:
+            router.add_api_route(
+                path=path,
+                endpoint=self.get_resource_func(),
                 response_model=response_model,  # type: ignore
                 name=self.resource_name,
-                description=f"Retrieve all meta-data for a {self.resource_name} identified by the "
-                "platform-specific-identifier.",
+                description=f"Retrieve all meta-data for a {self.resource_name} identified by the AIoD "
+                "identifier.",
                 **default_kwargs,
             )
+
+        for path in [
+            f"{url_prefix}/{self.resource_name_plural}/{version}/{{identifier}}",
+            f"{url_prefix}/v2/{self.resource_name_plural}/{{identifier}}",
+            f"{url_prefix}/{self.resource_name_plural}/{{identifier}}",
+        ]:
+            router.add_api_route(
+                path=path,
+                methods={"PUT"},
+                endpoint=self.put_resource_func(),
+                name=self.resource_name,
+                description=f"Update an existing {self.resource_name}.",
+                **default_kwargs,
+            )
+
+        for path in [
+            f"{url_prefix}/{self.resource_name_plural}/{version}/{{identifier}}",
+            f"{url_prefix}/v2/{self.resource_name_plural}/{{identifier}}",
+            f"{url_prefix}/{self.resource_name_plural}/{{identifier}}",
+        ]:
+            router.add_api_route(
+                path=path,
+                methods={"DELETE"},
+                endpoint=self.delete_resource_func(),
+                name=self.resource_name,
+                description=f"Delete a {self.resource_name}.",
+                **default_kwargs,
+            )
+
+        if hasattr(self.resource_class, "platform"):
+            for path in [
+                f"{url_prefix}/platforms/{{platform}}/{self.resource_name_plural}/{version}",
+                f"{url_prefix}/v2/platforms/{{platform}}/{self.resource_name_plural}",
+                f"{url_prefix}/platforms/{{platform}}/{self.resource_name_plural}",
+            ]:
+                router.add_api_route(
+                    path=path,
+                    endpoint=self.get_platform_resources_func(),
+                    response_model=response_model_plural,  # type: ignore
+                    name=f"List {self.resource_name_plural}",
+                    description=f"Retrieve all meta-data of the {self.resource_name_plural} of given "
+                    f"platform.",
+                    **default_kwargs,
+                )
+
+            for path in [
+                f"{url_prefix}/platforms/{{platform}}/{self.resource_name_plural}/{version}/{{identifier}}",
+                f"{url_prefix}/v2/platforms/{{platform}}/{self.resource_name_plural}/{{identifier}}",
+                f"{url_prefix}/platforms/{{platform}}/{self.resource_name_plural}/{{identifier}}",
+            ]:
+                router.add_api_route(
+                    path=path,
+                    endpoint=self.get_platform_resource_func(),
+                    response_model=response_model,  # type: ignore
+                    name=self.resource_name,
+                    description=f"Retrieve all meta-data for a {self.resource_name} identified by the "
+                    "platform-specific-identifier.",
+                    **default_kwargs,
+                )
         return router
 
     def get_resources(
@@ -224,7 +267,7 @@ class ResourceRouter(abc.ABC):
                 resources: Any = self._retrieve_resources_and_post_process(
                     session, pagination, resource_filters, user, platform
                 )
-                return self._wrap_with_headers([convert_schema(resource) for resource in resources])
+                return [convert_schema(resource) for resource in resources]
             except Exception as e:
                 raise as_http_exception(e)
 
@@ -258,7 +301,7 @@ class ResourceRouter(abc.ABC):
                         )
                 if schema != "aiod":
                     return self.schema_converters[schema].convert(session, resource)
-                return self._wrap_with_headers(self.resource_class_read.from_orm(resource))
+                return self.resource_class_read.from_orm(resource)
         except Exception as e:
             raise as_http_exception(e)
 
@@ -379,7 +422,7 @@ class ResourceRouter(abc.ABC):
             resource = self.get_resource(
                 identifier=identifier, schema=schema, user=user, platform=None
             )
-            return self._wrap_with_headers(resource)
+            return resource
 
         return get_resource
 
@@ -434,7 +477,7 @@ class ResourceRouter(abc.ABC):
                             user, resource.aiod_entry, session, type_=PermissionType.ADMIN
                         )
                         session.commit()
-                        return self._wrap_with_headers({"identifier": resource.identifier})
+                        return {"identifier": resource.identifier}
                     except Exception as e:
                         self._raise_clean_http_exception(e, session, resource_create)
             except Exception as e:
@@ -496,7 +539,7 @@ class ResourceRouter(abc.ABC):
                         session.commit()
                     except Exception as e:
                         self._raise_clean_http_exception(e, session, resource_create_instance)
-                    return self._wrap_with_headers(None)
+                    return None
                 except Exception as e:
                     raise self._raise_clean_http_exception(e, session, resource_create_instance)
 
@@ -534,7 +577,7 @@ class ResourceRouter(abc.ABC):
                         resource.date_deleted = datetime.datetime.utcnow()
                         session.add(resource)
                     session.commit()
-                    return self._wrap_with_headers(None)
+                    return None
                 except Exception as e:
                     raise as_http_exception(e)
 
@@ -572,7 +615,7 @@ class ResourceRouter(abc.ABC):
                 )
                 session.add(review_request)
                 session.commit()
-                return self._wrap_with_headers({"submission_identifier": review_request.identifier})
+                return {"submission_identifier": review_request.identifier}
 
         return submit_resource
 
@@ -713,15 +756,6 @@ class ResourceRouter(abc.ABC):
                 include_in_schema=len(self._possible_schemas) > 1,
             ),
         ]
-
-    def _wrap_with_headers(self, resource):
-        if self.deprecated_from is None:
-            return resource
-        timestamp = datetime.datetime.combine(
-            self.deprecated_from, datetime.time.min, tzinfo=datetime.timezone.utc
-        ).timestamp()
-        headers = {"Deprecated": format_date_time(timestamp)}
-        return JSONResponse(content=jsonable_encoder(resource, exclude_none=True), headers=headers)
 
     def _raise_clean_http_exception(
         self, e: Exception, session: Session, resource_create: AIoDConcept

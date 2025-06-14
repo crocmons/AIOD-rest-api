@@ -30,11 +30,11 @@ def test_happy_path(
         body["member"] = [organisation.identifier]
         body["contact_details"] = contact.identifier
 
-    response = client.post("/organisations/v1", json=body, headers={"Authorization": "Fake token"})
+    response = client.post("/organisations", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
     identifier = response.json()['identifier']
 
-    response = client.get(f"/organisations/v1/{identifier}")
+    response = client.get(f"/organisations/{identifier}")
     assert response.status_code == 200, response.json()
 
     response_json = response.json()
@@ -49,18 +49,18 @@ def test_happy_path(
     assert response_json["member"] == body["member"]
     assert response_json["contact_details"] == body["contact_details"]
 
-    # response = client.delete("/organisations/v1/1", headers={"Authorization": "Fake token"})
+    # response = client.delete("/organisations/1", headers={"Authorization": "Fake token"})
     # assert response.status_code == 200
-    # response = client.get("/organisations/v1/2")
+    # response = client.get("/organisations/2")
     # assert response.status_code == 200, response.json()
     # response_json = response.json()
     # TODO(jos): make sure Agent is deleted on CASCADE
 
     body["type"] = "Association"
-    response = client.put(f"organisations/v1/{identifier}", json=body, headers={"Authorization": "Fake token"})
+    response = client.put(f"organisations/{identifier}", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
-    response = client.get(f"organisations/v1/{identifier}")
+    response = client.get(f"organisations/{identifier}")
     assert response.json()["type"] == "association"
 
-    response = client.delete(f"/organisations/v1/{identifier}", headers={"Authorization": "Fake token"})
+    response = client.delete(f"/organisations/{identifier}", headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()

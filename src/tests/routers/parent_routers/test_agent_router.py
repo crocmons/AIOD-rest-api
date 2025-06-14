@@ -23,7 +23,7 @@ def test_happy_path(
         session.merge(person)
         session.commit()
 
-        response = client.get(f"/agents/v1/{organisation.identifier}")
+        response = client.get(f"/agents/{organisation.identifier}")
         assert response.status_code == 200, response.json()
         response_json = response.json()
         assert response_json["identifier"] == organisation.identifier
@@ -31,7 +31,7 @@ def test_happy_path(
         assert response_json["name"] == "Organisation"
         assert response_json["legal_name"] == "EU"
 
-        response = client.get(f"/agents/v1/{person.identifier}")
+        response = client.get(f"/agents/{person.identifier}")
         assert response.status_code == 200, response.json()
         response_json = response.json()
         assert response_json["identifier"] == person.identifier
@@ -54,8 +54,8 @@ def test_ignore_deleted(
         session.merge(person)
         session.commit()
 
-        response = client.get(f"/agents/v1/{organisation.identifier}")
+        response = client.get(f"/agents/{organisation.identifier}")
         assert response.status_code == 404, response.json()
 
-        response = client.get(f"/agents/v1/{person.identifier}")
+        response = client.get(f"/agents/{person.identifier}")
         assert response.status_code == 200, response.json()

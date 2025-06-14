@@ -7,7 +7,7 @@ from sqlmodel import select, Session
 from starlette import status
 
 from authentication import KeycloakUser, get_user_or_raise
-from database.authorization import register_user, user_can_administer
+from database.authorization import register_user, user_can_administer, user_can_write
 from database.session import DbSession, get_session
 from database.review import (
     Submission,
@@ -22,34 +22,67 @@ from database.model.concept.aiod_entry import EntryStatus, AIoDEntryORM
 
 def create(url_prefix: str) -> APIRouter:
     router = APIRouter()
-    version = "v1"
 
-    router.post(
-        f"{url_prefix}/submissions/retract/{version}/{{submission_identifier}}",
-        tags=["Reviewing"],
-        description="Retract an asset under review, setting its status to 'draft'.",
-    )(retract_submission)
+    for path in [
+        f"{url_prefix}/submissions/retract/v1/{{submission_identifier}}",
+        f"{url_prefix}/v2/submissions/retract/{{submission_identifier}}",
+        f"{url_prefix}/submissions/retract/{{submission_identifier}}",
+    ]:
+        router.post(
+            path,
+            tags=["Reviewing"],
+            description="Retract an asset under review, setting its status to 'draft'.",
+        )(retract_submission)
 
+    for path in [
+        f"{url_prefix}/submissions/v1/{{identifier}}",
+        f"{url_prefix}/v2/submissions/{{identifier}}",
+    ]:
+        router.get(
+            path,
+            tags=["Reviewing"],
+            description="Retrieve a specific submission.",
+            response_model=SubmissionView,
+        )(get_submission)
+
+    for path in [
+        f"{url_prefix}/submissions/v1",
+        f"{url_prefix}/v2/submissions",
+    ]:
+        router.get(
+            path,
+            tags=["Reviewing"],
+            description="List all assets submitted for review.",
+            response_model=Sequence[SubmissionBase],
+        )(list_submissions)
+
+    # Note that the versionless endpoints currently conflict with the
+    # v1 suffix endpoints. This may be simplified after v1 is removed.
     router.get(
-        f"{url_prefix}/submissions/{version}/",
-        tags=["Reviewing"],
-        description="List all assets submitted for review.",
-        response_model=Sequence[SubmissionBase],
-    )(list_submissions)
-
-    router.get(
-        f"{url_prefix}/submissions/{version}/{{identifier}}",
+        f"{url_prefix}/submissions/{{identifier}}",
         tags=["Reviewing"],
         description="Retrieve a specific submission.",
         response_model=SubmissionView,
     )(get_submission)
 
-    router.post(
-        f"{url_prefix}/reviews/{version}",
+    router.get(
+        f"{url_prefix}/submissions",
         tags=["Reviewing"],
-        description="Review an asset.",
-        response_model=Review,
-    )(_review_resource)
+        description="List all assets submitted for review.",
+        response_model=Sequence[SubmissionBase],
+    )(list_submissions)
+
+    for path in [
+        f"{url_prefix}/reviews/v1",
+        f"{url_prefix}/v2/reviews",
+        f"{url_prefix}/reviews",
+    ]:
+        router.post(
+            path,
+            tags=["Reviewing"],
+            description="Review an asset.",
+            response_model=Review,
+        )(_review_resource)
 
     # Add MiddleWare which requires authentication as reviewer role
     return router
@@ -153,7 +186,7 @@ def _review_resource(
     register_user(user, session)
 
     aiod_entry = cast(AIoDEntryORM, session.get(AIoDEntryORM, submission.aiod_entry_identifier))
-    if user_can_administer(user, aiod_entry):
+    if user_can_write(user, aiod_entry):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to review your own assets.",

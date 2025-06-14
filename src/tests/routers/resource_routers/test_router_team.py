@@ -28,11 +28,11 @@ def test_happy_path(
     body["organisation"] = organisation.identifier
     body["member"] = [person.identifier]
 
-    response = client.post("/teams/v1", json=body, headers={"Authorization": "Fake token"})
+    response = client.post("/teams", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
     identifier = response.json()['identifier']
 
-    response = client.get(f"/teams/v1/{identifier}")
+    response = client.get(f"/teams/{identifier}")
     assert response.status_code == 200, response.json()
 
     response_json = response.json()

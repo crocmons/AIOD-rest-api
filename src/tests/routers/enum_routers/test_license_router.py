@@ -15,7 +15,7 @@ def test_happy_path(client: TestClient, dataset: Dataset, publication: Publicati
         session.merge(publication)
         session.commit()
 
-    response = client.get("/licenses/v1")
+    response = client.get("/licenses")
     assert response.status_code == 200, response.json()
     response_json = response.json()
     assert set(response_json).issuperset({"license 1", "license 2"})

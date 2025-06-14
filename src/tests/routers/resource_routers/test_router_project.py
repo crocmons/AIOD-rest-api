@@ -38,11 +38,11 @@ def test_happy_path(
     body["produced"] = [dataset.identifier]
     body["used"] = [publication.identifier]
 
-    response = client.post("/projects/v1", json=body, headers={"Authorization": "Fake token"})
+    response = client.post("/projects", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
     identifier = response.json()['identifier']
 
-    response = client.get(f"/projects/v1/{identifier}")
+    response = client.get(f"/projects/{identifier}")
     assert response.status_code == 200, response.json()
 
     response_json = response.json()
@@ -61,5 +61,5 @@ def test_happy_path(
     body["coordinator"] = None
     body["produced"] = []
     body["used"] = []
-    response = client.put(f"/projects/v1/{identifier}", json=body, headers={"Authorization": "Fake token"})
+    response = client.put(f"/projects/{identifier}", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()

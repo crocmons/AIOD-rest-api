@@ -14,7 +14,7 @@ class Uploader(abc.ABC):
 
     @abc.abstractmethod
     def handle_upload(
-        self, identifier: int, file: UploadFile, token: str, *args: Any, user: KeycloakUser
+        self, identifier: str, file: UploadFile, token: str, *args: Any, user: KeycloakUser
     ) -> str:
         """Handle upload of a file to the platform and return its AIoD identifier."""
 
@@ -36,7 +36,7 @@ class Uploader(abc.ABC):
                 detail=f"You do not have permission to upload files to {self.platform_name}.",
             )
 
-    def _validate_platform_name(self, name: str, identifier: int) -> None:
+    def _validate_platform_name(self, name: str, identifier: str) -> None:
         """
         Validates that the provided platform name matches the expected platform name.
         """
@@ -57,7 +57,7 @@ class Uploader(abc.ABC):
             msg = f"The platform_resource_identifier is invalid for {self.platform_name}. "
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg + e.args[0])
 
-    def _get_resource(self, session: Session, identifier: int) -> Dataset:
+    def _get_resource(self, session: Session, identifier: str) -> Dataset:
         """
         Returns a dataset identified by its AIoD identifier.
         """

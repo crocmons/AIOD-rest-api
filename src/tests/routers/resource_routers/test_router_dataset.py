@@ -33,11 +33,11 @@ def test_happy_path(
     }
 
     with logged_in_user():
-        response = client.post("/datasets/v1", json=body, headers={"Authorization": "Fake token"})
+        response = client.post("/datasets", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
     identifier = response.json()['identifier']
 
-    response = client.get(f"/datasets/v1/{identifier}")
+    response = client.get(f"/datasets/{identifier}")
     assert response.status_code == 200, response.json()
 
     response_json = response.json()
@@ -60,7 +60,7 @@ def test_post_invalid_huggingface_identifier(
 ):
     body = {"name": "name", "platform": "huggingface", "platform_resource_identifier": ""}
 
-    response = client.post("/datasets/v1", json=body, headers={"Authorization": "Fake token"})
+    response = client.post("/datasets", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY, response.json()
     assert (
         response.json()["detail"][0]["msg"]
@@ -76,7 +76,7 @@ def test_post_invalid_openml_identifier(
 ):
     body = {"name": "name", "platform": "openml", "platform_resource_identifier": "a"}
 
-    response = client.post("/datasets/v1", json=body, headers={"Authorization": "Fake token"})
+    response = client.post("/datasets", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY, response.json()
     assert (
         response.json()["detail"][0]["msg"]

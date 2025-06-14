@@ -17,7 +17,7 @@ from tests.testutils.paths import path_test_resources
 def test_search_happy_path(client: TestClient, search_router):
     mock_elasticsearch(filename_mock=f"{search_router.es_index}_search.json")
 
-    search_service = f"/search/{search_router.resource_name_plural}/v1"
+    search_service = f"/search/{search_router.resource_name_plural}"
     params = {"search_query": "description", "get_all": False}
     response = client.get(search_service, params=params)
 
@@ -42,12 +42,12 @@ def test_search_happy_path_get_all(client: TestClient, mocked_privileged_token: 
 
     body = {"name": "A name.", "keyword": ["keyword1", "keyword2"]}  # keywords not indexed by ES
 
-    response = client.post("/events/v1", json=body, headers={"Authorization": "Fake token"})
+    response = client.post("/events", json=body, headers={"Authorization": "Fake token"})
     response.raise_for_status()
     identifier = response.json()['identifier']
     mock_elasticsearch(filename_mock="event_search.json", identifier=identifier)
 
-    search_service = "/search/events/v1"
+    search_service = "/search/events"
     params = {"search_query": "description", "get_all": True}
     response = client.get(search_service, params=params)
 
@@ -66,7 +66,7 @@ def test_search_happy_path_get_all(client: TestClient, mocked_privileged_token: 
 def test_search_get_all_not_found_in_db(client: TestClient):
     mock_elasticsearch(filename_mock="event_search.json")
 
-    search_service = "/search/events/v1"
+    search_service = "/search/events"
     params = {"search_query": "description", "get_all": True}
     response = client.get(search_service, params=params)
 
@@ -82,7 +82,7 @@ def test_search_bad_platform(client: TestClient, search_router):
     """Tests the search router bad platform error"""
     mock_elasticsearch(filename_mock=f"{search_router.es_index}_search.json")
 
-    search_service = f"/search/{search_router.resource_name_plural}/v1"
+    search_service = f"/search/{search_router.resource_name_plural}"
     params = {"search_query": "description", "platforms": ["bad_platform"]}
     response = client.get(search_service, params=params)
 
@@ -96,7 +96,7 @@ def test_search_bad_fields(client: TestClient, search_router):
     """Tests the search router bad fields error"""
     mock_elasticsearch(filename_mock=f"{search_router.es_index}_search.json")
 
-    search_service = f"/search/{search_router.resource_name_plural}/v1"
+    search_service = f"/search/{search_router.resource_name_plural}"
     params = {"search_query": "description", "search_fields": ["bad_field"]}
     response = client.get(search_service, params=params)
 
@@ -110,7 +110,7 @@ def test_search_bad_limit(client: TestClient, search_router):
     """Tests the search router bad fields error"""
     mock_elasticsearch(filename_mock=f"{search_router.es_index}_search.json")
 
-    search_service = f"/search/{search_router.resource_name_plural}/v1"
+    search_service = f"/search/{search_router.resource_name_plural}"
     params = {"search_query": "description", "limit": 1001}
     response = client.get(search_service, params=params)
 
@@ -130,7 +130,7 @@ def test_search_bad_offset(client: TestClient, search_router):
     """Tests the search router bad fields error"""
     mock_elasticsearch(filename_mock=f"{search_router.es_index}_search.json")
 
-    search_service = f"/search/{search_router.resource_name_plural}/v1"
+    search_service = f"/search/{search_router.resource_name_plural}"
     params = {"search_query": "description", "offset": -1}
     response = client.get(search_service, params=params)
 

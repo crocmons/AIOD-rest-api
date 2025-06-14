@@ -14,7 +14,7 @@ TEST_URL1 = "https://www.example.com/example1.csv/content"
 TEST_URL2 = "https://www.example.com/example2.tsv/content"
 
 SAMPLE_RESOURCE_NAME = "datasets"
-SAMPLE_ENDPOINT = f"{SAMPLE_RESOURCE_NAME}/v1/{{identifier}}/content"
+SAMPLE_ENDPOINT = f"{SAMPLE_RESOURCE_NAME}/{{identifier}}/content"
 
 
 @pytest.fixture
@@ -39,19 +39,19 @@ def test_ai_asset_has_endpoints(
     Test the existence and functionality of endpoints for an AIAsset resource.
 
     It uses a mocked request and asserts the success requests to the endpoints:
-        + "{resource_name}/v1/1/content"
-        + f"{resource_name}/v1/1/content/0"
+        + "{resource_name}/1/content"
+        + f"{resource_name}/1/content/0"
     return a response with status code 200.
     """
     body = copy.deepcopy(body_asset_with_single_distribution)
     with logged_in_user():
         response = client.post(
-            f"/{resource_name}/v1", json=body, headers={"Authorization": "Fake token"}
+            f"/{resource_name}", json=body, headers={"Authorization": "Fake token"}
         )
     assert response.status_code == status.HTTP_200_OK, response.json()
     identifier = response.json()['identifier']
 
-    default_endpoint = f"{resource_name}/v1/{identifier}/content"
+    default_endpoint = f"{resource_name}/{identifier}/content"
 
     response = client.get(default_endpoint, follow_redirects=False)
     assert response.status_code == status.HTTP_303_SEE_OTHER, response.status_code
@@ -77,7 +77,7 @@ def test_endpoints_when_empty_distribution(
 
     with logged_in_user(ALICE):
         response = client.post(
-            f"/{SAMPLE_RESOURCE_NAME}/v1", json=body, headers={"Authorization": "Fake token"}
+            f"/{SAMPLE_RESOURCE_NAME}", json=body, headers={"Authorization": "Fake token"}
         )
     assert response.status_code == status.HTTP_200_OK, response.json()
     identifier = response.json()['identifier']
@@ -116,7 +116,7 @@ def test_endpoints_when_single_distribution(
     body = copy.deepcopy(body_asset_with_single_distribution)
     with logged_in_user(ALICE):
         response = client.post(
-            f"/{SAMPLE_RESOURCE_NAME}/v1", json=body, headers={"Authorization": "Fake token"}
+            f"/{SAMPLE_RESOURCE_NAME}", json=body, headers={"Authorization": "Fake token"}
         )
     assert response.status_code == status.HTTP_200_OK, response.json()
     identifier = response.json()['identifier']
@@ -164,7 +164,7 @@ def test_endpoints_when_two_distributions(
     body = copy.deepcopy(body_asset_with_two_distributions)
     with logged_in_user(ALICE):
         response = client.post(
-            f"/{SAMPLE_RESOURCE_NAME}/v1", json=body, headers={"Authorization": "Fake token"}
+            f"/{SAMPLE_RESOURCE_NAME}", json=body, headers={"Authorization": "Fake token"}
         )
     assert response.status_code == status.HTTP_200_OK, response.json()
     identifier = response.json()['identifier']

@@ -37,11 +37,11 @@ def test_happy_path(
         body["member_of"] = [organisation.identifier]
 
 
-    response = client.post("/persons/v1", json=body, headers={"Authorization": "Fake token"})
+    response = client.post("/persons", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
     identifier = response.json()['identifier']
 
-    response = client.get(f"/persons/v1/{identifier}")
+    response = client.get(f"/persons/{identifier}")
     assert response.status_code == 200, response.json()
 
     response_json = response.json()
@@ -61,10 +61,10 @@ def test_happy_path(
 @pytest.mark.parametrize(
     "endpoint",
     [
-        "/persons/v1",
-        "/persons/v1/1",
-        "/platforms/ai4europe_cms/persons/v1",
-        "/platforms/ai4europe_cms/persons/v1/2",
+        "/persons",
+        "/persons/1",
+        "/platforms/ai4europe_cms/persons",
+        "/platforms/ai4europe_cms/persons/2",
     ]
 )
 def test_privacy_for_ai4europe_cms(

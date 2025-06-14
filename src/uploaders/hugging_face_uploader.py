@@ -18,7 +18,7 @@ class HuggingfaceUploader(Uploader):
         self.platform_name = PlatformName.huggingface
 
     def handle_upload(
-        self, identifier: int, file: UploadFile, token: str, *args: str, user: KeycloakUser
+        self, identifier: str, file: UploadFile, token: str, *args: str, user: KeycloakUser
     ) -> str:
         self._check_authorization(user)
 

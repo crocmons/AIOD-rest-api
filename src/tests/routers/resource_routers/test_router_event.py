@@ -40,11 +40,11 @@ def test_happy_path(
     body["location"] = locations
     body["content"] = {"plain": "plain content"}
 
-    response = client.post("/events/v1", json=body, headers={"Authorization": "Fake token"})
+    response = client.post("/events", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
     identifier = response.json()['identifier']
 
-    response = client.get(f"/events/v1/{identifier}")
+    response = client.get(f"/events/{identifier}")
     assert response.status_code == 200, response.json()
 
     response_json = response.json()
@@ -62,5 +62,5 @@ def test_happy_path(
     # Cleanup, so that all resources can be deleted in the teardown
     body["performer"] = []
     body["organiser"] = None
-    response = client.put(f"/events/v1/{identifier}", json=body, headers={"Authorization": "Fake token"})
+    response = client.put(f"/events/{identifier}", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()

@@ -14,10 +14,10 @@ def test_happy_path(
     body["name"] = "Case Study"
 
     with logged_in_user():
-        response = client.post("/case_studies/v1", json=body, headers={"Authorization": "Fake token"})
+        response = client.post("/case_studies", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
     identifier = response.json()['identifier']
-    response = client.get(f"/case_studies/v1/{identifier}")
+    response = client.get(f"/case_studies/{identifier}")
     assert response.status_code == 200, response.json()
 
     response_json = response.json()

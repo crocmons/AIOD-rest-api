@@ -17,7 +17,7 @@ from tests.testutils.users import logged_in_user
 def test_happy_path(client: TestClient, body_asset: dict, auto_publish: None):
     with logged_in_user():
         response = client.post(
-            "/persons/v1", json={"name": "test person"}, headers={"Authorization": "Fake token"}
+            "/persons", json={"name": "test person"}, headers={"Authorization": "Fake token"}
         )
     person_identifier = response.json()['identifier']
 
@@ -34,12 +34,12 @@ def test_happy_path(client: TestClient, body_asset: dict, auto_publish: None):
     body["person"] = person_identifier
 
     with logged_in_user():
-        response = client.post("/contacts/v1", json=body, headers={"Authorization": "Fake token"})
+        response = client.post("/contacts", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
     identifier = response.json()['identifier']
 
     with logged_in_user():  # Authenticated users should not get masked e-mail addresses
-        response = client.get(f"/contacts/v1/{identifier}", headers={"Authorization": "Fake token"})
+        response = client.get(f"/contacts/{identifier}", headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
 
     response_json = response.json()
@@ -66,20 +66,20 @@ def test_post_duplicate_email(
     body2 = {"email": ["c@example.com", "b@example.com"]}
     # Authenticated users should not get masked e-mail addresses
     with logged_in_user():
-        response = client.post("/contacts/v1", json=body1, headers={"Authorization": "Fake token"})
+        response = client.post("/contacts", json=body1, headers={"Authorization": "Fake token"})
         assert response.status_code == 200, response.json()
         first_contact_identifier = response.json()['identifier']
 
-        response = client.post("/contacts/v1", json=body2, headers={"Authorization": "Fake token"})
+        response = client.post("/contacts", json=body2, headers={"Authorization": "Fake token"})
         assert response.status_code == 200, response.json()
         second_contact_identifier = response.json()['identifier']
 
-        contact = client.get(f"/contacts/v1/{second_contact_identifier}", headers={"Authorization": "Fake token"}).json()
+        contact = client.get(f"/contacts/{second_contact_identifier}", headers={"Authorization": "Fake token"}).json()
         assert set(contact["email"]) == {"b@example.com", "c@example.com"}
 
         body3 = {"email": ["d@example.com", "b@example.com"]}
-        client.put(f"/contacts/v1/{first_contact_identifier}", json=body3, headers={"Authorization": "Fake token"})
-        contact = client.get(f"/contacts/v1/{second_contact_identifier}", headers={"Authorization": "Fake token"}).json()
+        client.put(f"/contacts/{first_contact_identifier}", json=body3, headers={"Authorization": "Fake token"})
+        contact = client.get(f"/contacts/{second_contact_identifier}", headers={"Authorization": "Fake token"}).json()
         msg = "changing emails of contact 1 should not change emails of contact 2."
         assert set(contact["email"]) == {"b@example.com", "c@example.com"}, msg
 
@@ -89,9 +89,9 @@ def test_person_and_organisation_both_specified(client: TestClient):
     headers = {"Authorization": "Fake token"}
     body = {"person": 1, "organisation": 1}
     with logged_in_user():
-        client.post("/persons/v1", json={"name": "test person"}, headers=headers)
-        client.post("/organisations/v1", json={"name": "test organisation"}, headers=headers)
-        response = client.post("/contacts/v1", json=body, headers=headers)
+        client.post("/persons", json={"name": "test person"}, headers=headers)
+        client.post("/organisations", json={"name": "test organisation"}, headers=headers)
+        response = client.post("/contacts", json=body, headers=headers)
     assert response.status_code == 400, response.json()
     assert response.json()["detail"] == "Person and organisation cannot be both filled."
 
@@ -107,10 +107,10 @@ def contact2(body_concept) -> Contact:
 @pytest.mark.parametrize(
     "endpoint",
     [
-        "/contacts/v1",
-        "/contacts/v1/1",
-        "/platforms/example/contacts/v1",
-        "/platforms/example/contacts/v1/fake:100",
+        "/contacts",
+        "/contacts/1",
+        "/platforms/example/contacts",
+        "/platforms/example/contacts/fake:100",
     ]
 )
 def test_email_mask_for_not_authenticated_user(
@@ -155,26 +155,26 @@ def test_email_mask_for_authenticated_user(
         session.commit()
         session.refresh(contact2)
 
-    response = client.get("/contacts/v1", headers=headers)
+    response = client.get("/contacts", headers=headers)
     response_json = response.json()
     assert response.status_code == 200, response_json
     assert len(response_json) == 2, response_json
     assert response_json[0]["email"] == ["a@b.com"]
     assert set(response_json[1]["email"]) == {"fake2@email.com", "fake@email.com"}
 
-    response = client.get(f"/contacts/v1/{contact2.identifier}", headers=headers)
+    response = client.get(f"/contacts/{contact2.identifier}", headers=headers)
     assert response.status_code == 200, response.json()
     response_json = response.json()
     assert set(response_json["email"]) == {"fake2@email.com", "fake@email.com"}
 
-    response = client.get("/platforms/example/contacts/v1", headers=headers)
+    response = client.get("/platforms/example/contacts", headers=headers)
     response_json = response.json()
     assert response.status_code == 200, response_json
     assert len(response_json) == 2, response_json
     assert response_json[0]["email"] == ["a@b.com"]
     assert set(response_json[1]["email"]) == {"fake2@email.com", "fake@email.com"}
 
-    response = client.get("/platforms/example/contacts/v1/fake:100", headers=headers)
+    response = client.get("/platforms/example/contacts/fake:100", headers=headers)
     response_json = response.json()
     assert response.status_code == 200, response_json
     assert set(response_json["email"]) == {"fake2@email.com", "fake@email.com"}
@@ -183,10 +183,10 @@ def test_email_mask_for_authenticated_user(
 @pytest.mark.parametrize(
     "endpoint",
     [
-        "/contacts/v1",
-        "/contacts/v1/1",
-        "/platforms/ai4europe_cms/contacts/v1",
-        "/platforms/ai4europe_cms/contacts/v1/fake:100",
+        "/contacts",
+        "/contacts/1",
+        "/platforms/ai4europe_cms/contacts",
+        "/platforms/ai4europe_cms/contacts/fake:100",
     ]
 )
 def test_email_privacy_for_ai4europe_cms(
