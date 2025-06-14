@@ -205,8 +205,10 @@ def upgrade() -> None:
     for constraint, delete_rule, from_table, from_column, to_table, to_column in constraints:
         for table, column in [(to_table, to_column), (from_table, from_column)]:
             if (table, column) not in updated_columns:
-                logger.info(f"Altering {table}.{column} to VARCHAR(30).")
-                op.execute(f"ALTER TABLE {table} CHANGE COLUMN {column} {column} VARCHAR(30);")
+                logger.info(f"Altering {table}.{column} to VARCHAR(30) COLLATE utf8_bin.")
+                op.execute(
+                    f"ALTER TABLE {table} CHANGE COLUMN {column} {column} VARCHAR(30) COLLATE utf8_bin;"
+                )
                 updated_columns.add((table, column))
 
     for constraint, delete_rule, from_table, from_column, to_table, to_column in constraints:
