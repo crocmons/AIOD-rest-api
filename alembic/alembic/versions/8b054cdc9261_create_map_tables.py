@@ -1,4 +1,4 @@
-"""synchronize identifiers
+"""Create Identifier Map Tables
 
 Revision ID: 8b054cdc9261
 Revises: 1662d64ebe23
@@ -13,13 +13,7 @@ import logging
 from typing import Sequence, Union, NamedTuple
 
 from alembic import op
-import sqlalchemy as sa
 from sqlalchemy import Column, Integer, text, String
-from sqlmodel import Session
-
-from database.session import DbSession
-from database.model.concept.concept import AIoDConcept
-from database.model.helper_functions import non_abstract_subclasses
 
 # revision identifiers, used by Alembic.
 revision: str = "8b054cdc9261"
@@ -170,83 +164,6 @@ def upgrade() -> None:
             for child_table in parent.children
         )
         op.execute(f"INSERT INTO {map_table} SELECT * FROM ({child_data}) as child")
-
-    # Now we can continue with data migration
-    # First we delete a conflicting CHECK constraint: https://github.com/aiondemand/AIOD-rest-api/issues/518
-    logger.info("Dropping contact CHECK constraint.")
-    op.execute(
-        "ALTER TABLE contact DROP CONSTRAINT contact_person_and_organisation_not_both_filled"
-    )
-
-    # Then we update foreign key constraints to ON UPDATE CASCADE to make data migration easier
-    with DbSession() as session:
-        tables_with_referenced_key = [
-            agent.name,
-            ai_asset.name,
-            ai_resource.name,
-            *aiod_concept.children,
-        ]
-        logger.info("Fetching existing foreign key constraints.")
-        constraints = session.execute(
-            text(
-                "SELECT refs.CONSTRAINT_NAME, refs.DELETE_RULE, kcu.TABLE_NAME, kcu.COLUMN_NAME, kcu.REFERENCED_TABLE_NAME, kcu.REFERENCED_COLUMN_NAME "
-                "FROM information_schema.REFERENTIAL_CONSTRAINTS as refs "
-                "JOIN information_schema.KEY_COLUMN_USAGE as kcu "
-                "ON refs.CONSTRAINT_NAME=kcu.CONSTRAINT_NAME "
-                f"WHERE refs.REFERENCED_TABLE_NAME IN ({', '.join(map(repr, tables_with_referenced_key))});"
-            )
-        )
-    constraints = list(constraints)
-    logger.info(f"Dropping {len(constraints)} foreign key constraints.")
-    for constraint, delete_rule, from_table, from_column, to_table, to_column in constraints:
-        op.execute(f"ALTER TABLE {from_table} DROP FOREIGN KEY {constraint}")
-
-    updated_columns = set()
-    for constraint, delete_rule, from_table, from_column, to_table, to_column in constraints:
-        for table, column in [(to_table, to_column), (from_table, from_column)]:
-            if (table, column) not in updated_columns:
-                logger.info(f"Altering {table}.{column} to VARCHAR(30) COLLATE utf8_bin.")
-                op.execute(
-                    f"ALTER TABLE {table} CHANGE COLUMN {column} {column} VARCHAR(30) COLLATE utf8_bin;"
-                )
-                updated_columns.add((table, column))
-
-    for constraint, delete_rule, from_table, from_column, to_table, to_column in constraints:
-        logger.info(f"Adding back constraint {constraint}.")
-        op.execute(
-            f"ALTER TABLE {from_table} "
-            f"ADD CONSTRAINT {constraint} "
-            f"FOREIGN KEY ({from_column}) REFERENCES {to_table}({to_column}) "
-            f"ON DELETE {delete_rule} "
-            f"ON UPDATE CASCADE;"
-        )
-
-    # And finally we can do data migration: we update the primary keys in the main tables,
-    # the remainder of the references should now be taken care of with ON UPDATE CASCADE.
-    # We cannot directly set identifiers to be aiod_entry_identifiers: those ranges overlap,
-    # which leads to (temporary) duplicate keys. To avoid that, we add a temporary offset during
-    # the update, and recover the original identifier afterwards.
-    for table in aiod_concept.children:
-        logger.info(f"Assigning new identifiers to {table}.")
-        op.execute(
-            f"UPDATE {table} "
-            f"JOIN _{table}_identifier_map as map "
-            "ON identifier=map.old "
-            "SET identifier=map.new "
-        )
-
-    for table in [agent, ai_asset, ai_resource]:
-        child_data = "UNION ".join(
-            f"SELECT {table.fk_identifier}, identifier FROM {child_table} "
-            for child_table in table.children
-        )
-        logger.info(f"Assigning new identifiers to {table.name}.")
-        op.execute(
-            f"UPDATE {table.name} "
-            f"JOIN ({child_data}) as child "
-            f"ON {table.name}.identifier=child.{table.fk_identifier} "
-            f"SET {table.name}.identifier=child.identifier;"
-        )
 
 
 def downgrade() -> None:
