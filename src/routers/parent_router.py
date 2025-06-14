@@ -98,7 +98,7 @@ class ParentRouter(abc.ABC):
         return router
 
     def get_resource_func(self, classes_dict: dict, read_classes_dict: dict):
-        def get_resource(identifier: int):
+        def get_resource(identifier: str):
             with DbSession() as session:
                 query = select(self.parent_class_table).where(
                     self.parent_class_table.identifier == identifier
@@ -132,7 +132,7 @@ class ParentRouter(abc.ABC):
 
         return get_resource
 
-    def raise_404(self, identifier: int):
+    def raise_404(self, identifier: str):
         raise HTTPException(
             status_code=HTTP_404_NOT_FOUND,
             detail=f"{self.resource_name} with identifier {identifier} not found.",

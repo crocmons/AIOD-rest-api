@@ -19,8 +19,9 @@ def test_happy_path(
 
     response = client.post("/news", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
+    identifier = response.json()['identifier']
 
-    response = client.get("/news/1")
+    response = client.get(f"/news/{identifier}")
     assert response.status_code == 200, response.json()
 
     response_json = response.json()

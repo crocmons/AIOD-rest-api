@@ -15,8 +15,9 @@ def test_happy_path(client: TestClient, body_asset: dict, auto_publish: None):
             "/computational_assets", json=body, headers={"Authorization": "Fake token"}
         )
     assert response.status_code == 200, response.json()
+    identifier = response.json()['identifier']
 
-    response = client.get("/computational_assets/1")
+    response = client.get(f"/computational_assets/{identifier}")
     assert response.status_code == 200, response.json()
 
     response_json = response.json()

@@ -14,7 +14,7 @@ TEST_URL1 = "https://www.example.com/example1.csv/content"
 TEST_URL2 = "https://www.example.com/example2.tsv/content"
 
 SAMPLE_RESOURCE_NAME = "datasets"
-SAMPLE_ENDPOINT = f"{SAMPLE_RESOURCE_NAME}/1/content"
+SAMPLE_ENDPOINT = f"{SAMPLE_RESOURCE_NAME}/{{identifier}}/content"
 
 
 @pytest.fixture
@@ -49,8 +49,9 @@ def test_ai_asset_has_endpoints(
             f"/{resource_name}", json=body, headers={"Authorization": "Fake token"}
         )
     assert response.status_code == status.HTTP_200_OK, response.json()
+    identifier = response.json()['identifier']
 
-    default_endpoint = f"{resource_name}/1/content"
+    default_endpoint = f"{resource_name}/{identifier}/content"
 
     response = client.get(default_endpoint, follow_redirects=False)
     assert response.status_code == status.HTTP_303_SEE_OTHER, response.status_code
@@ -79,12 +80,13 @@ def test_endpoints_when_empty_distribution(
             f"/{SAMPLE_RESOURCE_NAME}", json=body, headers={"Authorization": "Fake token"}
         )
     assert response.status_code == status.HTTP_200_OK, response.json()
+    identifier = response.json()['identifier']
 
-    response = client.get(SAMPLE_ENDPOINT, allow_redirects=False)
+    response = client.get(SAMPLE_ENDPOINT.format(identifier=identifier), allow_redirects=False)
     assert response.status_code == status.HTTP_404_NOT_FOUND, response.content
     assert response.json()["detail"] == "Distribution not found.", response.content
 
-    response0 = client.get(SAMPLE_ENDPOINT + "/0", allow_redirects=False)
+    response0 = client.get(SAMPLE_ENDPOINT.format(identifier=identifier) + "/0", allow_redirects=False)
     assert response0.status_code == status.HTTP_404_NOT_FOUND, response0.content
     assert response0.json()["detail"] == "Distribution not found.", response0.content
 
@@ -117,21 +119,22 @@ def test_endpoints_when_single_distribution(
             f"/{SAMPLE_RESOURCE_NAME}", json=body, headers={"Authorization": "Fake token"}
         )
     assert response.status_code == status.HTTP_200_OK, response.json()
+    identifier = response.json()['identifier']
 
-    response = client.get(SAMPLE_ENDPOINT, allow_redirects=False)
+    response = client.get(SAMPLE_ENDPOINT.format(identifier=identifier), allow_redirects=False)
     assert response.status_code == status.HTTP_303_SEE_OTHER, response.content
     headers = response.headers
     assert headers["location"] == TEST_URL1, headers
 
-    response0 = client.get(SAMPLE_ENDPOINT + "/0", allow_redirects=False)
+    response0 = client.get(SAMPLE_ENDPOINT.format(identifier=identifier) + "/0", allow_redirects=False)
     assert response0.status_code == status.HTTP_303_SEE_OTHER, response0.content
     headers0 = response.headers
     assert headers0["location"] == TEST_URL1, headers0
 
-    response1 = client.get(SAMPLE_ENDPOINT + "/1", allow_redirects=False)
+    response1 = client.get(SAMPLE_ENDPOINT.format(identifier=identifier) + "/1", allow_redirects=False)
     assert response1.status_code == status.HTTP_400_BAD_REQUEST, response1.content
 
-    response2 = client.get(SAMPLE_ENDPOINT + "/-1", allow_redirects=False)
+    response2 = client.get(SAMPLE_ENDPOINT.format(identifier=identifier) + "/-1", allow_redirects=False)
     assert response2.status_code == status.HTTP_303_SEE_OTHER, response2.content
 
 
@@ -164,8 +167,9 @@ def test_endpoints_when_two_distributions(
             f"/{SAMPLE_RESOURCE_NAME}", json=body, headers={"Authorization": "Fake token"}
         )
     assert response.status_code == status.HTTP_200_OK, response.json()
+    identifier = response.json()['identifier']
 
-    response = client.get(SAMPLE_ENDPOINT, allow_redirects=False)
+    response = client.get(SAMPLE_ENDPOINT.format(identifier=identifier), allow_redirects=False)
     assert response.status_code == status.HTTP_409_CONFLICT, response.content
     assert response.json()["detail"] == (
         "Multiple distributions encountered. "
@@ -173,12 +177,12 @@ def test_endpoints_when_two_distributions(
         "at the end of the url for a specific distribution."
     ), response.content
 
-    response0 = client.get(SAMPLE_ENDPOINT + "/0", allow_redirects=False)
+    response0 = client.get(SAMPLE_ENDPOINT.format(identifier=identifier) + "/0", allow_redirects=False)
     assert response0.status_code == status.HTTP_303_SEE_OTHER, response0.content
     headers0 = response0.headers
     assert headers0["location"] == TEST_URL1, headers0
 
-    response1 = client.get(SAMPLE_ENDPOINT + "/1", allow_redirects=False)
+    response1 = client.get(SAMPLE_ENDPOINT.format(identifier=identifier) + "/1", allow_redirects=False)
     headers1 = response1.headers
     assert response1.status_code == status.HTTP_303_SEE_OTHER, response1.content
     assert headers1["location"] == TEST_URL2, headers1

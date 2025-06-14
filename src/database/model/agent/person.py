@@ -1,6 +1,7 @@
 from typing import Optional
 
 from pydantic import condecimal
+from sqlalchemy import Column, Integer, ForeignKey
 from sqlmodel import Relationship, Field
 
 from database.model.agent.agent import AgentBase, Agent
@@ -47,21 +48,28 @@ class PersonBase(AgentBase):
 
 class Person(PersonBase, Agent, table=True):  # type: ignore [call-arg]
     __tablename__ = "person"
+    __abbreviation__ = "prsn"
 
     expertise: list[Expertise] = Relationship(
-        link_model=many_to_many_link_factory("person", Expertise.__tablename__)
+        link_model=many_to_many_link_factory(
+            "person", Expertise.__tablename__, from_identifier_type=str
+        )
     )
     languages: list[Language] = Relationship(
-        link_model=many_to_many_link_factory("person", Language.__tablename__)
+        link_model=many_to_many_link_factory(
+            "person", Language.__tablename__, from_identifier_type=str
+        )
     )
     contact_details: Optional[Contact] = Relationship(sa_relationship_kwargs={"uselist": False})
 
     member_of: list[Organisation] = Relationship(
-        link_model=many_to_many_link_factory("person", Organisation.__tablename__)
+        link_model=many_to_many_link_factory(
+            "person", Organisation.__tablename__, from_identifier_type=str, to_identifier_type=str
+        )
     )
 
     class RelationshipConfig(Agent.RelationshipConfig):
-        contact_details: int | None = OneToOne(
+        contact_details: str | None = OneToOne(
             description="The identifier of the contact details by which this person can be reached",
             deserializer=FindByIdentifierDeserializer(Contact),
             _serializer=AttributeSerializer("identifier"),
@@ -82,7 +90,7 @@ class Person(PersonBase, Agent, table=True):  # type: ignore [call-arg]
             default_factory_pydantic=list,
         )
 
-        member_of: list[int] = ManyToMany(
+        member_of: list[str] = ManyToMany(
             description="The list of Organisations that a Person affiliates with.",
             _serializer=AttributeSerializer("identifier"),
             deserializer=FindByIdentifierDeserializerList(Organisation),

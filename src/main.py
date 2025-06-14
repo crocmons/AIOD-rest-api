@@ -18,7 +18,10 @@ from starlette.requests import Request
 
 from authentication import get_user_or_raise, KeycloakUser, assert_required_settings_configured
 from config import KEYCLOAK_CONFIG, DB_CONFIG, DEV_CONFIG
-from database.deletion.triggers import create_delete_triggers
+from database.deletion.triggers import (
+    create_delete_triggers,
+    create_identifier_synchronization_triggers,
+)
 import database.authorization  # noqa  # Trigger registration of User, Permission -> likely obsolete when couple with aiod_entry is done
 from database.model.concept.concept import AIoDConcept
 from database.model.platform.platform import Platform
@@ -27,6 +30,7 @@ from database.session import EngineSingleton, DbSession
 from database.setup import create_database, database_exists
 from triggers import disable_review_process, enable_review_process
 from error_handling import http_exception_handler
+from database.model.agent.agent import Agent
 from routers import (
     resource_routers,
     parent_routers,
@@ -171,7 +175,8 @@ def build_database(drop_database: bool = False):
     SQLModel.metadata.create_all(EngineSingleton().engine, checkfirst=True)
     with DbSession() as session:
         triggers = create_delete_triggers(AIoDConcept)
-        for trigger in triggers:
+        sync_triggers = create_identifier_synchronization_triggers()
+        for trigger in triggers + sync_triggers:
             session.execute(trigger)
 
         if DEV_CONFIG.get("disable_reviews", False):

@@ -1,6 +1,7 @@
 from datetime import date
 from typing import Optional
 
+from sqlalchemy import Column, Integer, ForeignKey
 from sqlmodel import Field, Relationship
 
 from database.model.agent.agent import AgentBase, Agent
@@ -38,6 +39,7 @@ class OrganisationBase(AgentBase):
 
 class Organisation(OrganisationBase, Agent, table=True):  # type: ignore [call-arg]
     __tablename__ = "organisation"
+    __abbreviation__ = "org"
 
     contact_details: Optional[Contact] = Relationship(sa_relationship_kwargs={"uselist": False})
 
@@ -45,11 +47,16 @@ class Organisation(OrganisationBase, Agent, table=True):  # type: ignore [call-a
     type: Optional[OrganisationType] = Relationship()
 
     member: list[AgentTable] = Relationship(
-        link_model=many_to_many_link_factory("organisation", AgentTable.__tablename__),
+        link_model=many_to_many_link_factory(
+            "organisation",
+            AgentTable.__tablename__,
+            from_identifier_type=str,
+            to_identifier_type=str,
+        ),
     )
 
     class RelationshipConfig(Agent.RelationshipConfig):
-        contact_details: int | None = OneToOne(
+        contact_details: str | None = OneToOne(
             description="The identifier of the contact details by which this organisation "
             "can be reached.",
             deserializer=FindByIdentifierDeserializer(Contact),
@@ -62,7 +69,7 @@ class Organisation(OrganisationBase, Agent, table=True):  # type: ignore [call-a
             deserializer=FindByNameDeserializer(OrganisationType),
             example="Research Institution",
         )
-        member: list[int] = ManyToMany(
+        member: list[str] = ManyToMany(
             description="The identifier of an agent (e.g. organisation or person) that is a "
             "member of this organisation.",
             _serializer=AttributeSerializer("identifier"),

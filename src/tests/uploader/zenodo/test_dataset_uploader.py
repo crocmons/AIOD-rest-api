@@ -25,7 +25,7 @@ from tests.testutils.users import logged_in_user, kc_user_with_roles, \
     bypass_reviewer_publish_everything
 from uploaders.zenodo_uploader import ZenodoUploader
 
-ENDPOINT = "/upload/datasets/1/zenodo"
+ENDPOINT = "/upload/datasets/{identifier}/zenodo"
 FILE1 = "example1.csv"
 FILE2 = "example2.tsv"
 
@@ -64,6 +64,7 @@ def db_with_person_and_contact(person: Person, contact: Contact):
         contact.person = person
         session.add(contact)
         session.commit()
+        return person.identifier, contact.identifier
 
 
 @pytest.fixture
@@ -93,15 +94,18 @@ def body_with_dist(body_no_dist: dict) -> dict:
 
 
 def test_happy_path_creating_repo(
-    client: TestClient, body_empty: dict, db_with_person_and_contact: None, auto_publish: None,
+    client: TestClient, body_empty: dict, db_with_person_and_contact: tuple[str, str], auto_publish: None,
 ):
     """
     Test the successful path for creating a new repository on Zenodo before uploading a file.
     The creation of a new repo must be triggered when platform_resource_identifier is None.
     """
+    person, contact = db_with_person_and_contact
+    body_empty["creator"] = [contact]
     with logged_in_user():
         response = client.post("/datasets", json=body_empty, headers={"Authorization": "Fake token"})
     assert response.status_code == status.HTTP_200_OK, response.json()
+    identifier = response.json()['identifier']
 
     with responses.RequestsMock() as mocked_requests:
         zenodo.mock_create_repo(mocked_requests)
@@ -112,11 +116,11 @@ def test_happy_path_creating_repo(
         with open(path_test_resources() / "contents" / FILE1, "rb") as f:
             test_file = {"file": f}
             with logged_in_user(kc_user_with_roles("upload_PlatformName.zenodo")):
-                response = client.post(ENDPOINT, params=PARAMS_DRAFT, headers=HEADERS, files=test_file)
+                response = client.post(ENDPOINT.format(identifier=identifier), params=PARAMS_DRAFT, headers=HEADERS, files=test_file)
         assert response.status_code == status.HTTP_200_OK, response.json()
-        assert response.json() == 1, response.json()
+        assert response.json() == identifier, response.json()
 
-    response_json = client.get("datasets/1").json()
+    response_json = client.get(f"datasets/{identifier}").json()
     assert response_json["platform"] == "zenodo", response_json
     assert (
         response_json["platform_resource_identifier"] == f"zenodo.org:{zenodo.RESOURCE_ID}"
@@ -128,18 +132,21 @@ def test_happy_path_creating_repo(
 
 
 def test_happy_path_existing_repo(
-    client: TestClient, body_with_dist: dict, db_with_person_and_contact: None
+    client: TestClient, body_with_dist: dict, db_with_person_and_contact: tuple[str, str]
 ):
     """
     Test the successful path for an existing repository on Zenodo.
     When the platform_resource_identifier is not None (zenodo.org:int) the code should
     get metadata and url of the existing repo, then upload a file.
     """
+    person, contact = db_with_person_and_contact
+    body_with_dist["creator"] = [contact]
     with logged_in_user():
         response = client.post(
             "/datasets", json=body_with_dist, headers={"Authorization": "Fake token"}
         )
     assert response.status_code == status.HTTP_200_OK, response.json()
+    identifier = response.json()['identifier']
 
     with responses.RequestsMock() as mocked_requests:
         zenodo.mock_get_repo_metadata(mocked_requests)
@@ -152,12 +159,12 @@ def test_happy_path_existing_repo(
             test_file = {"file": f}
 
             with logged_in_user(kc_user_with_roles("upload_PlatformName.zenodo")):
-                response = client.post(ENDPOINT, params=PARAMS_DRAFT, headers=HEADERS, files=test_file)
+                response = client.post(ENDPOINT.format(identifier=identifier), params=PARAMS_DRAFT, headers=HEADERS, files=test_file)
         assert response.status_code == status.HTTP_200_OK, response.json()
-        assert response.json() == 1, response.json()
+        assert response.json() == identifier, response.json()
     bypass_reviewer_publish_everything()
 
-    response_json = client.get("datasets/1").json()
+    response_json = client.get(f"datasets/{identifier}").json()
     assert response_json["platform"] == "zenodo", response_json
     assert (
         response_json["platform_resource_identifier"] == f"zenodo.org:{zenodo.RESOURCE_ID}"
@@ -166,16 +173,19 @@ def test_happy_path_existing_repo(
 
 
 def test_happy_path_existing_file(
-    client: TestClient, body_with_dist: dict, db_with_person_and_contact: None
+    client: TestClient, body_with_dist: dict, db_with_person_and_contact: tuple[str, str]
 ):
     """
     Test uploading a second file to zenodo.
     """
+    person, contact = db_with_person_and_contact
+    body_with_dist["creator"] = [contact]
     with logged_in_user():
         response = client.post(
             "/datasets", json=body_with_dist, headers={"Authorization": "Fake token"}
         )
     assert response.status_code == status.HTTP_200_OK, response.json()
+    identifier = response.json()['identifier']
 
     with responses.RequestsMock() as mocked_requests:
         zenodo.mock_get_repo_metadata(mocked_requests)
@@ -187,12 +197,12 @@ def test_happy_path_existing_file(
         with open(path_test_resources() / "contents" / FILE2, "rb") as f:
             test_file = {"file": f}
             with logged_in_user(kc_user_with_roles("upload_PlatformName.zenodo")):
-                response = client.post(ENDPOINT, params=PARAMS_DRAFT, headers=HEADERS, files=test_file)
+                response = client.post(ENDPOINT.format(identifier=identifier), params=PARAMS_DRAFT, headers=HEADERS, files=test_file)
         assert response.status_code == status.HTTP_200_OK, response.json()
-        assert response.json() == 1, response.json()
+        assert response.json() == identifier, response.json()
     bypass_reviewer_publish_everything()
 
-    response_json = client.get("datasets/1").json()
+    response_json = client.get(f"datasets/{identifier}").json()
     assert response_json["platform"] == "zenodo", response_json
     assert (
         response_json["platform_resource_identifier"] == f"zenodo.org:{zenodo.RESOURCE_ID}"
@@ -203,19 +213,22 @@ def test_happy_path_existing_file(
 
 
 def test_happy_path_updating_an_existing_file(
-    client: TestClient, body_with_dist: dict, db_with_person_and_contact: None
+    client: TestClient, body_with_dist: dict, db_with_person_and_contact: tuple[str, str]
 ):
     """
     Test uploading a second file to zenodo with the same name.
     This must update the existing file.
     """
     updated_file_new_id = "newid000-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+    person, contact = db_with_person_and_contact
+    body_with_dist["creator"] = [contact]
 
     with logged_in_user():
         response = client.post(
             "/datasets", json=body_with_dist, headers={"Authorization": "Fake token"}
         )
     assert response.status_code == status.HTTP_200_OK, response.json()
+    identifier = response.json()['identifier']
     with responses.RequestsMock() as mocked_requests:
         zenodo.mock_get_repo_metadata(mocked_requests)
         zenodo.mock_get_licenses(mocked_requests)
@@ -234,12 +247,12 @@ def test_happy_path_updating_an_existing_file(
         with open(path_test_resources() / "contents" / FILE1, "rb") as f:
             test_file = {"file": f}
             with logged_in_user(kc_user_with_roles("upload_PlatformName.zenodo")):
-                response = client.post(ENDPOINT, params=PARAMS_DRAFT, headers=HEADERS, files=test_file)
+                response = client.post(ENDPOINT.format(identifier=identifier), params=PARAMS_DRAFT, headers=HEADERS, files=test_file)
         assert response.status_code == status.HTTP_200_OK, response.json()
-        assert response.json() == 1, response.json()
+        assert response.json() == identifier, response.json()
     bypass_reviewer_publish_everything()
 
-    response_json = client.get("datasets/1").json()
+    response_json = client.get(f"datasets/{identifier}").json()
     assert response_json["platform"] == "zenodo", response_json
     assert (
         response_json["platform_resource_identifier"] == f"zenodo.org:{zenodo.RESOURCE_ID}"
@@ -250,15 +263,18 @@ def test_happy_path_updating_an_existing_file(
 
 
 def test_happy_path_publishing(
-    client: TestClient, body_empty: dict, db_with_person_and_contact: None
+    client: TestClient, body_empty: dict, db_with_person_and_contact: tuple[str, str]
 ):
     """
     Test publishing the resource on Zenodo after uploading a file.
     The URL of the content should not be empty
     """
+    person, contact = db_with_person_and_contact
+    body_empty["creator"] = [contact]
     with logged_in_user():
         response = client.post("/datasets", json=body_empty, headers={"Authorization": "Fake token"})
     assert response.status_code == status.HTTP_200_OK, response.json()
+    identifier = response.json()['identifier']
 
     with responses.RequestsMock() as mocked_requests:
         zenodo.mock_create_repo(mocked_requests)
@@ -271,13 +287,13 @@ def test_happy_path_publishing(
             test_file = {"file": f}
             with logged_in_user(kc_user_with_roles("upload_PlatformName.zenodo")):
                 response = client.post(
-                    ENDPOINT, params=PARAMS_PUBLISH, headers=HEADERS, files=test_file
+                    ENDPOINT.format(identifier=identifier), params=PARAMS_PUBLISH, headers=HEADERS, files=test_file
                 )
         assert response.status_code == status.HTTP_200_OK, response.json()
-        assert response.json() == 1, response.json()
+        assert response.json() == identifier, response.json()
 
     bypass_reviewer_publish_everything()
-    response_json = client.get("datasets/1").json()
+    response_json = client.get(f"datasets/{identifier}").json()
     assert response_json["aiod_entry"]["status"] == "published", response_json
     assert (
         datetime.utcnow().strftime("%Y-%m-%dT%H:%M") in response_json["date_published"]
@@ -298,6 +314,7 @@ def test_attempt_to_upload_published_resource(
     """
     body = copy.deepcopy(body_no_dist)
     body["distribution"] = distribution_from_zenodo(FILE1, is_published=True)
+    body["creator"] = [contact.identifier]
 
     with DbSession() as session:
         # Needed because `body_no_dist` references a Person.
@@ -309,6 +326,7 @@ def test_attempt_to_upload_published_resource(
     with logged_in_user():
         response = client.post("/datasets", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == status.HTTP_200_OK, response.json()
+    identifier = response.json()['identifier']
 
     with DbSession() as session:
         dataset = session.scalars(select(Dataset)).first()
@@ -326,7 +344,7 @@ def test_attempt_to_upload_published_resource(
             test_file = {"file": f}
             with logged_in_user(kc_user_with_roles("upload_PlatformName.zenodo")):
                 response = client.post(
-                    ENDPOINT, params=PARAMS_PUBLISH, headers=HEADERS, files=test_file
+                    ENDPOINT.format(identifier=identifier), params=PARAMS_PUBLISH, headers=HEADERS, files=test_file
                 )
 
         assert response.status_code == status.HTTP_409_CONFLICT, response.json()
@@ -335,7 +353,7 @@ def test_attempt_to_upload_published_resource(
             f"You can access and modify it at {zenodo.HTML_URL}/{zenodo.RESOURCE_ID}"
         ), response.json()
 
-    response_json = client.get("datasets/1").json()
+    response_json = client.get(f"datasets/{identifier}").json()
     assert response_json["distribution"] == body["distribution"], response_json
 
 
@@ -359,25 +377,28 @@ def test_platform_name_conflict(
         contact.person = person
         session.add(contact)
         session.commit()
+        session.refresh(contact)
 
+    body["creator"] = [contact.identifier]
     with logged_in_user():
         response = client.post("/datasets", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == status.HTTP_200_OK, response.json()
+    identifier = response.json()["identifier"]
 
     with responses.RequestsMock() as mocked_request:
         zenodo.mock_get_licenses(mocked_request)
         with open(path_test_resources() / "contents" / FILE1, "rb") as f:
             test_file = {"file": f}
             with logged_in_user(kc_user_with_roles("upload_PlatformName.zenodo")):
-                response = client.post(ENDPOINT, params=PARAMS_DRAFT, headers=HEADERS, files=test_file)
+                response = client.post(ENDPOINT.format(identifier=identifier), params=PARAMS_DRAFT, headers=HEADERS, files=test_file)
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST, response.json()
         assert response.json()["detail"] == (
-            "The dataset with identifier 1 should have platform=" f"{PlatformName.zenodo}."
+            f"The dataset with identifier {identifier} should have platform=" f"{PlatformName.zenodo}."
         ), response.json()
 
     bypass_reviewer_publish_everything()
-    response_json = client.get("datasets/1").json()
+    response_json = client.get(f"datasets/{identifier}").json()
     assert response_json["platform"] == "huggingface", response_json
     assert response_json["platform_resource_identifier"] == "fake-id", response_json
     assert response_json["distribution"] == []
@@ -401,13 +422,14 @@ def test_fail_due_to_missing_contact_name(
     with logged_in_user():
         response = client.post("/datasets", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == status.HTTP_200_OK, response.json()
+    identifier = response.json()["identifier"]
 
     with responses.RequestsMock():
         with open(path_test_resources() / "contents" / FILE1, "rb") as f:
             test_file = {"file": f}
             with logged_in_user(kc_user_with_roles("upload_PlatformName.zenodo")):
                 response = client.post(
-                    ENDPOINT, params=PARAMS_PUBLISH, headers=HEADERS, files=test_file
+                    ENDPOINT.format(identifier=identifier), params=PARAMS_PUBLISH, headers=HEADERS, files=test_file
                 )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST, response.json()

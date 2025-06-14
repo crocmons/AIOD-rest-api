@@ -1,7 +1,7 @@
 import copy
 import datetime
 import os
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Any, Callable
 
 from pydantic import validator
 from sqlalchemy import CheckConstraint, Index
@@ -10,11 +10,12 @@ from sqlalchemy.sql.functions import coalesce
 from sqlmodel import SQLModel, Field, Relationship
 
 from database.model.concept.aiod_entry import AIoDEntryORM, AIoDEntryRead, AIoDEntryCreate
-from database.model.field_length import SHORT, NORMAL
+from database.model.field_length import SHORT, NORMAL, IDENTIFIER_LENGTH
 from database.model.platform.platform_names import PlatformName
 from database.model.relationships import OneToOne
 from database.model.serializers import CastDeserializer
 from database.validators import huggingface_validators, openml_validators, zenodo_validators
+from database.identifiers import create_id_generator
 
 IS_SQLITE = os.getenv("DB") == "SQLite"
 CONSTRAINT_LOWERCASE = f"{'platform' if IS_SQLITE else 'BINARY(platform)'} = LOWER(platform)"
@@ -67,13 +68,37 @@ class AIoDConceptBase(SQLModel):
 
 
 class AIoDConcept(AIoDConceptBase):
-    identifier: int = Field(default=None, primary_key=True)
+    identifier: str = Field(
+        max_length=IDENTIFIER_LENGTH,
+        default=None,
+        primary_key=True,
+    )
     date_deleted: datetime.datetime | None = Field()
     aiod_entry_identifier: int | None = Field(
         foreign_key=AIoDEntryORM.__tablename__ + ".identifier",
         unique=True,
     )
     aiod_entry: AIoDEntryORM = Relationship()
+
+    _id_generator: Callable[[], str] | None = None
+
+    @validator("identifier", pre=True, always=True)
+    def set_dynamic_default_identifier(cls, v) -> str:
+        if isinstance(v, str):
+            return v
+        if not cls._id_generator:
+            # TODO: Centralize validation probably, so we can check against duplicate abbreviations
+            abbreviation = getattr(cls, "__abbreviation__", None)
+            if abbreviation is None:
+                raise ValueError(
+                    f"{cls}.__abbreviation__ not set. Must be a string of at most 4 characters."
+                )
+            if not isinstance(abbreviation, str) or len(abbreviation) > 4:
+                raise ValueError(
+                    f"{cls}.__abbreviation__ must be a string of at most 4 characters, is {abbreviation!r}"
+                )
+            cls._id_generator = create_id_generator(prefix=abbreviation)
+        return cls._id_generator()
 
     def __init_subclass__(cls):
         """Fixing problems with the inheritance of relationships."""

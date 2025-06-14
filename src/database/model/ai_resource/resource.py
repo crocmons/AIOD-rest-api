@@ -10,6 +10,7 @@ import copy
 from datetime import datetime
 from typing import Any, Optional
 
+from sqlalchemy import ForeignKey
 from sqlmodel import Field, Relationship
 
 from database.model.agent.contact import Contact
@@ -25,7 +26,7 @@ from database.model.ai_resource.resource_table import AIResourceORM
 from database.model.ai_resource.scientific_domain import ScientificDomain
 from database.model.ai_resource.text import TextORM, Text
 from database.model.concept.concept import AIoDConceptBase, AIoDConcept
-from database.model.field_length import NORMAL
+from database.model.field_length import NORMAL, IDENTIFIER_LENGTH
 from database.model.helper_functions import many_to_many_link_factory, non_abstract_subclasses
 from database.model.relationships import OneToMany, OneToOne, ManyToMany
 from database.model.serializers import (
@@ -58,8 +59,11 @@ class AIResourceBase(AIoDConceptBase, metaclass=abc.ABCMeta):
 
 
 class AIResource(AIResourceBase, AIoDConcept, metaclass=abc.ABCMeta):
-    ai_resource_id: int | None = Field(
-        foreign_key="ai_resource.identifier", index=True, unique=True
+    ai_resource_id: str | None = Field(
+        max_length=IDENTIFIER_LENGTH,
+        # Initializing `sa_column` instead doesn't work. Perhaps because it'd be used twice?
+        sa_column_args=[ForeignKey("ai_resource.identifier", onupdate="CASCADE")],
+        sa_column_kwargs=dict(nullable=True, index=True, unique=True),
     )
     ai_resource_identifier: AIResourceORM | None = Relationship()
 
@@ -95,7 +99,7 @@ class AIResource(AIResourceBase, AIoDConcept, metaclass=abc.ABCMeta):
         cls.__sqlmodel_relationships__.update(relationships)
 
     class RelationshipConfig(AIoDConcept.RelationshipConfig):
-        ai_resource_identifier: int | None = OneToOne(
+        ai_resource_identifier: str | None = OneToOne(
             description="This resource can be identified by its own identifier, but also by the "
             "resource_identifier.",
             identifier_name="ai_resource_id",
@@ -177,14 +181,14 @@ class AIResource(AIResourceBase, AIoDConcept, metaclass=abc.ABCMeta):
             default_factory_pydantic=list,
         )
         # TODO(jos): documentedIn - KnowledgeAsset. This should probably be defined on ResourceTable
-        contact: list[int] = ManyToMany(
+        contact: list[str] = ManyToMany(
             description="The identifiers of the contact information of the persons and/or "
             "organisations that can be contacted about this resource.",
             _serializer=AttributeSerializer("identifier"),
             deserializer=FindByIdentifierDeserializerList(Contact),
             default_factory_pydantic=list,
         )
-        creator: list[int] = ManyToMany(
+        creator: list[str] = ManyToMany(
             description="The identifiers of the contact information of the persons and/or "
             "organisations that created this resource.",
             _serializer=AttributeSerializer("identifier"),
@@ -200,25 +204,25 @@ class AIResource(AIResourceBase, AIoDConcept, metaclass=abc.ABCMeta):
             default_factory_pydantic=list,  # no deletion trigger: cascading delete is used
         )
 
-        is_part_of: list[int] = ManyToMany(
+        is_part_of: list[str] = ManyToMany(
             default_factory_pydantic=list,
             deserializer=FindByIdentifierDeserializerList(AIResourceORM),
             _serializer=AttributeSerializer("identifier"),
             deserialized_path="ai_resource_identifier",
         )
-        has_part: list[int] = ManyToMany(
+        has_part: list[str] = ManyToMany(
             default_factory_pydantic=list,
             deserializer=FindByIdentifierDeserializerList(AIResourceORM),
             _serializer=AttributeSerializer("identifier"),
             deserialized_path="ai_resource_identifier",
         )
-        relevant_resource: list[int] = ManyToMany(
+        relevant_resource: list[str] = ManyToMany(
             default_factory_pydantic=list,
             deserializer=FindByIdentifierDeserializerList(AIResourceORM),
             _serializer=AttributeSerializer("identifier"),
             deserialized_path="ai_resource_identifier",
         )
-        relevant_to: list[int] = ManyToMany(
+        relevant_to: list[str] = ManyToMany(
             default_factory_pydantic=list,
             deserializer=FindByIdentifierDeserializerList(AIResourceORM),
             _serializer=AttributeSerializer("identifier"),
@@ -250,18 +254,22 @@ class AIResource(AIResourceBase, AIoDConcept, metaclass=abc.ABCMeta):
             "scientific_domain",
         ):
             relationships[table_to].link_model = many_to_many_link_factory(
-                table_from=cls.__tablename__, table_to=table_to
+                table_from=cls.__tablename__, table_to=table_to, from_identifier_type=str
             )
 
         link_model_contact = many_to_many_link_factory(
             table_from=cls.__tablename__,
             table_to=Contact.__tablename__,
             table_prefix="contact",
+            from_identifier_type=str,
+            to_identifier_type=str,
         )
         link_model_creator = many_to_many_link_factory(
             table_from=cls.__tablename__,
             table_to=Contact.__tablename__,
             table_prefix="creator",
+            from_identifier_type=str,
+            to_identifier_type=str,
         )
         relationships["contact"].link_model = link_model_contact
         relationships["creator"].link_model = link_model_creator

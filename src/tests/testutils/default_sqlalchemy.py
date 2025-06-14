@@ -12,7 +12,8 @@ from sqlmodel import create_engine, SQLModel, Session, select
 from starlette.testclient import TestClient
 
 from authentication import keycloak_openid
-from database.deletion.triggers import create_delete_triggers
+from database.deletion.triggers import create_delete_triggers, \
+    create_identifier_synchronization_triggers
 from database.model.concept.aiod_entry import EntryStatus, AIoDEntryORM
 from database.model.concept.concept import AIoDConcept
 from database.model.platform.platform import Platform
@@ -22,6 +23,7 @@ from main import build_app
 from tests.testutils.test_resource import RouterTestResource, factory_test_resource
 from tests.testutils.users import bypass_reviewer_publish_everything
 
+DEFAULT_TEST_RESOURCE_IDENTIFIER = "test_KwfnsoJOAejyRdv2PaXUPAbW"
 
 @pytest.fixture(scope="session")
 def engine() -> Iterator[Engine]:
@@ -34,6 +36,8 @@ def engine() -> Iterator[Engine]:
     with Session(engine) as session:
         for trigger in create_delete_triggers(AIoDConcept):
             session.execute(trigger)
+        for trigger in create_identifier_synchronization_triggers(dialect='sqlite'):
+            session.execute(trigger)
     EngineSingleton().patch(engine)
 
     # Yielding is essential, the temporary file will be closed after the engine is used
@@ -41,11 +45,11 @@ def engine() -> Iterator[Engine]:
 
 
 @pytest.fixture
-def engine_test_resource_filled(engine: Engine) -> Iterator[Engine]:
+def engine_test_resource_filled(engine: Engine) -> Iterator[str]:
     """
     Engine will be filled with an example value after before each test, in clear_db.
     """
-    yield engine
+    yield DEFAULT_TEST_RESOURCE_IDENTIFIER
 
 
 @pytest.fixture(autouse=True)
@@ -60,10 +64,10 @@ def clear_db(request, engine: Engine):
     with Session(engine) as session:
         session.add_all([Platform(name=name) for name in PlatformName])
         if any("engine" in fixture and "filled" in fixture for fixture in request.fixturenames):
-            session.add(
-                factory_test_resource(title="A title", platform="example",
-                                      platform_resource_identifier="1")
-            )
+            test_resource = factory_test_resource(title="A title", platform="example",
+                                  platform_resource_identifier="1")
+            test_resource.identifier = DEFAULT_TEST_RESOURCE_IDENTIFIER
+            session.add(test_resource)
         session.commit()
         bypass_reviewer_publish_everything()
 

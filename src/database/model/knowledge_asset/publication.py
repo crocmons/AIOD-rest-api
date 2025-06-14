@@ -43,6 +43,7 @@ class PublicationBase(KnowledgeAssetBase):
 
 class Publication(PublicationBase, KnowledgeAsset, table=True):  # type: ignore [call-arg]
     __tablename__ = "publication"
+    __abbreviation__ = "pub"
 
     content_identifier: int | None = Field(
         index=True,

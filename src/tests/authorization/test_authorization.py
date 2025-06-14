@@ -268,7 +268,7 @@ def test_other_user_can_not_retract_assets(client, publication):
 
     with logged_in_user(BOB):
         response = client.post(
-            f"/submissions/retract/{identifier}", headers={"Authorization": "Fake token"}
+            f"/submissions/retract/1", headers={"Authorization": "Fake token"}
         )
         assert response.status_code == HTTPStatus.FORBIDDEN, response.json()
 

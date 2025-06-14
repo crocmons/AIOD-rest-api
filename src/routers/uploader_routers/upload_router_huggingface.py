@@ -19,7 +19,7 @@ class UploadRouterHuggingface(UploaderRouter):
 
             @router.post(path, tags=["upload"])
             def huggingface_upload(
-                identifier: int,
+                identifier: str,
                 file: UploadFile = File(
                     ..., title="File", description="This file will be uploaded to HuggingFace"
                 ),
@@ -30,7 +30,7 @@ class UploadRouterHuggingface(UploaderRouter):
                     ..., title="Huggingface username", description="The username of HuggingFace"
                 ),
                 user: KeycloakUser = Depends(get_user_or_raise),
-            ) -> int:
+            ) -> str:
                 """
                 Use this endpoint to upload a file (content) to Hugging Face using
                 the AIoD metadata identifier of the dataset.

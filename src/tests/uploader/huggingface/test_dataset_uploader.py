@@ -26,6 +26,7 @@ def test_happy_path_new_repository(
     with DbSession() as session:
         session.add(dataset)
         session.commit()
+        session.refresh(dataset)
 
     with open(path_test_resources() / "uploaders" / "huggingface" / "example.csv", "rb") as f:
         files = {"file": f.read()}
@@ -40,7 +41,7 @@ def test_happy_path_new_repository(
         huggingface_hub.upload_file = Mock(return_value=None)
         with logged_in_user(kc_user_with_roles("upload_PlatformName.huggingface")):
             response = client.post(
-                "/upload/datasets/1/huggingface",
+                f"/upload/datasets/{dataset.identifier}/huggingface",
                 params={"username": "Fake-username", "token": "Fake-token"},
                 headers={"Authorization": "Fake token"},
                 files=files,
@@ -48,7 +49,7 @@ def test_happy_path_new_repository(
 
         assert response.status_code == 200, response.json()
         id_response = response.json()
-        assert id_response == 1
+        assert id_response == dataset.identifier
 
 
 def test_happy_path_generating_repo_id(
@@ -62,6 +63,7 @@ def test_happy_path_generating_repo_id(
     with DbSession() as session:
         session.add(dataset)
         session.commit()
+        session.refresh(dataset)
 
     with open(path_test_resources() / "uploaders" / "huggingface" / "example.csv", "rb") as f:
         files = {"file": f.read()}
@@ -76,7 +78,7 @@ def test_happy_path_generating_repo_id(
         huggingface_hub.upload_file = Mock(return_value=None)
         with logged_in_user(kc_user_with_roles("upload_PlatformName.huggingface")):
             response = client.post(
-                "/upload/datasets/1/huggingface",
+                f"/upload/datasets/{dataset.identifier}/huggingface",
                 params={"username": "Fake-username", "token": "Fake-token"},
                 headers={"Authorization": "Fake token"},
                 files=files,
@@ -84,7 +86,7 @@ def test_happy_path_generating_repo_id(
 
         assert response.status_code == 200, response.json()
         id_response = response.json()
-        assert id_response == 1
+        assert id_response == dataset.identifier
 
 
 def test_failed_generating_repo_id(
@@ -98,6 +100,7 @@ def test_failed_generating_repo_id(
     with DbSession() as session:
         session.add(dataset)
         session.commit()
+        session.refresh(dataset)
 
     with open(path_test_resources() / "uploaders" / "huggingface" / "example.csv", "rb") as f:
         files = {"file": f.read()}
@@ -105,7 +108,7 @@ def test_failed_generating_repo_id(
     huggingface_hub.upload_file = Mock(return_value=None)
     with logged_in_user(kc_user_with_roles("upload_PlatformName.huggingface")):
         response = client.post(
-            "/upload/datasets/1/huggingface",
+            f"/upload/datasets/{dataset.identifier}/huggingface",
             params={"username": "Fake-username", "token": "Fake-token"},
             headers={"Authorization": "Fake token"},
             files=files,
@@ -126,6 +129,7 @@ def test_repo_already_exists(client: TestClient, mocked_privileged_token: Mock, 
     with DbSession() as session:
         session.add(dataset)
         session.commit()
+        session.refresh(dataset)
 
     with open(path_test_resources() / "uploaders" / "huggingface" / "example.csv", "rb") as f:
         files = {"file": f.read()}
@@ -143,14 +147,14 @@ def test_repo_already_exists(client: TestClient, mocked_privileged_token: Mock, 
         huggingface_hub.upload_file = Mock(return_value=None)
         with logged_in_user(kc_user_with_roles("upload_PlatformName.huggingface")):
             response = client.post(
-                "/upload/datasets/1/huggingface",
+                f"/upload/datasets/{dataset.identifier}/huggingface",
                 params={"username": "Fake-username", "token": "Fake-token"},
                 headers={"Authorization": "Fake token"},
                 files=files,
             )
         assert response.status_code == 200, response.json()
         id_response = response.json()
-        assert id_response == 1
+        assert id_response == dataset.identifier
 
 
 def test_wrong_platform(client: TestClient, mocked_privileged_token: Mock, dataset: Dataset):
@@ -161,13 +165,14 @@ def test_wrong_platform(client: TestClient, mocked_privileged_token: Mock, datas
     with DbSession() as session:
         session.add(dataset)
         session.commit()
+        session.refresh(dataset)
 
     with open(path_test_resources() / "uploaders" / "huggingface" / "example.csv", "rb") as f:
         files = {"file": f.read()}
 
     with logged_in_user(kc_user_with_roles("upload_PlatformName.huggingface")):
         response = client.post(
-            "/upload/datasets/1/huggingface",
+            f"/upload/datasets/{dataset.identifier}/huggingface",
             params={"username": "Fake-username", "token": "Fake-token"},
             headers={"Authorization": "Fake token"},
             files=files,
@@ -175,7 +180,7 @@ def test_wrong_platform(client: TestClient, mocked_privileged_token: Mock, datas
     assert response.status_code == status.HTTP_400_BAD_REQUEST, response.json()
     assert (
         response.json()["detail"]
-        == "The dataset with identifier 1 should have platform=PlatformName.huggingface."
+        == f"The dataset with identifier {dataset.identifier} should have platform=PlatformName.huggingface."
     )
 
 

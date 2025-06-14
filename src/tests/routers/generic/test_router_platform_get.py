@@ -3,12 +3,12 @@ from starlette.testclient import TestClient
 
 
 def test_get_happy_path(client_test_resource: TestClient, engine_test_resource_filled: Engine):
-    response = client_test_resource.get("/platforms/example/test_resources/v0/1")
+    response = client_test_resource.get(f"/platforms/example/test_resources/v0/1")
     assert response.status_code == 200, response.json()
     response_json = response.json()
 
     assert response_json["title"] == "A title"
-    assert response_json["identifier"] == 1
+    assert response_json["identifier"] == engine_test_resource_filled
     assert "deprecated" not in response.headers
 
 

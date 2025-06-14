@@ -21,7 +21,7 @@ class UploadRouterZenodo(UploaderRouter):
 
             @router.post(path, tags=["upload"])
             def zenodo_upload(
-                identifier: int = Path(
+                identifier: str = Path(
                     description="The AIoD dataset identifier",
                 ),
                 file: UploadFile = File(
@@ -38,7 +38,7 @@ class UploadRouterZenodo(UploaderRouter):
                 ] = False,
                 token: str = Query(title="Zenodo Token", description="The access token of Zenodo"),
                 user: KeycloakUser = Depends(get_user_or_raise),
-            ) -> int:
+            ) -> str:
                 """
                 Use this endpoint to upload a file (content) to Zenodo using
                 the AIoD metadata identifier of the dataset.

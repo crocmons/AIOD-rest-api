@@ -231,7 +231,7 @@ class SearchRouter(Generic[RESOURCE], abc.ABC):
         self,
         read_class: Type[SQLModel],
         resource_class: RESOURCE,
-        identifiers: list[int],
+        identifiers: list[str],
     ) -> list[SQLModel]:
         try:
             with DbSession() as session:

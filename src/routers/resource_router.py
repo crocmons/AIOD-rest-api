@@ -504,7 +504,7 @@ class ResourceRouter(abc.ABC):
         clz_create = self.resource_class_create
 
         def put_resource(
-            identifier: int,
+            identifier: str,
             resource_create_instance: clz_create,  # type: ignore
             user: KeycloakUser = Depends(get_user_or_raise),
         ):

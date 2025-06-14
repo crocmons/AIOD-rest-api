@@ -18,13 +18,14 @@ def test_happy_path(
     with DbSession() as session:
         session.add(person)
         session.commit()
+        session.refresh(person)
 
     body = copy.deepcopy(body_asset)
     body["issn"] = "20493630"
     body["measurement_technique"] = "mass spectrometry"
     body["temporal_coverage"] = "2011/2012"
 
-    body["funder"] = [1]
+    body["funder"] = [person.identifier]
     body["size"] = {"unit": "Rows", "value": "100"}
     body["spatial_coverage"] = {
         "address": {"country": "NED", "street": "Street Name 10", "postal_code": "1234AB"},
@@ -34,8 +35,9 @@ def test_happy_path(
     with logged_in_user():
         response = client.post("/datasets", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
+    identifier = response.json()['identifier']
 
-    response = client.get("/datasets/1")
+    response = client.get(f"/datasets/{identifier}")
     assert response.status_code == 200, response.json()
 
     response_json = response.json()
@@ -43,7 +45,7 @@ def test_happy_path(
     assert response_json["measurement_technique"] == "mass spectrometry"
     assert response_json["temporal_coverage"] == "2011/2012"
 
-    assert response_json["funder"] == [1]
+    assert response_json["funder"] == [person.identifier]
     assert response_json["size"] == {"unit": "Rows", "value": 100}
     assert response_json["spatial_coverage"] == {
         "address": {"country": "NED", "street": "Street Name 10", "postal_code": "1234AB"},

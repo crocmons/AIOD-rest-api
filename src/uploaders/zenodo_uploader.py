@@ -30,8 +30,8 @@ class ZenodoUploader(Uploader):
         self.platform_name = PlatformName.zenodo
 
     def handle_upload(
-        self, identifier: int, file: UploadFile, token: str, *args: bool, user: KeycloakUser
-    ) -> int:
+        self, identifier: str, file: UploadFile, token: str, *args: bool, user: KeycloakUser
+    ) -> str:
         """
         Method to upload content to the Zenodo platform.
         """

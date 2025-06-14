@@ -1,5 +1,6 @@
 import json
 from http import HTTPStatus
+from typing import Sequence
 from unittest.mock import Mock
 
 import pytest
@@ -23,7 +24,7 @@ def test_search_happy_path(client: TestClient, search_router):
     assert response.status_code == 200, response.json()
     resource = response.json()["resources"][0]
 
-    assert resource["identifier"] == 1
+    assert resource["identifier"].startswith(f"{search_router.resource_class.__abbreviation__}_")
     assert resource["name"] == "A name."
     assert resource["platform"] == "A platform."
     assert resource["description"]["plain"] == "A plain text description."
@@ -38,12 +39,13 @@ def test_search_happy_path(client: TestClient, search_router):
 
 
 def test_search_happy_path_get_all(client: TestClient, mocked_privileged_token: Mock):
-    mock_elasticsearch(filename_mock="event_search.json")
 
     body = {"name": "A name.", "keyword": ["keyword1", "keyword2"]}  # keywords not indexed by ES
 
     response = client.post("/events", json=body, headers={"Authorization": "Fake token"})
     response.raise_for_status()
+    identifier = response.json()['identifier']
+    mock_elasticsearch(filename_mock="event_search.json", identifier=identifier)
 
     search_service = "/search/events"
     params = {"search_query": "description", "get_all": True}
@@ -52,7 +54,7 @@ def test_search_happy_path_get_all(client: TestClient, mocked_privileged_token: 
     assert response.status_code == 200, response.json()
     resource = response.json()["resources"][0]
 
-    assert resource["identifier"] == 1
+    assert resource["identifier"] == identifier
     assert resource["name"] == "A name."
     assert set(resource["keyword"]) == {"keyword1", "keyword2"}
     # Note: because the response from elastic search is mocked, and the default state of
@@ -71,7 +73,7 @@ def test_search_get_all_not_found_in_db(client: TestClient):
     assert response.status_code == HTTPStatus.NOT_FOUND, response.json()
     assert (
         response.json()["detail"]
-        == "Some resources, with identifiers 1, could not be found in the database."
+        == "Some resources, with identifiers evnt_VzOUHjo8ExjULfbvIxsSZB7M, could not be found in the database."
     )
 
 
@@ -143,9 +145,12 @@ def test_search_bad_offset(client: TestClient, search_router):
     ]
 
 
-def mock_elasticsearch(filename_mock: str):
+def mock_elasticsearch(filename_mock: str, identifier: str = ""):
     with open(path_test_resources() / "elasticsearch" / filename_mock, "r") as f:
         mocked_results = json.load(f)
+
+    if identifier:
+        mocked_results["hits"]["hits"][0]["_source"]["identifier"] = identifier
 
     mocked_elasticsearch = Elasticsearch("https://example.com:9200")
     mocked_elasticsearch.search = Mock(return_value=mocked_results)

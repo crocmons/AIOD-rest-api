@@ -17,7 +17,7 @@ def test_get_all_unauthenticated(
 
 def test_get_unauthenticated(client_test_resource: TestClient, auto_publish: None, engine_test_resource_filled: Engine):
     """You don't need authentication for GET"""
-    response = client_test_resource.get("/test_resources/v0/1")
+    response = client_test_resource.get(f"/test_resources/v0/{engine_test_resource_filled}")
     assert response.status_code == 200, response.json()
 
 
@@ -51,7 +51,7 @@ def test_delete_authorized(
     client_test_resource, mocked_token: Mock, engine_test_resource_filled: Engine
 ):
     response = client_test_resource.delete(
-        "/test_resources/v0/1",
+        f"/test_resources/v0/{engine_test_resource_filled}",
         headers={"Authorization": "fake-token"},
     )
     assert response.status_code == 200, response.json()
@@ -79,7 +79,7 @@ def test_put_authorized(
     client_test_resource, mocked_token: Mock, engine_test_resource_filled: Engine
 ):
     response = client_test_resource.put(
-        "/test_resources/v0/1",
+        f"/test_resources/v0/{engine_test_resource_filled}",
         json={"title": "example"},
         headers={"Authorization": "fake-token"},
     )
@@ -93,7 +93,7 @@ def test_put_unauthorized(
     client_test_resource: TestClient, mocked_token: Mock, engine_test_resource_filled: Engine
 ):
     response = client_test_resource.put(
-        "/test_resources/v0/1",
+        f"/test_resources/v0/{engine_test_resource_filled}",
         json={"title": "example"},
         headers={"Authorization": "fake-token"},
     )

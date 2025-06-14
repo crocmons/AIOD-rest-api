@@ -37,8 +37,9 @@ def test_happy_path(
         "/educational_resources", json=body, headers={"Authorization": "Fake token"}
     )
     assert response.status_code == 200, response.json()
+    identifier = response.json()['identifier']
 
-    response = client.get("/educational_resources/1")
+    response = client.get(f"/educational_resources/{identifier}")
     assert response.status_code == 200, response.json()
 
     response_json = response.json()
