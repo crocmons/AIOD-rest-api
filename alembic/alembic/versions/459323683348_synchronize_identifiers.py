@@ -98,9 +98,9 @@ def upgrade() -> None:
     # Now we can continue with data migration
     # First we delete a conflicting CHECK constraint: https://github.com/aiondemand/AIOD-rest-api/issues/518
     logger.info("Dropping contact CHECK constraint.")
-    # op.execute(
-    #    "ALTER TABLE contact DROP CONSTRAINT contact_person_and_organisation_not_both_filled"
-    # )
+    op.execute(
+        "ALTER TABLE contact DROP CONSTRAINT contact_person_and_organisation_not_both_filled"
+    )
 
     # Then we update foreign key constraints to ON UPDATE CASCADE to make data migration easier
     with DbSession() as session:
