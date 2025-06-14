@@ -73,7 +73,7 @@ def test_search_get_all_not_found_in_db(client: TestClient):
     assert response.status_code == HTTPStatus.NOT_FOUND, response.json()
     assert (
         response.json()["detail"]
-        == "Some resources, with identifiers evnt_, could not be found in the database."
+        == "Some resources, with identifiers evnt_VzOUHjo8ExjULfbvIxsSZB7M, could not be found in the database."
     )
 
 
