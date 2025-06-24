@@ -7,7 +7,7 @@ from database.model.ai_asset.ai_asset import AIAssetBase, AIAsset
 from database.model.ai_asset.ai_asset_table import AIAssetTable
 from database.model.helper_functions import many_to_many_link_factory
 from database.model.knowledge_asset.knowledge_asset_table import KnowledgeAssetTable
-from database.model.relationships import ManyToMany
+from database.model.relationships import ManyToMany, OneToOne
 from database.model.serializers import AttributeSerializer, FindByIdentifierDeserializerList
 from database.model.field_length import IDENTIFIER_LENGTH
 
@@ -56,4 +56,11 @@ class KnowledgeAsset(KnowledgeAssetBase, AIAsset):
             deserializer=FindByIdentifierDeserializerList(AIAssetTable),
             example=[],
             default_factory_pydantic=list,
+        )
+        knowledge_asset_identifier: str | None = OneToOne(
+            identifier_name="knowledge_asset_id",
+            _serializer=AttributeSerializer("identifier"),
+            include_in_create=False,
+            default_factory_orm=lambda type_: KnowledgeAssetTable(type=type_),
+            on_delete_trigger_deletion_by="knowledge_asset_id",
         )
