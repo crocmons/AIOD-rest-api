@@ -1,5 +1,6 @@
 import copy
 
+from sqlalchemy import ForeignKey
 from sqlmodel import Field, Relationship
 
 from database.model.ai_asset.ai_asset import AIAssetBase, AIAsset
@@ -8,6 +9,7 @@ from database.model.helper_functions import many_to_many_link_factory
 from database.model.knowledge_asset.knowledge_asset_table import KnowledgeAssetTable
 from database.model.relationships import ManyToMany
 from database.model.serializers import AttributeSerializer, FindByIdentifierDeserializerList
+from database.model.field_length import IDENTIFIER_LENGTH
 
 
 class KnowledgeAssetBase(AIAssetBase):
@@ -15,8 +17,13 @@ class KnowledgeAssetBase(AIAssetBase):
 
 
 class KnowledgeAsset(KnowledgeAssetBase, AIAsset):
-    knowledge_asset_id: int | None = Field(
-        foreign_key=KnowledgeAssetTable.__tablename__ + ".identifier", unique=True, index=True
+    knowledge_asset_id: str | None = Field(
+        max_length=IDENTIFIER_LENGTH,
+        # Initializing `sa_column` instead doesn't work. Perhaps because it'd be used twice?
+        sa_column_args=[
+            ForeignKey(KnowledgeAssetTable.__tablename__ + ".identifier", onupdate="CASCADE")
+        ],
+        sa_column_kwargs=dict(nullable=True, index=True, unique=True),
     )
     knowledge_asset_identifier: KnowledgeAssetTable | None = Relationship()
 
