@@ -76,13 +76,11 @@ def upgrade() -> None:
             f"ON UPDATE CASCADE;"
         )
 
-    logger.info(f"Assigning new identifiers to knowledge_asset so they match the publication.")
-    op.execute(
-        f"UPDATE knowledge_asset "
-        f"JOIN (select identifier, knowledge_asset_id from publication) as pubs "
-        f"ON knowledge_asset.identifier=pubs.knowledge_asset_id "
-        f"SET knowledge_asset.identifier=pubs.identifier;"
-    )
+    # There was a bug which resulted in knowledge asset identifiers not being generated
+    logger.info("Creating Identifiers of Knowledge Assets")
+    op.execute("INSERT INTO knowledge_asset SELECT identifier, 'publication' FROM publication; ")
+    logger.info("Link publications to their parents")
+    op.execute("UPDATE publication SET knowledge_asset_id=identifier; ")
 
 
 def downgrade() -> None:
