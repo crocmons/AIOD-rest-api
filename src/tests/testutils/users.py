@@ -15,6 +15,8 @@ from database.session import DbSession
 ALICE = KeycloakUser("Alice", set(), "alice-sub")
 BOB = KeycloakUser("Bob", set(), "bob-sub")
 REVIEWER = KeycloakUser("Reviewer", {cast(str, REVIEWER_ROLE)}, "reviewer-sub")
+CONNECTOR_ROLE = "platform_example"
+
 
 
 def _register_user_in_db(user: KeycloakUser) -> KeycloakUser:
@@ -23,6 +25,13 @@ def _register_user_in_db(user: KeycloakUser) -> KeycloakUser:
         session.commit()
     return user
 
+def kc_connector_with_roles(*roles: str) -> KeycloakUser:
+    """ Generates a connector user. """
+    return KeycloakUser(
+        name="Connector",
+        roles={CONNECTOR_ROLE, *roles}, # type: ignore[arg-type]
+        _subject_identifier="connector-sub",
+    )
 
 def kc_user_with_roles(*roles: str) -> KeycloakUser:
     """ Generates a user with name 'Dummy' and identifier 'Foo' and the provided roles. """

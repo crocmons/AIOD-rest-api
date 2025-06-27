@@ -232,9 +232,7 @@ def test_an_published_asset_is_not_pending_for_review(client, publication):
 def test_retrieving_single_submission_works(user: KeycloakUser, mode: ListMode, asset: int, reason: str, client: TestClient, publication_factory):
     publication = publication_factory()
     oldest = publication_factory()
-    oldest.platform_resource_identifier = "OLDEST"
     newest = publication_factory()
-    newest.platform_resource_identifier = "NEWEST"
 
     register_asset(publication, owner=ALICE, status=EntryStatus.PUBLISHED)
     register_asset(oldest, owner=ALICE, status=EntryStatus.SUBMITTED)

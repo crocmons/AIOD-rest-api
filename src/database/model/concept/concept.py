@@ -31,6 +31,7 @@ class AIoDConceptBase(SQLModel):
         schema_extra={"example": PlatformName.example},
         foreign_key="platform.name",
     )
+
     platform_resource_identifier: str | None = Field(
         max_length=NORMAL,
         description="A unique identifier issued by the external platform that's specified in "
@@ -78,6 +79,7 @@ class AIoDConcept(AIoDConceptBase):
         foreign_key=AIoDEntryORM.__tablename__ + ".identifier",
         unique=True,
     )
+
     aiod_entry: AIoDEntryORM = Relationship()
 
     _id_generator: Callable[[], str] | None = None

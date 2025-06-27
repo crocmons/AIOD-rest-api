@@ -28,7 +28,6 @@ def test_happy_path(
     body["price_per_hour_euro"] = 10.50
     body["wants_to_be_contacted"] = True
     with DbSession() as session:
-        person.platform_resource_identifier = "2"
         session.add(person)
         session.add(contact)
         session.merge(organisation)
@@ -56,6 +55,9 @@ def test_happy_path(
     assert response_json["wants_to_be_contacted"]
     assert response_json["contact_details"] == body["contact_details"]
     assert response_json["member_of"] == body["member_of"]
+
+    assert response_json["platform"] == "aiod"
+    assert response_json["platform_resource_identifier"] == response_json["identifier"]
 
 
 @pytest.mark.parametrize(
