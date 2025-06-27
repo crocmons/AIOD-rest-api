@@ -20,10 +20,43 @@ from database.model.platform.platform import Platform
 from database.model.platform.platform_names import PlatformName
 from database.session import EngineSingleton
 from main import build_app
+from database.model.ai_resource.application_area import ApplicationArea
+from database.model.ai_resource.industrial_sector import IndustrialSector
+from database.model.ai_resource.research_area import ResearchArea
+from database.model.ai_resource.scientific_domain import ScientificDomain
+from database.model.ai_asset.license import License
+from database.model.knowledge_asset.PublicationType import PublicationType
+from database.model.news.news_category import NewsCategory
 from tests.testutils.test_resource import RouterTestResource, factory_test_resource
 from tests.testutils.users import bypass_reviewer_publish_everything
+from taxonomies.synchronize_taxonomy import synchronize as synchronize_taxonomy, Term
 
 DEFAULT_TEST_RESOURCE_IDENTIFIER = "test_KwfnsoJOAejyRdv2PaXUPAbW"
+DEFAULT_APPLICATION_AREAS = [
+    Term("voice assistance", "for use in tests", children=[])
+]
+DEFAULT_INDUSTRIAL_SECTORS = [
+    Term("ecommerce", "for use in tests", children=[])
+]
+DEFAULT_RESEARCH_AREAS = [
+    Term("explainable ai", "for use in tests", children=[])
+]
+DEFAULT_SCIENTIFIC_DOMAINS = [
+    Term("voice recognition", "for use in tests", children=[])
+]
+DEFAULT_PUBLICATION_TYPE = [
+    Term("article", "for use in tests", children=[]),
+    Term("journal", "publication in a journal", children=[])
+]
+DEFAULT_NEWS_CATEGORY = [
+    Term("research: education", "for use in tests", children=[]),
+    Term("research: awards", "for use in tests", children=[]),
+    Term("business: health", "for use in tests", children=[]),
+]
+DEFAULT_LICENSE = [
+    Term("CC-BY-4.0", "for use in tests", children=[]),
+]
+
 
 @pytest.fixture(scope="session")
 def engine() -> Iterator[Engine]:
@@ -70,6 +103,17 @@ def clear_db(request, engine: Engine):
             session.add(test_resource)
         session.commit()
         bypass_reviewer_publish_everything()
+        for taxonomy, terms in [
+            (IndustrialSector, DEFAULT_INDUSTRIAL_SECTORS),
+            (ResearchArea, DEFAULT_RESEARCH_AREAS),
+            (ScientificDomain, DEFAULT_SCIENTIFIC_DOMAINS),
+            (License, DEFAULT_LICENSE),
+            (PublicationType, DEFAULT_PUBLICATION_TYPE),
+            (NewsCategory, DEFAULT_NEWS_CATEGORY),
+        ]:
+            for term in terms:
+                session.add(taxonomy(**term._asdict(), official=True))
+        session.commit()
 
     yield
 
