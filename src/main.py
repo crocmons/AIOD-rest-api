@@ -35,7 +35,6 @@ from routers import (
     resource_routers,
     parent_routers,
     enum_routers,
-    uploader_routers,
     search_routers,
     review_router,
     user_router,
@@ -84,7 +83,6 @@ def add_routes(app: FastAPI, url_prefix=""):
         + parent_routers.router_list
         + enum_routers.router_list
         + search_routers.router_list
-        # + uploader_routers.router_list # TODO: uploaders disabled until issue #538 is resolved.
         + [review_router, user_router]
     ):
         app.include_router(router.create(url_prefix))
