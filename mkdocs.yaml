@@ -56,6 +56,7 @@ nav:
           - 'Relationships': developer/schema/relationships.md
           - 'Objects': developer/schema/objects.md
           - 'Schema Migration': developer/schema/migration.md
+          - 'Taxonomies': developer/schema/taxonomies.md
       - 'Elastic Search': developer/elastic_search.md
       - 'Scripts': developer/scripts.md
       - 'Release Workflow': developer/releases.md
