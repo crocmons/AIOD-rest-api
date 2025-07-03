@@ -39,6 +39,7 @@ from routers import (
     search_routers,
     review_router,
     user_router,
+    bookmark_router,
 )
 from setup_logger import setup_logger
 
@@ -85,7 +86,7 @@ def add_routes(app: FastAPI, url_prefix=""):
         + enum_routers.router_list
         + search_routers.router_list
         # + uploader_routers.router_list # TODO: uploaders disabled until issue #538 is resolved.
-        + [review_router, user_router]
+        + [review_router, user_router, bookmark_router]
     ):
         app.include_router(router.create(url_prefix))
 

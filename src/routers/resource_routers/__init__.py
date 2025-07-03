@@ -15,7 +15,6 @@ from .publication_router import PublicationRouter
 from .service_router import ServiceRouter
 from .team_router import TeamRouter
 from .resource_bundle_router import ResourceBundleRouter
-from .bookmark_router import BookmarkRouter
 from .. import ResourceRouter
 
 
@@ -37,5 +36,4 @@ router_list: list[ResourceRouter | PlatformRouter] = [
     ServiceRouter(),
     TeamRouter(),
     ResourceBundleRouter(),
-    BookmarkRouter(),
 ]
