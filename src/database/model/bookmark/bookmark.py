@@ -1,10 +1,13 @@
 from sqlmodel import SQLModel, Field
 from typing import Optional
 from datetime import datetime
+from sqlalchemy import Column, String
 
 
 class BookmarkBase(SQLModel):
-    user_identifier: str = Field(foreign_key="user.subject_identifier")
+    user_identifier: str = Field(
+        foreign_key="user.subject_identifier", nullable=False, ondelete="CASCADE"
+    )
     resource_identifier: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
