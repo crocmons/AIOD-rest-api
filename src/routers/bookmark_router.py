@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from typing import List
 from pydantic import BaseModel
 from sqlmodel import Session, select
@@ -6,7 +6,6 @@ from sqlmodel import Session, select
 from authentication import KeycloakUser, get_user_or_raise
 from database.session import get_session
 from database.model.bookmark.bookmark import Bookmark
-from database.model.concept.aiod_entry import AIoDEntryORM  # <-- Import your resource table
 from http import HTTPStatus
 from database.model.concept.concept import AIoDConcept
 from database.model.helper_functions import non_abstract_subclasses
@@ -56,12 +55,12 @@ def create(url_prefix: str = "") -> APIRouter:
             tags=["Bookmarks"],
             response_model=BookmarkRead,
             description="Add a bookmark to an asset for a logged-in user.",
+            status_code=HTTPStatus.OK,
         )
         def create_bookmark(
             bookmark: BookmarkCreate,
             user: KeycloakUser = Depends(get_user_or_raise),
             session: Session = Depends(get_session),
-            status_code: HTTPStatus = HTTPStatus.OK,
         ) -> BookmarkRead:
             # # Check if the resource exists
             if not resource_identifier_exists_in_database(bookmark.resource_identifier, session):
@@ -127,7 +126,7 @@ def create(url_prefix: str = "") -> APIRouter:
 
 def resource_identifier_exists_in_database(resource_identifier: str, session: Session) -> bool:
     """
-    Returns True if the given platform_resource_identifier exists in any AIoDConcept subclass table.
+    Returns True if the given identifier exists in any of the tables.
     """
     asset_types = list(non_abstract_subclasses(AIoDConcept))
 

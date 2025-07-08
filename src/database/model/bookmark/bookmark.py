@@ -4,7 +4,7 @@ from datetime import datetime
 
 
 class BookmarkBase(SQLModel):
-    user_identifier: str
+    user_identifier: str = Field(foreign_key="user.subject_identifier")
     resource_identifier: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
 

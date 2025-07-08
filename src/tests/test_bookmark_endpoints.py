@@ -10,6 +10,7 @@ from tests.testutils.users import register_asset
 from datetime import datetime
 from database.model.agent.person import Person
 from database.model.agent.contact import Contact
+from database.authorization import User
 
 def test_create_bookmark(
     client: TestClient,
@@ -50,6 +51,9 @@ def test_create_duplicate(
 
     identifier = register_asset(person)
     with DbSession() as session:
+        session.add(User(subject_identifier=ALICE._subject_identifier))
+        session.commit()
+
         bookmark = Bookmark(
             user_identifier=ALICE._subject_identifier,
             resource_identifier=identifier,
@@ -57,7 +61,6 @@ def test_create_duplicate(
         )
         session.add(bookmark)
         session.commit()
-
 
     # Attempt to create a duplicate bookmark
     with logged_in_user(ALICE):
@@ -77,6 +80,10 @@ def test_get_bookmarks(client: TestClient, person: Person, contact: Contact) -> 
 
     prsn_id = register_asset(person)
     contact_id = register_asset(contact)
+
+    with DbSession() as session:
+        session.add(User(subject_identifier=ALICE._subject_identifier))
+        session.commit()
 
     # Add a bookmark
     with logged_in_user(ALICE):
@@ -109,6 +116,10 @@ def test_delete_bookmark(
     person: Person
 ) -> None:
     identifier = register_asset(person)
+
+    with DbSession() as session:
+        session.add(User(subject_identifier=ALICE._subject_identifier))
+        session.commit()
 
     with logged_in_user(ALICE):
         response = client.post(
