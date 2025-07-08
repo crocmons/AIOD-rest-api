@@ -3,6 +3,7 @@ services:
     stdin_open: true
     volumes:
       - ./src:/app:ro
+      - ${DATA_PATH}/taxonomies:/data/taxonomies
     command: python main.py
 
   fill-db-with-examples:
@@ -38,11 +39,16 @@ services:
     volumes:
       - ./src:/app:ro
       - ./connectors/openml/:/opt/connectors/script:ro
+    command: >
+      /bin/bash -c "mkdir -p /opt/connectors/data/openml/dataset && /opt/connectors/script/datasets.sh"
+      # /bin/bash -c "mkdir -p /opt/connectors/data/openml/dataset && /opt/connectors/script/datasets.sh"
 
   zenodo-dataset-connector:
     volumes:
       - ./src:/app:ro
       - ./connectors/zenodo/:/opt/connectors/script:ro
+    command: >
+      /bin/bash -c "mkdir -p /opt/connectors/data/zenodo/dataset && /opt/connectors/script/datasets.sh"
 
   es_logstash_setup:
     volumes:

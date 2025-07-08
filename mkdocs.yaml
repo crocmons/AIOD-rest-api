@@ -10,6 +10,7 @@ theme:
     - navigation.footer
     - content.action.view
     - content.action.edit
+    - content.footer.last-updated
   icon:
     edit: material/pencil
     view: material/eye
@@ -55,6 +56,7 @@ nav:
           - 'Relationships': developer/schema/relationships.md
           - 'Objects': developer/schema/objects.md
           - 'Schema Migration': developer/schema/migration.md
+          - 'Taxonomies': developer/schema/taxonomies.md
       - 'Elastic Search': developer/elastic_search.md
       - 'Scripts': developer/scripts.md
       - 'Release Workflow': developer/releases.md
@@ -73,3 +75,9 @@ markdown_extensions:
 plugins:
   - section-index
   - search
+  - git-revision-date-localized:
+      type: datetime
+      fallback_to_build_date: true
+      locale: en
+      timezone: UTC
+      enable_creation_date: false

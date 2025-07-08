@@ -28,6 +28,7 @@ def test_happy_path(
 
         body["member"] = [organisation.identifier]
         body["contact_details"] = contact.identifier
+        body["contact"] = [contact.identifier]
 
     response = client.post("/organisations", json=body, headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
@@ -47,6 +48,15 @@ def test_happy_path(
     assert response_json["type"] == "research institute"
     assert response_json["member"] == body["member"]
     assert response_json["contact_details"] == body["contact_details"]
+    assert response_json["contacts"][0]["name"] == "Aaron Bar"
+    assert response_json["contacts"][0]["telephone"] == ["0032 xxxx xxxx"]
+    assert response_json["contacts"][0]["email"] == ["a@b.com"]
+    assert response_json["contacts"][0]["location"] == [
+        {
+            "address": {"country": "NED", "street": "Street Name 10", "postal_code": "1234AB"},
+            "geo": {"latitude": 37.42242, "longitude": -122.08585, "elevation_millimeters": 2000},
+        }
+    ]
 
     # response = client.delete("/organisations/1", headers={"Authorization": "Fake token"})
     # assert response.status_code == 200
@@ -63,3 +73,27 @@ def test_happy_path(
 
     response = client.delete(f"/organisations/{identifier}", headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
+
+
+def test_ai_resource_contacts_field_is_ignored(
+        client: TestClient,
+        mocked_privileged_token: Mock,
+        organisation: Organisation,
+        contact: Contact,
+        body_agent: dict,
+        auto_publish: None,
+):
+    with DbSession() as session:
+        session.add(contact)
+        session.commit()
+        session.refresh(contact)
+
+    body = copy.copy(body_agent)
+    body["contacts"] = [contact.json()]
+    response = client.post("/organisations", json=body, headers={"Authorization": "Fake token"})
+    assert response.status_code == 200, response.json()
+    identifier = response.json()['identifier']
+
+    response = client.get(f"/organisations/{identifier}")
+    assert response.status_code == 200, response.json()
+    assert response.json()["contacts"] == []
