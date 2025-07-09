@@ -25,15 +25,14 @@ def create(url_prefix: str = "") -> APIRouter:
     version = "v1"
 
     for path in [
-        f"{url_prefix}/bookmarks/{version}",
         f"{url_prefix}/v2/bookmarks",
         f"{url_prefix}/bookmarks",
     ]:
 
         @router.get(
             path,
-            tags=["Bookmarks"],
-            description="Return all assets for which you have bookmarked.",
+            tags=["Users"],
+            description="Return all assets for you have bookmarked.",
             response_model=List[BookmarkRead],
         )
         def list_bookmarks(
@@ -52,9 +51,9 @@ def create(url_prefix: str = "") -> APIRouter:
 
         @router.post(
             path,
-            tags=["Bookmarks"],
+            tags=["Users"],
             response_model=BookmarkRead,
-            description="Add a bookmark to an asset for a logged-in user.",
+            description="Add the asset to the logged-in user's bookmarks.",
             status_code=HTTPStatus.OK,
         )
         def create_bookmark(
@@ -97,7 +96,7 @@ def create(url_prefix: str = "") -> APIRouter:
 
         @router.delete(
             path,
-            tags=["Bookmarks"],
+            tags=["Users"],
             description="Delete a bookmark for the logged-in user by resource identifier",
             status_code=HTTPStatus.OK,
         )
