@@ -89,7 +89,6 @@ def create(url_prefix: str = "") -> APIRouter:
             session.commit()
             session.refresh(bookmark)
             return BookmarkRead(
-                id=bookmark.id,
                 resource_identifier=bookmark.resource_identifier,
                 created_at=bookmark.created_at.isoformat(),
             )

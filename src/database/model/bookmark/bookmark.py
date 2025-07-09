@@ -4,14 +4,14 @@ from datetime import datetime
 from sqlalchemy import Column, String
 
 
-class BookmarkBase(SQLModel):
-    user_identifier: str = Field(
-        foreign_key="user.subject_identifier", nullable=False, ondelete="CASCADE"
-    )
-    resource_identifier: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-
-
-class Bookmark(BookmarkBase, table=True):  # type: ignore [call-arg]
-    id: Optional[int] = Field(default=None, primary_key=True)
+class Bookmark(SQLModel, table=True):  # type: ignore [call-arg]
     __tablename__ = "bookmark"
+    user_identifier: str = Field(
+        foreign_key="user.subject_identifier", nullable=False, ondelete="CASCADE", primary_key=True
+    )
+    resource_identifier: str = Field(
+        primary_key=True, description="The identifier of the resource being bookmarked"
+    )
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow, description="The time when the bookmark was created."
+    )

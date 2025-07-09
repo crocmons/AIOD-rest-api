@@ -16,9 +16,7 @@ def test_create_bookmark(
     client: TestClient,
     person: Person) -> None:
 
-    register_asset(person)
-    response = client.get("/persons")
-    identifier = response.json()[0]["identifier"]
+    identifier = register_asset(person)
 
     with logged_in_user():
         response = client.post(
