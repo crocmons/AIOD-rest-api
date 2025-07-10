@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
-from typing import List
-from pydantic import BaseModel
-from sqlmodel import Session, select
+from typing import List, Union
+from pydantic import BaseModel, validator
+from sqlmodel import Session, select, Field
 
 from authentication import KeycloakUser, get_user_or_raise
 from database.session import get_session
@@ -9,15 +9,23 @@ from database.model.bookmark.bookmark import Bookmark
 from http import HTTPStatus
 from database.model.concept.concept import AIoDConcept
 from database.model.helper_functions import non_abstract_subclasses
+from datetime import datetime
+from routers.helper_functions import get_asset_type_by_abbreviation
 
 
 class BookmarkCreate(BaseModel):
-    resource_identifier: str
+    resource_identifier: str = Field(description="The identifier of the resource being bookmarked.")
 
 
 class BookmarkRead(BaseModel):
-    resource_identifier: str
-    created_at: str
+    resource_identifier: str = Field(description="The identifier of the resource being bookmarked.")
+    created_at: Union[str, datetime] = Field(description="The time when the bookmark was created.")
+
+    @validator("created_at", pre=True)
+    def format_created_at(cls, value):
+        if isinstance(value, datetime):
+            return value.isoformat()
+        return value
 
 
 def create(url_prefix: str = "") -> APIRouter:
@@ -31,27 +39,20 @@ def create(url_prefix: str = "") -> APIRouter:
 
         @router.get(
             path,
-            tags=["Users"],
+            tags=["User"],
             description="Return all assets for you have bookmarked.",
             response_model=List[BookmarkRead],
         )
         def list_bookmarks(
             user: KeycloakUser = Depends(get_user_or_raise), session: Session = Depends(get_session)
         ) -> List[BookmarkRead]:
-            bookmarks = session.exec(
+            return session.exec(
                 select(Bookmark).where(Bookmark.user_identifier == user._subject_identifier)
             ).all()
-            return [
-                BookmarkRead(
-                    resource_identifier=bookmark.resource_identifier,
-                    created_at=bookmark.created_at.isoformat(),
-                )
-                for bookmark in bookmarks
-            ]
 
         @router.post(
             path,
-            tags=["Users"],
+            tags=["User"],
             response_model=BookmarkRead,
             description="Add the asset to the logged-in user's bookmarks.",
             status_code=HTTPStatus.OK,
@@ -69,33 +70,29 @@ def create(url_prefix: str = "") -> APIRouter:
                 )
 
             # Prevent duplicate bookmarks
-            existing = session.exec(
+            db_bookmark = session.exec(
                 select(Bookmark).where(
                     Bookmark.user_identifier == user._subject_identifier,
                     Bookmark.resource_identifier == bookmark.resource_identifier,
                 )
             ).first()
-            if existing:
-                raise HTTPException(
-                    status_code=HTTPStatus.CONFLICT,
-                    detail=f"Bookmark already exists for this resource identifier {bookmark.resource_identifier}",
-                )
 
-            bookmark = Bookmark(
-                user_identifier=user._subject_identifier,
-                resource_identifier=bookmark.resource_identifier,
-            )
-            session.add(bookmark)
-            session.commit()
-            session.refresh(bookmark)
+            if not db_bookmark:
+                db_bookmark = Bookmark(
+                    user_identifier=user._subject_identifier,
+                    resource_identifier=bookmark.resource_identifier,
+                )
+                session.add(db_bookmark)
+                session.commit()
+                session.refresh(db_bookmark)
             return BookmarkRead(
-                resource_identifier=bookmark.resource_identifier,
-                created_at=bookmark.created_at.isoformat(),
+                resource_identifier=db_bookmark.resource_identifier,
+                created_at=db_bookmark.created_at,
             )
 
         @router.delete(
             path,
-            tags=["Users"],
+            tags=["User"],
             description="Delete a bookmark for the logged-in user by resource identifier",
             status_code=HTTPStatus.OK,
         )
@@ -126,13 +123,9 @@ def resource_identifier_exists_in_database(resource_identifier: str, session: Se
     """
     Returns True if the given identifier exists in any of the tables.
     """
-    asset_types = list(non_abstract_subclasses(AIoDConcept))
-
-    for asset_type in asset_types:
+    asset_type = get_asset_type_by_abbreviation().get(resource_identifier.split("_")[0], None)
+    if asset_type:
         query = select(asset_type).where(asset_type.identifier == resource_identifier)
-        result = session.exec(query).first()
-
-        if result:
-            return True
+        return session.exec(query).first() is not None
 
     return False

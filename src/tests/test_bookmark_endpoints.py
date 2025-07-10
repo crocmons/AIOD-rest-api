@@ -6,7 +6,7 @@ from database.session import DbSession
 from tests.testutils.users import logged_in_user, ALICE
 from database.model.bookmark.bookmark import Bookmark
 from database.session import DbSession
-from tests.testutils.users import register_asset
+from tests.testutils.users import register_asset, register_user
 from datetime import datetime
 from database.model.agent.person import Person
 from database.model.agent.contact import Contact
@@ -47,13 +47,12 @@ def test_create_duplicate(
     person: Person
 ) -> None:
 
-    identifier = register_asset(person)
     with DbSession() as session:
-        session.add(User(subject_identifier=ALICE._subject_identifier))
-        session.commit()
+        identifier = register_asset(person)
+        user = register_user(ALICE, session)
 
         bookmark = Bookmark(
-            user_identifier=ALICE._subject_identifier,
+            user_identifier=user.subject_identifier,
             resource_identifier=identifier,
             created_at=datetime.now()
         )
@@ -68,19 +67,18 @@ def test_create_duplicate(
             headers={"Authorization": "fake token"},
         )
 
-    assert response.status_code == HTTPStatus.CONFLICT
-    assert response.json()["detail"] == (
-        f"Bookmark already exists for this resource identifier {identifier}"
-    )
-
+    assert response.status_code == HTTPStatus.OK
+    bookmark = response.json()
+    assert bookmark["resource_identifier"] == identifier
+    assert bookmark["created_at"] is not None
 
 def test_get_bookmarks(client: TestClient, person: Person, contact: Contact) -> None:
 
-    prsn_id = register_asset(person)
-    contact_id = register_asset(contact)
 
     with DbSession() as session:
-        session.add(User(subject_identifier=ALICE._subject_identifier))
+        prsn_id = register_asset(person)
+        contact_id = register_asset(contact)
+        user = register_user(ALICE, session)
         session.commit()
 
     # Add a bookmark
@@ -113,10 +111,11 @@ def test_delete_bookmark(
     client: TestClient,
     person: Person
 ) -> None:
-    identifier = register_asset(person)
+
 
     with DbSession() as session:
-        session.add(User(subject_identifier=ALICE._subject_identifier))
+        identifier = register_asset(person)
+        register_user(ALICE, session)
         session.commit()
 
     with logged_in_user(ALICE):
