@@ -10,7 +10,7 @@ from tests.testutils.users import register_asset, register_user
 from datetime import datetime
 from database.model.agent.person import Person
 from database.model.agent.contact import Contact
-from database.authorization import User
+
 
 def test_create_bookmark(
     client: TestClient,
@@ -27,9 +27,14 @@ def test_create_bookmark(
     assert response.status_code == HTTPStatus.OK
     bookmark = response.json()
     assert bookmark["resource_identifier"] == identifier
-    assert bookmark["created_at"] is not None
+    
+    now = datetime.utcnow()
+    assert (now - datetime.fromisoformat(bookmark["created_at"])).total_seconds() < 2
 
+
+def test_create_bookmark_for_non_existing_resource(client: TestClient) -> None:
     # Create bookmark for non existing resource.
+    
     with logged_in_user():
         response = client.post(
             "/bookmarks",
@@ -39,7 +44,6 @@ def test_create_bookmark(
 
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert response.json()["detail"] == f"Resource wrong_indetifier does not exist."
-
 
 
 def test_create_duplicate(
@@ -72,9 +76,8 @@ def test_create_duplicate(
     assert bookmark["resource_identifier"] == identifier
     assert bookmark["created_at"] is not None
 
+
 def test_get_bookmarks(client: TestClient, person: Person, contact: Contact) -> None:
-
-
     with DbSession() as session:
         prsn_id = register_asset(person)
         contact_id = register_asset(contact)
@@ -106,6 +109,7 @@ def test_get_bookmarks(client: TestClient, person: Person, contact: Contact) -> 
         assert response.status_code == HTTPStatus.OK
         bookmarks = response.json()
         assert len(bookmarks) == 2
+
 
 def test_delete_bookmark(
     client: TestClient,
