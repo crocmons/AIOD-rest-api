@@ -27,14 +27,14 @@ def test_create_bookmark(
     assert response.status_code == HTTPStatus.OK
     bookmark = response.json()
     assert bookmark["resource_identifier"] == identifier
-    
+
     now = datetime.utcnow()
     assert (now - datetime.fromisoformat(bookmark["created_at"])).total_seconds() < 2
 
 
 def test_create_bookmark_for_non_existing_resource(client: TestClient) -> None:
     # Create bookmark for non existing resource.
-    
+
     with logged_in_user():
         response = client.post(
             "/bookmarks",
