@@ -12,11 +12,6 @@ from database.model.helper_functions import non_abstract_subclasses
 from datetime import datetime
 from routers.helper_functions import get_asset_type_by_abbreviation
 
-
-class BookmarkCreate(BaseModel):
-    resource_identifier: str = Field(description="The identifier of the resource being bookmarked.")
-
-
 class BookmarkRead(BaseModel):
     resource_identifier: str = Field(description="The identifier of the resource being bookmarked.")
     created_at: Union[str, datetime] = Field(description="The time when the bookmark was created.")
@@ -30,7 +25,6 @@ class BookmarkRead(BaseModel):
 
 def create(url_prefix: str = "") -> APIRouter:
     router = APIRouter()
-    version = "v1"
 
     for path in [
         f"{url_prefix}/v2/bookmarks",
@@ -58,29 +52,29 @@ def create(url_prefix: str = "") -> APIRouter:
             status_code=HTTPStatus.OK,
         )
         def create_bookmark(
-            bookmark: BookmarkCreate,
+            resource_identifier: str,
             user: KeycloakUser = Depends(get_user_or_raise),
             session: Session = Depends(get_session),
         ) -> BookmarkRead:
             # # Check if the resource exists
-            if not resource_identifier_exists_in_database(bookmark.resource_identifier, session):
+            if not resource_identifier_exists_in_database(resource_identifier, session):
                 raise HTTPException(
                     status_code=HTTPStatus.NOT_FOUND,
-                    detail=f"Resource {bookmark.resource_identifier} does not exist.",
+                    detail=f"Resource {resource_identifier} does not exist.",
                 )
 
             # Prevent duplicate bookmarks
             db_bookmark = session.exec(
                 select(Bookmark).where(
                     Bookmark.user_identifier == user._subject_identifier,
-                    Bookmark.resource_identifier == bookmark.resource_identifier,
+                    Bookmark.resource_identifier == resource_identifier,
                 )
             ).first()
 
             if not db_bookmark:
                 db_bookmark = Bookmark(
                     user_identifier=user._subject_identifier,
-                    resource_identifier=bookmark.resource_identifier,
+                    resource_identifier=resource_identifier,
                 )
                 session.add(db_bookmark)
                 session.commit()
