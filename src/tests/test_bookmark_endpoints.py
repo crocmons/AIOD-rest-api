@@ -20,14 +20,12 @@ def test_create_bookmark(
 
     with logged_in_user():
         response = client.post(
-            "/bookmarks",
-            json={"resource_identifier": identifier},
+            f"/bookmarks?resource_identifier={identifier}",
             headers={"Authorization": "fake token"},
         )
     assert response.status_code == HTTPStatus.OK
     bookmark = response.json()
     assert bookmark["resource_identifier"] == identifier
-
     now = datetime.utcnow()
     assert (now - datetime.fromisoformat(bookmark["created_at"])).total_seconds() < 2
 
@@ -37,8 +35,7 @@ def test_create_bookmark_for_non_existing_resource(client: TestClient) -> None:
 
     with logged_in_user():
         response = client.post(
-            "/bookmarks",
-            json={"resource_identifier": "wrong_indetifier"},
+            f"/bookmarks?resource_identifier=wrong_indetifier",
             headers={"Authorization": "fake token"},
         )
 
@@ -54,11 +51,11 @@ def test_create_duplicate(
     with DbSession() as session:
         identifier = register_asset(person)
         user = register_user(ALICE, session)
-
+        now = datetime.utcnow()
         bookmark = Bookmark(
             user_identifier=user.subject_identifier,
             resource_identifier=identifier,
-            created_at=datetime.now()
+            created_at=now
         )
         session.add(bookmark)
         session.commit()
@@ -66,15 +63,14 @@ def test_create_duplicate(
     # Attempt to create a duplicate bookmark
     with logged_in_user(ALICE):
         response = client.post(
-            "/bookmarks",
-            json={"resource_identifier": identifier},
+            f"/bookmarks?resource_identifier={identifier}",
             headers={"Authorization": "fake token"},
         )
 
     assert response.status_code == HTTPStatus.OK
     bookmark = response.json()
     assert bookmark["resource_identifier"] == identifier
-    assert bookmark["created_at"] is not None
+    assert bookmark["created_at"] == now.isoformat()
 
 
 def test_get_bookmarks(client: TestClient, person: Person, contact: Contact) -> None:
@@ -87,15 +83,13 @@ def test_get_bookmarks(client: TestClient, person: Person, contact: Contact) -> 
     # Add a bookmark
     with logged_in_user(ALICE):
         response = client.post(
-            "/bookmarks",
-            json={"resource_identifier": prsn_id},
+            f"/bookmarks?resource_identifier={prsn_id}",
             headers={"Authorization": "fake token"},
         )
         assert response.status_code == HTTPStatus.OK
 
         response = client.post(
-            "/bookmarks",
-            json={"resource_identifier": contact_id},
+            f"/bookmarks?resource_identifier={contact_id}",
             headers={"Authorization": "fake token"},
         )
         assert response.status_code == HTTPStatus.OK
@@ -124,8 +118,7 @@ def test_delete_bookmark(
 
     with logged_in_user(ALICE):
         response = client.post(
-            "/bookmarks",
-            json={"resource_identifier": identifier},
+            f"/bookmarks?resource_identifier={identifier}",
             headers={"Authorization": "fake token"},
         )
     assert response.status_code == HTTPStatus.OK

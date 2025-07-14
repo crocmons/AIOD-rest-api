@@ -12,15 +12,13 @@ from database.model.helper_functions import non_abstract_subclasses
 from datetime import datetime
 from routers.helper_functions import get_asset_type_by_abbreviation
 
+
 class BookmarkRead(BaseModel):
     resource_identifier: str = Field(description="The identifier of the resource being bookmarked.")
-    created_at: Union[str, datetime] = Field(description="The time when the bookmark was created.")
+    created_at: datetime = Field(description="The time when the bookmark was created.")
 
-    @validator("created_at", pre=True)
-    def format_created_at(cls, value):
-        if isinstance(value, datetime):
-            return value.isoformat()
-        return value
+    class Config:
+        json_encoders = {datetime: lambda dt: dt.isoformat()}
 
 
 def create(url_prefix: str = "") -> APIRouter:
