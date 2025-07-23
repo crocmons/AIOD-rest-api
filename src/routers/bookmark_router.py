@@ -1,21 +1,22 @@
+import sqlalchemy.exc
 from fastapi import APIRouter, Depends, HTTPException
-from typing import List, Union
-from pydantic import BaseModel, validator
-from sqlmodel import Session, select, Field
+from typing import List, cast
+from sqlalchemy import insert
+from sqlmodel import Session, select, Field, SQLModel
 
 from authentication import KeycloakUser, get_user_or_raise
 from database.session import get_session
 from database.model.bookmark.bookmark import Bookmark
 from http import HTTPStatus
-from database.model.concept.concept import AIoDConcept
-from database.model.helper_functions import non_abstract_subclasses
 from datetime import datetime
 from routers.helper_functions import get_asset_type_by_abbreviation
 
 
-class BookmarkRead(BaseModel):
+class BookmarkRead(SQLModel):
     resource_identifier: str = Field(description="The identifier of the resource being bookmarked.")
-    created_at: datetime = Field(description="The time when the bookmark was created in ISO 8601 format.")
+    created_at: datetime = Field(
+        description="The time when the bookmark was created in ISO 8601 format."
+    )
 
     class Config:
         json_encoders = {datetime: lambda dt: dt.isoformat()}
@@ -54,33 +55,21 @@ def create(url_prefix: str = "") -> APIRouter:
             user: KeycloakUser = Depends(get_user_or_raise),
             session: Session = Depends(get_session),
         ) -> BookmarkRead:
-            # # Check if the resource exists
             if not resource_identifier_exists_in_database(resource_identifier, session):
                 raise HTTPException(
                     status_code=HTTPStatus.NOT_FOUND,
                     detail=f"Resource {resource_identifier} does not exist.",
                 )
 
-            # Prevent duplicate bookmarks
-            db_bookmark = session.exec(
-                select(Bookmark).where(
-                    Bookmark.user_identifier == user._subject_identifier,
-                    Bookmark.resource_identifier == resource_identifier,
+            bookmark_identifiers = (user._subject_identifier, resource_identifier)
+            try:
+                bookmark = session.scalar(
+                    insert(Bookmark).values(bookmark_identifiers).returning(Bookmark)
                 )
-            ).first()
-
-            if not db_bookmark:
-                db_bookmark = Bookmark(
-                    user_identifier=user._subject_identifier,
-                    resource_identifier=resource_identifier,
-                )
-                session.add(db_bookmark)
                 session.commit()
-                session.refresh(db_bookmark)
-            return BookmarkRead(
-                resource_identifier=db_bookmark.resource_identifier,
-                created_at=db_bookmark.created_at,
-            )
+            except sqlalchemy.exc.IntegrityError:  # The entry already exists
+                bookmark = session.get(Bookmark, bookmark_identifiers)
+            return cast(BookmarkRead, bookmark)
 
         @router.delete(
             path,
