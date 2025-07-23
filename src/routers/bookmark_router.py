@@ -1,7 +1,6 @@
 import sqlalchemy.exc
 from fastapi import APIRouter, Depends, HTTPException
 from typing import List, cast
-from sqlalchemy import insert
 from sqlmodel import Session, select, Field, SQLModel
 
 from authentication import KeycloakUser, get_user_or_raise
@@ -47,7 +46,8 @@ def create(url_prefix: str = "") -> APIRouter:
             path,
             tags=["User"],
             response_model=BookmarkRead,
-            description="Add the asset to the logged-in user's bookmarks.",
+            description="Add the asset to the logged-in user's bookmarks."
+            "If it was already bookmarked, return the existing bookmark.",
             status_code=HTTPStatus.OK,
         )
         def create_bookmark(
@@ -61,20 +61,23 @@ def create(url_prefix: str = "") -> APIRouter:
                     detail=f"Resource {resource_identifier} does not exist.",
                 )
 
-            bookmark_identifiers = (user._subject_identifier, resource_identifier)
             try:
-                bookmark = session.scalar(
-                    insert(Bookmark).values(bookmark_identifiers).returning(Bookmark)
+                bookmark = Bookmark(
+                    user_identifier=user._subject_identifier,
+                    resource_identifier=resource_identifier,
                 )
+                session.add(bookmark)
                 session.commit()
             except sqlalchemy.exc.IntegrityError:  # The entry already exists
-                bookmark = session.get(Bookmark, bookmark_identifiers)
+                session.rollback()
+                bookmark = session.get(Bookmark, (user._subject_identifier, resource_identifier))
             return cast(BookmarkRead, bookmark)
 
         @router.delete(
             path,
             tags=["User"],
-            description="Delete a bookmark for the logged-in user by resource identifier",
+            description="Delete a bookmark for the logged-in user by resource identifier."
+            "Also returns HTTP status code OK (200) if no such bookmark existed.",
             status_code=HTTPStatus.OK,
         )
         def delete_bookmark(
@@ -82,19 +85,10 @@ def create(url_prefix: str = "") -> APIRouter:
             user: KeycloakUser = Depends(get_user_or_raise),
             session: Session = Depends(get_session),
         ):
-            bookmark = session.exec(
-                select(Bookmark).where(
-                    Bookmark.user_identifier == user._subject_identifier,
-                    Bookmark.resource_identifier == resource_identifier,
-                )
-            ).first()
-            if not bookmark:
-                raise HTTPException(
-                    status_code=HTTPStatus.NOT_FOUND,
-                    detail=f"Bookmark for resource {resource_identifier} not found.",
-                )
-            session.delete(bookmark)
-            session.commit()
+            bookmark = session.get(Bookmark, (user._subject_identifier, resource_identifier))
+            if bookmark:
+                session.delete(bookmark)
+                session.commit()
             return None
 
     return router
