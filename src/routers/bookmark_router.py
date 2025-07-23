@@ -32,7 +32,7 @@ def create(url_prefix: str = "") -> APIRouter:
         @router.get(
             path,
             tags=["User"],
-            description="Return all assets you have bookmarked.",
+            description="Return all your bookmarks.",
             response_model=List[BookmarkRead],
         )
         def list_bookmarks(
