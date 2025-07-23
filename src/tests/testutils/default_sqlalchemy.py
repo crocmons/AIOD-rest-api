@@ -125,7 +125,11 @@ def clear_db(request, engine: Engine):
     with engine.connect() as connection:
         transaction = connection.begin()
         for table in reversed(SQLModel.metadata.sorted_tables):
-            connection.execute(table.delete())
+            try:
+                connection.execute(table.delete())
+            except Exception as e:
+                print(f"Error while clearing table {table.name}: {e}")
+                raise
         transaction.commit()
 
 
