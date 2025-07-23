@@ -15,7 +15,7 @@ from routers.helper_functions import get_asset_type_by_abbreviation
 
 class BookmarkRead(BaseModel):
     resource_identifier: str = Field(description="The identifier of the resource being bookmarked.")
-    created_at: datetime = Field(description="The time when the bookmark was created.")
+    created_at: datetime = Field(description="The time when the bookmark was created in ISO 8601 format.")
 
     class Config:
         json_encoders = {datetime: lambda dt: dt.isoformat()}
