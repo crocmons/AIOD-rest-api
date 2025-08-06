@@ -88,7 +88,7 @@ def test_happy_path(
 
 @pytest.mark.parametrize("field, invalid_value, expected_values", [
     ("turnover", "100m €", ["<1m €", ">1m €", ">3m €", ">5m €", ">50m €", ">1.5b €"]),
-    ("number_of_employees", "1000", ["<10", "<50", "<250", ">250"]),
+    ("number_of_employees", "1000", ["<10", "<50", "<250", ">=250"]),
 
 ])
 def test_invalid_literal_values_for_turnover_and_employees(
