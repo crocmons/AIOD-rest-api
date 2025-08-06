@@ -39,6 +39,7 @@ from routers import (
     review_router,
     user_router,
     bookmark_router,
+    asset_router,
 )
 from versioning import versions, add_version_to_openapi, add_deprecation_and_sunset_middleware
 
@@ -82,7 +83,7 @@ def add_routes(app: FastAPI, url_prefix=""):
         + parent_routers.router_list
         + enum_routers.router_list
         + search_routers.router_list
-        + [review_router, user_router, bookmark_router]
+        + [review_router, user_router, bookmark_router, asset_router]
     ):
         app.include_router(router.create(url_prefix))
 
