@@ -3,11 +3,11 @@ from typing import Optional, Literal
 
 from sqlmodel import Field, Relationship
 
+from database.model.named_relation import NamedRelation
 from database.model.agent.agent import AgentBase, Agent
 from database.model.agent.agent_table import AgentTable
 from database.model.agent.contact import Contact
 from database.model.agent.organisation_type import OrganisationType
-from database.model.agent.company_revenue import CompanyRevenue
 from database.model.field_length import NORMAL, LONG
 from database.model.helper_functions import many_to_many_link_factory
 from database.model.relationships import ManyToOne, ManyToMany, OneToOne
@@ -17,6 +17,16 @@ from database.model.serializers import (
     FindByIdentifierDeserializer,
     FindByIdentifierDeserializerList,
 )
+
+
+class OrganisationTurnover(NamedRelation, table=True):  # type: ignore [call-arg]
+    """Turnover as in revenue, not employee churn."""
+
+    __tablename__ = "organisation_turnover"
+
+
+class EmployeeCount(NamedRelation, table=True):  # type: ignore [call-arg]
+    __tablename__ = "employee_count"
 
 
 class OrganisationBase(AgentBase):
@@ -57,23 +67,17 @@ class Organisation(OrganisationBase, Agent, table=True):  # type: ignore [call-a
 
     turnover_identifier: int | None = Field(
         default=None,
-        foreign_key="company_revenue.identifier",
+        foreign_key="organisation_turnover.identifier",
         description="The revenue bracket of the organisation.",
     )
-
-    turnover: Optional[CompanyRevenue] = Relationship(
-        sa_relationship_kwargs={"foreign_keys": "[Organisation.turnover_identifier]"}
-    )
+    turnover: Optional[OrganisationTurnover] = Relationship()
 
     number_of_employees_identifier: int | None = Field(
         default=None,
-        foreign_key="company_revenue.identifier",
+        foreign_key="employee_count.identifier",
         description="The employee size bracket of the organisation.",
     )
-
-    number_of_employees: Optional[CompanyRevenue] = Relationship(
-        sa_relationship_kwargs={"foreign_keys": "[Organisation.number_of_employees_identifier]"}
-    )
+    number_of_employees: Optional[EmployeeCount] = Relationship()
 
     class RelationshipConfig(Agent.RelationshipConfig):
         contact_details: str | None = OneToOne(
@@ -102,7 +106,7 @@ class Organisation(OrganisationBase, Agent, table=True):  # type: ignore [call-a
                 description="The approximate revenue bracket of the organisation in euros (e.g., '<1m €', '>1.5b €').",
                 identifier_name="turnover_identifier",
                 _serializer=AttributeSerializer("name"),
-                deserializer=FindByNameDeserializer(CompanyRevenue),
+                deserializer=FindByNameDeserializer(OrganisationTurnover),
                 example=">5m €",
             )
         )
@@ -114,7 +118,7 @@ class Organisation(OrganisationBase, Agent, table=True):  # type: ignore [call-a
             ),
             identifier_name="number_of_employees_identifier",
             _serializer=AttributeSerializer("name"),
-            deserializer=FindByNameDeserializer(CompanyRevenue),
+            deserializer=FindByNameDeserializer(EmployeeCount),
             example="<10",
         )
 
