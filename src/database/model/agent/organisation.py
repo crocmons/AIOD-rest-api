@@ -3,7 +3,7 @@ from typing import Optional, Literal
 
 from sqlmodel import Field, Relationship
 
-from database.model.named_relation import NamedRelation
+from database.model.named_relation import Taxonomy, create_taxonomy
 from database.model.agent.agent import AgentBase, Agent
 from database.model.agent.agent_table import AgentTable
 from database.model.agent.contact import Contact
@@ -19,14 +19,13 @@ from database.model.serializers import (
 )
 
 
-class OrganisationTurnover(NamedRelation, table=True):  # type: ignore [call-arg]
-    """Turnover as in revenue, not employee churn."""
+OrganisationTurnover: type[Taxonomy] = create_taxonomy(
+    class_name="OrganisationTurnover", table_name="organisation_turnover"
+)
 
-    __tablename__ = "organisation_turnover"
-
-
-class EmployeeCount(NamedRelation, table=True):  # type: ignore [call-arg]
-    __tablename__ = "employee_count"
+EmployeeCount: type[Taxonomy] = create_taxonomy(
+    class_name="EmployeeCount", table_name="employee_count"
+)
 
 
 class OrganisationBase(AgentBase):
@@ -70,14 +69,14 @@ class Organisation(OrganisationBase, Agent, table=True):  # type: ignore [call-a
         foreign_key="organisation_turnover.identifier",
         description="The revenue bracket of the organisation.",
     )
-    turnover: Optional[OrganisationTurnover] = Relationship()
+    turnover: Optional[OrganisationTurnover] = Relationship()  # type: ignore[valid-type]
 
     number_of_employees_identifier: int | None = Field(
         default=None,
         foreign_key="employee_count.identifier",
         description="The employee size bracket of the organisation.",
     )
-    number_of_employees: Optional[EmployeeCount] = Relationship()
+    number_of_employees: Optional[EmployeeCount] = Relationship()  # type: ignore[valid-type]
 
     class RelationshipConfig(Agent.RelationshipConfig):
         contact_details: str | None = OneToOne(

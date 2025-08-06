@@ -1,5 +1,6 @@
 import sqlite3
 import tempfile
+from pathlib import Path
 from typing import Iterator, Any
 from unittest.mock import Mock
 
@@ -29,7 +30,7 @@ from database.model.knowledge_asset.PublicationType import PublicationType
 from database.model.news.news_category import NewsCategory
 from tests.testutils.test_resource import RouterTestResource, factory_test_resource
 from tests.testutils.users import bypass_reviewer_publish_everything
-from taxonomies.synchronize_taxonomy import Term
+from taxonomies.synchronize_taxonomy import Term, synchronize_taxonomy_from_file
 
 DEFAULT_TEST_RESOURCE_IDENTIFIER = "test_KwfnsoJOAejyRdv2PaXUPAbW"
 DEFAULT_INDUSTRIAL_SECTORS = [

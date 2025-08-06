@@ -1,14 +1,37 @@
 import copy
 from unittest.mock import Mock
 
-from starlette import status
 from starlette.testclient import TestClient
 
 from database.model.agent.contact import Contact
-from database.model.agent.organisation import Organisation
+from database.model.agent.organisation import Organisation, OrganisationTurnover,EmployeeCount
 from database.session import DbSession
 
 import pytest
+
+from taxonomies.synchronize_taxonomy import synchronize
+
+@pytest.fixture
+def with_organisation_taxonomies():
+    with DbSession() as session:
+        synchronize(
+            EmployeeCount,
+            [
+                EmployeeCount(name=value,definition="", official=True, children=[])
+                for value in ["<10", "<50", "<250", ">=250"]
+            ],
+            session
+        )
+        synchronize(
+            OrganisationTurnover,
+            [
+                OrganisationTurnover(name=value,definition="", official=True, children=[])
+                for value in ["<1m €", ">1m €", ">3m €", ">5m €", ">50m €", ">1.5b €"]
+            ],
+            session
+        )
+        session.commit()
+    yield
 
 
 def test_happy_path(
@@ -18,6 +41,7 @@ def test_happy_path(
     contact: Contact,
     body_agent: dict,
     auto_publish: None,
+    with_organisation_taxonomies,
 ):
     body = copy.copy(body_agent)
     body["date_founded"] = "2023-01-01"
@@ -100,6 +124,7 @@ def test_invalid_literal_values_for_turnover_and_employees(
     field: str,
     invalid_value: str,
     expected_values: list,
+    with_organisation_taxonomies,
 ):
     with DbSession() as session:
         session.add(organisation)  # The new organisation will be a member of this organisation
