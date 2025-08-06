@@ -1,6 +1,5 @@
 import sqlite3
 import tempfile
-from pathlib import Path
 from typing import Iterator, Any
 from unittest.mock import Mock
 
@@ -21,7 +20,6 @@ from database.model.platform.platform import Platform
 from database.model.platform.platform_names import PlatformName
 from database.session import EngineSingleton
 from main import build_app
-from database.model.ai_resource.application_area import ApplicationArea
 from database.model.ai_resource.industrial_sector import IndustrialSector
 from database.model.ai_resource.research_area import ResearchArea
 from database.model.ai_resource.scientific_domain import ScientificDomain
@@ -30,7 +28,7 @@ from database.model.knowledge_asset.PublicationType import PublicationType
 from database.model.news.news_category import NewsCategory
 from tests.testutils.test_resource import RouterTestResource, factory_test_resource
 from tests.testutils.users import bypass_reviewer_publish_everything
-from taxonomies.synchronize_taxonomy import Term, synchronize_taxonomy_from_file
+from taxonomies.synchronize_taxonomy import Term
 
 DEFAULT_TEST_RESOURCE_IDENTIFIER = "test_KwfnsoJOAejyRdv2PaXUPAbW"
 DEFAULT_INDUSTRIAL_SECTORS = [
