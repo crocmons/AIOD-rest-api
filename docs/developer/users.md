@@ -31,6 +31,7 @@ There is no special privilege for user A, and this also means that e.g., user B 
 
 !!! info
     The upload and review process is described from a user perspective in ["Uploading"](../using/upload.md).
+    The review process may be disabled by setting the `--disable-reviews` flag when starting the server.
 
 An asset uploaded by a user is by default in `draft` state.
 The user may request the asset to be `published` by submitting it for review through the REST API.

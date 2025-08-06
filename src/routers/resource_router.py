@@ -2,6 +2,7 @@ import abc
 import datetime
 import traceback
 from functools import partial
+from http import HTTPStatus
 from typing import Annotated, Any, Literal, Sequence, Type, TypeVar, Union
 from wsgiref.handlers import format_date_time
 
@@ -13,7 +14,6 @@ from sqlmodel import SQLModel, Session, select
 from starlette.responses import JSONResponse
 
 from authentication import KeycloakUser, get_user_or_none, get_user_or_raise
-from config import KEYCLOAK_CONFIG
 from converters.schema_converters.schema_converter import SchemaConverter
 from database.authorization import (
     user_can_administer,
@@ -21,6 +21,7 @@ from database.authorization import (
     register_user,
     PermissionType,
     user_can_write,
+    user_can_read,
 )
 from database.model.ai_resource.resource import AIResource
 from database.model.concept.aiod_entry import AIoDEntryORM, EntryStatus
@@ -32,7 +33,7 @@ from database.model.resource_read_and_create import (
     resource_read,
 )
 from database.model.serializers import deserialize_resource_relationships
-from database.review import Decision, Review, Submission, ReviewCreate, SubmissionCreate
+from database.review import Submission, SubmissionCreate
 from database.session import DbSession
 from dependencies.filtering import ResourceFilters, ResourceFiltersParams
 from dependencies.pagination import Pagination, PaginationParams
@@ -75,14 +76,6 @@ class ResourceRouter(abc.ABC):
         """
 
     @property
-    def deprecated_from(self) -> datetime.date | None:
-        """
-        The deprecation date. This should be the date of the release in which the resource has
-        been deprecated.
-        """
-        return None
-
-    @property
     @abc.abstractmethod
     def resource_name(self) -> str:
         pass
@@ -112,10 +105,8 @@ class ResourceRouter(abc.ABC):
 
     def create(self, url_prefix: str) -> APIRouter:
         router = APIRouter()
-        version = f"v{self.version}"
         default_kwargs = {
             "response_model_exclude_none": True,
-            "deprecated": self.deprecated_from is not None,
             "tags": [self.resource_name_plural],
         }
         available_schemas: list[Type] = [c.to_class for c in self.schema_converters.values()]
@@ -125,39 +116,43 @@ class ResourceRouter(abc.ABC):
         ]
 
         router.add_api_route(
-            path=f"{url_prefix}/{self.resource_name_plural}/{version}",
+            path=f"/{self.resource_name_plural}",
             endpoint=self.get_resources_func(),
             response_model=response_model_plural,  # type: ignore
             name=f"List {self.resource_name_plural}",
             description=f"Retrieve all meta-data of the {self.resource_name_plural}.",
             **default_kwargs,
         )
+
         router.add_api_route(
-            path=f"{url_prefix}/counts/{self.resource_name_plural}/v1",
+            path=f"/counts/{self.resource_name_plural}",
             endpoint=self.get_resource_count_func(),
             response_model=int | dict[str, int],
             name=f"Count of {self.resource_name_plural}",
             description=f"Retrieve the number of {self.resource_name_plural}.",
             **default_kwargs,
         )
+
         router.add_api_route(
-            path=f"{url_prefix}/{self.resource_name_plural}/submit/{version}/{{identifier}}",
+            path=f"/{self.resource_name_plural}/submit/{{identifier}}",
             methods={"POST"},
             endpoint=self.get_submit_func(),
             name=self.resource_name,
             description=f"Submit a {self.resource_name} for review.",
             **default_kwargs,
         )
+
         router.add_api_route(
-            path=f"{url_prefix}/{self.resource_name_plural}/{version}",
+            path=f"/{self.resource_name_plural}",
             methods={"POST"},
             endpoint=self.register_resource_func(),
             name=self.resource_name,
             description=f"Register a {self.resource_name} with AIoD.",
             **default_kwargs,
         )
+
         router.add_api_route(
-            path=url_prefix + f"/{self.resource_name_plural}/{version}/{{identifier}}",
+            path=f"/{self.resource_name_plural}/{{identifier}}",
             endpoint=self.get_resource_func(),
             response_model=response_model,  # type: ignore
             name=self.resource_name,
@@ -165,25 +160,28 @@ class ResourceRouter(abc.ABC):
             "identifier.",
             **default_kwargs,
         )
+
         router.add_api_route(
-            path=f"{url_prefix}/{self.resource_name_plural}/{version}/{{identifier}}",
+            path=f"/{self.resource_name_plural}/{{identifier}}",
             methods={"PUT"},
             endpoint=self.put_resource_func(),
             name=self.resource_name,
             description=f"Update an existing {self.resource_name}.",
             **default_kwargs,
         )
+
         router.add_api_route(
-            path=f"{url_prefix}/{self.resource_name_plural}/{version}/{{identifier}}",
+            path=f"/{self.resource_name_plural}/{{identifier}}",
             methods={"DELETE"},
             endpoint=self.delete_resource_func(),
             name=self.resource_name,
             description=f"Delete a {self.resource_name}.",
             **default_kwargs,
         )
+
         if hasattr(self.resource_class, "platform"):
             router.add_api_route(
-                path=f"{url_prefix}/platforms/{{platform}}/{self.resource_name_plural}/{version}",
+                path=f"/platforms/{{platform}}/{self.resource_name_plural}",
                 endpoint=self.get_platform_resources_func(),
                 response_model=response_model_plural,  # type: ignore
                 name=f"List {self.resource_name_plural}",
@@ -191,9 +189,9 @@ class ResourceRouter(abc.ABC):
                 f"platform.",
                 **default_kwargs,
             )
+
             router.add_api_route(
-                path=f"{url_prefix}/platforms/{{platform}}/{self.resource_name_plural}/{version}"
-                f"/{{identifier}}",
+                path=f"/platforms/{{platform}}/{self.resource_name_plural}/{{identifier}}",
                 endpoint=self.get_platform_resource_func(),
                 response_model=response_model,  # type: ignore
                 name=self.resource_name,
@@ -211,7 +209,7 @@ class ResourceRouter(abc.ABC):
         user: KeycloakUser | None = None,
         platform: str | None = None,
     ):
-        """Fetch all resources of this platform in given schema, using pagination"""
+        """Fetch all published resources of this platform in given schema, using pagination"""
         _raise_error_on_invalid_schema(self._possible_schemas, schema)
         with DbSession(autoflush=False) as session:
             try:
@@ -223,7 +221,7 @@ class ResourceRouter(abc.ABC):
                 resources: Any = self._retrieve_resources_and_post_process(
                     session, pagination, resource_filters, user, platform
                 )
-                return self._wrap_with_headers([convert_schema(resource) for resource in resources])
+                return [convert_schema(resource) for resource in resources]
             except Exception as e:
                 raise as_http_exception(e)
 
@@ -244,9 +242,20 @@ class ResourceRouter(abc.ABC):
                 resource: Any = self._retrieve_resource_and_post_process(
                     session, identifier, user, platform=platform
                 )
+                if resource.aiod_entry.status != EntryStatus.PUBLISHED:
+                    if user is None:
+                        raise HTTPException(
+                            status_code=HTTPStatus.UNAUTHORIZED,
+                            detail="This asset is not published. It requires authentication to access.",
+                        )
+                    if not user_can_read(user, resource.aiod_entry):
+                        raise HTTPException(
+                            status_code=HTTPStatus.FORBIDDEN,
+                            detail="You are not allowed to view this resource.",
+                        )
                 if schema != "aiod":
                     return self.schema_converters[schema].convert(session, resource)
-                return self._wrap_with_headers(self.resource_class_read.from_orm(resource))
+                return self.resource_class_read.from_orm(resource)
         except Exception as e:
             raise as_http_exception(e)
 
@@ -276,7 +285,7 @@ class ResourceRouter(abc.ABC):
 
     def get_resource_count_func(self):
         """
-        Gets the total number of resources from the database.
+        Gets the total number of published resources from the database.
         This function returns a function (instead of being that function directly) because the
         docstring and the variables are dynamic, and used in Swagger.
         """
@@ -291,7 +300,11 @@ class ResourceRouter(abc.ABC):
                     if not detailed:
                         return (
                             session.query(self.resource_class)
-                            .where(is_(self.resource_class.date_deleted, None))
+                            .join(self.resource_class.aiod_entry, isouter=True)
+                            .where(
+                                is_(self.resource_class.date_deleted, None),
+                                AIoDEntryORM.status == EntryStatus.PUBLISHED,
+                            )
                             .count()
                         )
                     else:
@@ -300,7 +313,11 @@ class ResourceRouter(abc.ABC):
                                 self.resource_class.platform,
                                 func.count(self.resource_class.identifier),
                             )
-                            .where(is_(self.resource_class.date_deleted, None))
+                            .join(self.resource_class.aiod_entry, isouter=True)
+                            .where(
+                                is_(self.resource_class.date_deleted, None),
+                                AIoDEntryORM.status == EntryStatus.PUBLISHED,
+                            )
                             .group_by(self.resource_class.platform)
                             .all()
                         )
@@ -359,7 +376,7 @@ class ResourceRouter(abc.ABC):
             resource = self.get_resource(
                 identifier=identifier, schema=schema, user=user, platform=None
             )
-            return self._wrap_with_headers(resource)
+            return resource
 
         return get_resource
 
@@ -405,16 +422,42 @@ class ResourceRouter(abc.ABC):
             resource_create: clz_create,  # type: ignore
             user: KeycloakUser = Depends(get_user_or_raise),
         ):
+            platform = getattr(resource_create, "platform", None)
+            platform_resource_identifier = getattr(
+                resource_create, "platform_resource_identifier", None
+            )
+            if user.is_connector:
+                # Check if connector belongs to the specific platform it is registering the resource for.
+                if platform is None or not user.is_connector_for_platform(platform):
+                    raise HTTPException(
+                        status_code=HTTPStatus.FORBIDDEN,
+                        detail=f"No permission to upload assets for {platform} platform.",
+                    )
+                if platform_resource_identifier is None:
+                    raise HTTPException(
+                        status_code=HTTPStatus.FORBIDDEN,
+                        detail=f"Platform resource identifier may not be none.",
+                    )
+
+            # 2. Normal user: must NOT provide platform/platform_resource_identifier
+            else:
+                if platform is not None or platform_resource_identifier is not None:
+                    raise HTTPException(
+                        status_code=HTTPStatus.FORBIDDEN,
+                        detail="No permission to set platform or platform resource identifier.",
+                    )
+
             try:
                 with DbSession() as session:
                     try:
-                        resource = self.create_resource(session, resource_create)
+                        resource = self.create_resource(session, resource_create, user)
+
                         register_user(user, session)
                         set_permission(
                             user, resource.aiod_entry, session, type_=PermissionType.ADMIN
                         )
                         session.commit()
-                        return self._wrap_with_headers({"identifier": resource.identifier})
+                        return {"identifier": resource.identifier}
                     except Exception as e:
                         self._raise_clean_http_exception(e, session, resource_create)
             except Exception as e:
@@ -422,13 +465,25 @@ class ResourceRouter(abc.ABC):
 
         return register_resource
 
-    def create_resource(self, session: Session, resource_create_instance: SQLModel):
+    def create_resource(
+        self,
+        session: Session,
+        resource_create_instance: SQLModel,
+        user: KeycloakUser | None = None,
+    ):
         """Store a resource in the database"""
         resource = self.resource_class.from_orm(resource_create_instance)
         deserialize_resource_relationships(
-            session, self.resource_class, resource, resource_create_instance
+            session, self.resource_class, resource, resource_create_instance, user
         )
         session.add(resource)
+        session.flush()
+
+        if resource.platform is None and resource.platform_resource_identifier is None:
+            # Set these fields as required for normal users
+            resource.platform = PlatformName.aiod
+            resource.platform_resource_identifier = resource.identifier
+
         session.commit()
         return resource
 
@@ -441,7 +496,7 @@ class ResourceRouter(abc.ABC):
         clz_create = self.resource_class_create
 
         def put_resource(
-            identifier: int,
+            identifier: str,
             resource_create_instance: clz_create,  # type: ignore
             user: KeycloakUser = Depends(get_user_or_raise),
         ):
@@ -467,7 +522,7 @@ class ResourceRouter(abc.ABC):
                             new_value = getattr(resource_create_instance, attribute_name)
                             setattr(resource, attribute_name, new_value)
                     deserialize_resource_relationships(
-                        session, self.resource_class, resource, resource_create_instance
+                        session, self.resource_class, resource, resource_create_instance, user
                     )
                     if hasattr(resource, "aiod_entry"):
                         resource.aiod_entry.date_modified = datetime.datetime.utcnow()
@@ -476,7 +531,7 @@ class ResourceRouter(abc.ABC):
                         session.commit()
                     except Exception as e:
                         self._raise_clean_http_exception(e, session, resource_create_instance)
-                    return self._wrap_with_headers(None)
+                    return None
                 except Exception as e:
                     raise self._raise_clean_http_exception(e, session, resource_create_instance)
 
@@ -514,7 +569,7 @@ class ResourceRouter(abc.ABC):
                         resource.date_deleted = datetime.datetime.utcnow()
                         session.add(resource)
                     session.commit()
-                    return self._wrap_with_headers(None)
+                    return None
                 except Exception as e:
                     raise as_http_exception(e)
 
@@ -552,7 +607,7 @@ class ResourceRouter(abc.ABC):
                 )
                 session.add(review_request)
                 session.commit()
-                return self._wrap_with_headers({"submission_identifier": review_request.identifier})
+                return {"submission_identifier": review_request.identifier}
 
         return submit_resource
 
@@ -612,8 +667,8 @@ class ResourceRouter(abc.ABC):
         platform: str | None = None,
     ) -> Sequence[type[RESOURCE_MODEL]]:
         """
-        Retrieve a sequence of resources from the database based on the provided identifier,
-        platform and resource filters (if applicable).
+        Retrieve a sequence of published resources from the database based on the
+        provided identifier, platform and resource filters (if applicable).
         """
         where_clause = and_(
             is_(self.resource_class.date_deleted, None),
@@ -624,6 +679,7 @@ class ResourceRouter(abc.ABC):
             AIoDEntryORM.date_modified < resource_filters.date_modified_before
             if resource_filters.date_modified_before is not None
             else True,
+            AIoDEntryORM.status == EntryStatus.PUBLISHED,
         )
         query = (
             select(self.resource_class)
@@ -693,15 +749,6 @@ class ResourceRouter(abc.ABC):
             ),
         ]
 
-    def _wrap_with_headers(self, resource):
-        if self.deprecated_from is None:
-            return resource
-        timestamp = datetime.datetime.combine(
-            self.deprecated_from, datetime.time.min, tzinfo=datetime.timezone.utc
-        ).timestamp()
-        headers = {"Deprecated": format_date_time(timestamp)}
-        return JSONResponse(content=jsonable_encoder(resource, exclude_none=True), headers=headers)
-
     def _raise_clean_http_exception(
         self, e: Exception, session: Session, resource_create: AIoDConcept
     ):
@@ -717,6 +764,11 @@ class ResourceRouter(abc.ABC):
                 "contact the maintainers.",
             ) from e
         error = e.args[0]
+        if isinstance(e, ValueError) and "taxonomy" in error:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=error,
+            )
         # Note that the "real" errors are different from testing errors, because we use a
         # sqlite db while testing and a mysql db when running the application. The correct error
         # handling is therefore not tested. TODO: can we improve this?

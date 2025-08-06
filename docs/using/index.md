@@ -4,11 +4,17 @@ The REST API allows you to retrieve, update, or remove asset metadata in the met
 The assets are indexed from many different platforms, such as educational resources from [AIDA](https://www.i-aida.org),
 datasets from [HuggingFace](https://huggingface.co), models from [OpenML](https://openml.org), and many more.
 
-The REST API is available at [`https://api.aiod.eu`](https://api.aiod.eu) and documentation on endpoints
+The REST API is available at [https://api.aiod.eu](https://api.aiod.eu) and documentation on endpoints
 is available on complementary [Swagger](https://api.aiod.eu/docs) and [ReDoc](https://api.aiod.eu/redoc) pages.
 
 To use the REST API, simply make HTTP requests to the different endpoints.
-Generally, these are `GET` requests when retrieving data, `PUT` requests when modifying data, `POST` requests when adding data, and `DEL` requests when deleting data.
+Generally, these are `GET` requests when retrieving data, `PUT` requests when modifying data, `POST` requests when adding data, and `DEL` requests when deleting data. The video and text below show examples on how to use the REST API.
+
+## Introduction Video
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/2nDj1_VjcWM?si=ncD7xaifSmbU5uzZ" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+## A Quick Example
 Here are some examples on how to list datasets in different environments:
 
 === "Python (requests)"
