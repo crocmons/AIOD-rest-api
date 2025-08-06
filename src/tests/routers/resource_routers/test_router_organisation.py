@@ -4,29 +4,31 @@ from unittest.mock import Mock
 from starlette.testclient import TestClient
 
 from database.model.agent.contact import Contact
-from database.model.agent.organisation import Organisation, OrganisationTurnover,EmployeeCount
+from database.model.agent.organisation import Organisation, Turnover,NumberOfEmployees
 from database.session import DbSession
 
 import pytest
 
 from taxonomies.synchronize_taxonomy import synchronize
 
+STANDARD_TURNOVER_VALUES = ["<1 million euros", ">1 million euros", ">3 million euros", ">5 million euros", ">50 million euros", ">1.5 billion euros"]
+
 @pytest.fixture
 def with_organisation_taxonomies():
     with DbSession() as session:
         synchronize(
-            EmployeeCount,
+            NumberOfEmployees,
             [
-                EmployeeCount(name=value,definition="", official=True, children=[])
+                NumberOfEmployees(name=value,definition="", official=True, children=[])
                 for value in ["<10", "<50", "<250", ">=250"]
             ],
             session
         )
         synchronize(
-            OrganisationTurnover,
+            Turnover,
             [
-                OrganisationTurnover(name=value,definition="", official=True, children=[])
-                for value in ["<1m €", ">1m €", ">3m €", ">5m €", ">50m €", ">1.5b €"]
+                Turnover(name=value,definition="", official=True, children=[])
+                for value in STANDARD_TURNOVER_VALUES
             ],
             session
         )
@@ -48,7 +50,7 @@ def test_happy_path(
     body["legal_name"] = "A name for the organisation"
     body["ai_relevance"] = "Part of CLAIRE"
     body["type"] = "Research Institute"
-    body["turnover"] = "<1m €"
+    body["turnover"] = "<1 million euros"
     with DbSession() as session:
         session.add(organisation)  # The new organisation will be a member of this organisation
         session.add(contact)
@@ -74,7 +76,7 @@ def test_happy_path(
     assert response_json["legal_name"] == "A name for the organisation"
     assert response_json["ai_relevance"] == "Part of CLAIRE"
     assert response_json["type"] == "research institute"
-    assert response_json["turnover"] == "<1m €"
+    assert response_json["turnover"] == "<1 million euros"
     assert response_json["member"] == body["member"]
     assert response_json["contact_details"] == body["contact_details"]
     assert response_json["contacts"][0]["name"] == "Aaron Bar"
@@ -108,43 +110,6 @@ def test_happy_path(
 
     response = client.delete(f"/organisations/{identifier}", headers={"Authorization": "Fake token"})
     assert response.status_code == 200, response.json()
-
-
-@pytest.mark.parametrize("field, invalid_value, expected_values", [
-    ("turnover", "100m €", ["<1m €", ">1m €", ">3m €", ">5m €", ">50m €", ">1.5b €"]),
-    ("number_of_employees", "1000", ["<10", "<50", "<250", ">=250"]),
-
-])
-def test_invalid_literal_values_for_turnover_and_employees(
-    client: TestClient,
-    mocked_privileged_token: Mock,
-    organisation: Organisation,
-    contact: Contact,
-    body_agent: dict,
-    field: str,
-    invalid_value: str,
-    expected_values: list,
-    with_organisation_taxonomies,
-):
-    with DbSession() as session:
-        session.add(organisation)  # The new organisation will be a member of this organisation
-        session.add(contact)
-        session.commit()
-
-    body = copy.copy(body_agent)
-    body["platform_resource_identifier"] = "2"
-    body["date_founded"] = "2023-01-01"
-    body["legal_name"] = "Test Org"
-    body["ai_relevance"] = "AI focused"
-    body["type"] = "Research Institute"
-    body["member"] = [1]
-    body["contact_details"] = 1
-    body[field] = invalid_value
-
-    response = client.post("/organisations", json=body, headers={"Authorization": "Fake token"})
-
-    for value in expected_values:
-        assert value in response.json()["detail"][0]["msg"]
 
 
 def test_ai_resource_contacts_field_is_ignored(

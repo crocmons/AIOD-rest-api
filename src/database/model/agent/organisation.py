@@ -19,12 +19,10 @@ from database.model.serializers import (
 )
 
 
-OrganisationTurnover: type[Taxonomy] = create_taxonomy(
-    class_name="OrganisationTurnover", table_name="organisation_turnover"
-)
+Turnover: type[Taxonomy] = create_taxonomy(class_name="Turnover", table_name="turnover")
 
-EmployeeCount: type[Taxonomy] = create_taxonomy(
-    class_name="EmployeeCount", table_name="employee_count"
+NumberOfEmployees: type[Taxonomy] = create_taxonomy(
+    class_name="NumberOfEmployees", table_name="number_of_employees"
 )
 
 
@@ -66,17 +64,17 @@ class Organisation(OrganisationBase, Agent, table=True):  # type: ignore [call-a
 
     turnover_identifier: int | None = Field(
         default=None,
-        foreign_key="organisation_turnover.identifier",
+        foreign_key="turnover.identifier",
         description="The revenue bracket of the organisation.",
     )
-    turnover: Optional[OrganisationTurnover] = Relationship()  # type: ignore[valid-type]
+    turnover: Optional[Turnover] = Relationship()  # type: ignore[valid-type]
 
     number_of_employees_identifier: int | None = Field(
         default=None,
-        foreign_key="employee_count.identifier",
+        foreign_key="number_of_employees.identifier",
         description="The employee size bracket of the organisation.",
     )
-    number_of_employees: Optional[EmployeeCount] = Relationship()  # type: ignore[valid-type]
+    number_of_employees: Optional[NumberOfEmployees] = Relationship()  # type: ignore[valid-type]
 
     class RelationshipConfig(Agent.RelationshipConfig):
         contact_details: str | None = OneToOne(
@@ -100,24 +98,21 @@ class Organisation(OrganisationBase, Agent, table=True):  # type: ignore [call-a
             default_factory_pydantic=list,
         )
 
-        turnover: Optional[Literal["<1m €", ">1m €", ">3m €", ">5m €", ">50m €", ">1.5b €"]] = (
-            ManyToOne(
-                description="The approximate revenue bracket of the organisation in euros (e.g., '<1m €', '>1.5b €').",
-                identifier_name="turnover_identifier",
-                _serializer=AttributeSerializer("name"),
-                deserializer=FindByNameDeserializer(OrganisationTurnover),
-                example=">5m €",
-            )
+        turnover: Optional[str] = ManyToOne(
+            description="The approximate revenue bracket of the organisation in euros, see the taxonomy for more details.",
+            identifier_name="turnover_identifier",
+            _serializer=AttributeSerializer("name"),
+            deserializer=FindByNameDeserializer(Turnover),
+            example=">5 million euros",
         )
 
-        number_of_employees: Optional[Literal["<10", "<50", "<250", ">=250"]] = ManyToOne(
+        number_of_employees: Optional[str] = ManyToOne(
             description=(
-                "The number of employees of the organisation. "
-                "Allowed values: [<10, <50, <250, >=250]"
+                "The number of employees of the organisation, see the taxonomy for more details."
             ),
             identifier_name="number_of_employees_identifier",
             _serializer=AttributeSerializer("name"),
-            deserializer=FindByNameDeserializer(EmployeeCount),
+            deserializer=FindByNameDeserializer(NumberOfEmployees),
             example="<10",
         )
 
