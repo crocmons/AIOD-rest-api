@@ -28,7 +28,7 @@ def upgrade():
     op.create_foreign_key(
         "fk_organisation_turnover_identifier",
         "organisation",
-        "company_revenue",
+        "turnover",
         ["turnover_identifier"],
         ["identifier"],
     )
@@ -36,7 +36,7 @@ def upgrade():
     op.create_foreign_key(
         "fk_organisation_number_of_employees_identifier",
         "organisation",
-        "company_revenue",
+        "number_of_employees",
         ["number_of_employees_identifier"],
         ["identifier"],
     )
