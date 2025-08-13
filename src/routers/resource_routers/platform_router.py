@@ -5,7 +5,6 @@ from fastapi import Depends, HTTPException, status, APIRouter
 from sqlmodel import SQLModel, Session, select
 
 from authentication import KeycloakUser, get_user_or_raise
-from config import KEYCLOAK_CONFIG
 from database.model.platform.platform import Platform
 from database.model.resource_read_and_create import resource_create, resource_read
 from database.model.serializers import deserialize_resource_relationships
@@ -59,23 +58,25 @@ class PlatformRouter:
         response_model_plural = list[self.resource_class_read]  # type:ignore
 
         router.add_api_route(
-            path=f"{url_prefix}/{self.resource_name_plural}/{version}",
+            path=f"/{self.resource_name_plural}",
             endpoint=self.get_resources_func(),
             response_model=response_model_plural,  # type: ignore
             name=f"List {self.resource_name_plural}",
             description=f"Retrieve all meta-data of the {self.resource_name_plural}.",
             **default_kwargs,
         )
+
         router.add_api_route(
-            path=f"{url_prefix}/counts/{self.resource_name_plural}/{version}",
+            path=f"/counts/{self.resource_name_plural}",
             endpoint=self.get_resource_count_func(),
             response_model=int | dict[str, int],
             name=f"Count of {self.resource_name_plural}",
             description=f"Retrieve the number of {self.resource_name_plural}.",
             **default_kwargs,
         )
+
         router.add_api_route(
-            path=f"{url_prefix}/{self.resource_name_plural}/{version}",
+            path=f"/{self.resource_name_plural}",
             methods={"POST"},
             endpoint=self.register_resource_func(),
             name=self.resource_name,
@@ -83,7 +84,7 @@ class PlatformRouter:
             **default_kwargs,
         )
         router.add_api_route(
-            path=url_prefix + f"/{self.resource_name_plural}/{version}/{{identifier}}",
+            path=f"/{self.resource_name_plural}/{{identifier}}",
             endpoint=self.get_resource_func(),
             response_model=response_model,  # type: ignore
             name=self.resource_name,
@@ -91,16 +92,18 @@ class PlatformRouter:
             "identifier.",
             **default_kwargs,
         )
+
         router.add_api_route(
-            path=f"{url_prefix}/{self.resource_name_plural}/{version}/{{identifier}}",
+            path=f"/{self.resource_name_plural}/{{identifier}}",
             methods={"PUT"},
             endpoint=self.put_resource_func(),
             name=self.resource_name,
             description=f"Update an existing {self.resource_name}.",
             **default_kwargs,
         )
+
         router.add_api_route(
-            path=f"{url_prefix}/{self.resource_name_plural}/{version}/{{identifier}}",
+            path=f"/{self.resource_name_plural}/{{identifier}}",
             methods={"DELETE"},
             endpoint=self.delete_resource_func(),
             name=self.resource_name,
@@ -178,11 +181,7 @@ class PlatformRouter:
             resource_create: clz_create,  # type: ignore
             user: KeycloakUser = Depends(get_user_or_raise),
         ):
-            if not user.has_any_role(
-                KEYCLOAK_CONFIG.get("role"),
-                f"create_{self.resource_name_plural}",
-                f"crud_{self.resource_name_plural}",
-            ):
+            if not user.has_role("create_platforms"):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=f"You do not have permission to create {self.resource_name_plural}.",
@@ -190,7 +189,7 @@ class PlatformRouter:
             try:
                 with DbSession() as session:
                     try:
-                        resource = self.create_resource(session, resource_create)
+                        resource = self.create_resource(session, resource_create, user)
                         return {"identifier": resource.identifier}
                     except Exception as e:
                         self._raise_clean_http_exception(e, session)
@@ -199,11 +198,13 @@ class PlatformRouter:
 
         return register_resource
 
-    def create_resource(self, session: Session, resource_create_instance: SQLModel):
+    def create_resource(
+        self, session: Session, resource_create_instance: SQLModel, user: KeycloakUser | None = None
+    ):
         """Store a resource in the database"""
         resource = self.resource_class.model_validate(resource_create_instance)
         deserialize_resource_relationships(
-            session, self.resource_class, resource, resource_create_instance
+            session, self.resource_class, resource, resource_create_instance, user
         )
         session.add(resource)
         session.commit()
@@ -222,11 +223,7 @@ class PlatformRouter:
             resource_create_instance: clz_create,  # type: ignore
             user: KeycloakUser = Depends(get_user_or_raise),
         ):
-            if not user.has_any_role(
-                KEYCLOAK_CONFIG.get("role"),
-                f"update_{self.resource_name_plural}",
-                f"crud_{self.resource_name_plural}",
-            ):
+            if not user.has_role("update_platforms"):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=f"You do not have permission to edit {self.resource_name_plural}.",
@@ -240,7 +237,7 @@ class PlatformRouter:
                             new_value = getattr(resource_create_instance, attribute_name)
                             setattr(resource, attribute_name, new_value)
                     deserialize_resource_relationships(
-                        session, self.resource_class, resource, resource_create_instance
+                        session, self.resource_class, resource, resource_create_instance, user
                     )
                     try:
                         session.merge(resource)
@@ -265,11 +262,7 @@ class PlatformRouter:
             user: KeycloakUser = Depends(get_user_or_raise),
         ):
             with DbSession() as session:
-                if not user.has_any_role(
-                    KEYCLOAK_CONFIG.get("role"),
-                    f"delete_{self.resource_name_plural}",
-                    f"crud_{self.resource_name_plural}",
-                ):
+                if not user.has_role("delete_platforms"):
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail=f"You do not have permission to delete {self.resource_name_plural}.",

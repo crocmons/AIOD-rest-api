@@ -26,8 +26,8 @@ There are two ways to integrate external identity providers (e.g. Google, [EGI C
 Create both a private and a public client in the external provider (this step is required for both options below).
 
 ### Option 1: Update the configuration files
-   - Replace `KEYCLOAK_CLIENT_SECRET` in `.env.override` with the value provided by the external IdP.
-   - Update `server_url`, `client_idr`, `client_id_swagger` `openid_connect_url` and `scopes` in `./src/config.override.toml`.
+   - Replace `KEYCLOAK_CLIENT_SECRET` in `override.env` with the value provided by the external IdP.
+   - Update `server_url`, `client_id`, `client_id_swagger` `openid_connect_url` and `scopes` in `./src/config.override.toml`.
    - In this setup, the Keycloak container is not required and can be shut down.
 ### Option 2: use keycloak as an identity broker
    - Details can be found in the Keycloak documentation: [Integrating identity providers](https://www.keycloak.org/docs/latest/server_admin/index.html#_identity_broker).
@@ -38,7 +38,17 @@ Create both a private and a public client in the external provider (this step is
 ## Roles
 
 Roles identify a type or category of user and determine their access and permissions within applications.
-Currently, only the ` edit_aiod_resources` role is defined, granting users the ability to upload and edit resources.
+Roles are generally only necessary for special cases.
+The normal flow for granting individual users permissions for individual assets is detailed in the ["user model"](../developer/users.md) documentation.
+These are the roles the metadata catalogue uses (`*` in a role indicates its defined for each asset type individually):
+
+ * `review_aiod_resources`: identifies the user as having permission to view asset submissions and review them.
+ * `read_*`: allows the user read access to all assets on the platform, regardless of the asset-specific permissions.
+ * `update_*`: allows the user update permission for all assets on the platform, regardless of the asset-specific permissions.
+ * `delete_*`: allows the user delete permission for all assets on the platform, regardless of the asset-specific permissions.
+ * `create_platforms`: allows the user to define new platforms.
+ * `platform_NAME`: identifies the 'user' as being allowed to register assets of platform 'NAME', used for connectors.
+
 Note that roles may be used for services other than the metadata catalogue.
 New roles can be created from the admin console, see ["Creating a realm role"](https://www.keycloak.org/docs/latest/server_admin/index.html#proc-creating-realm-roles_server_administration_guide).
 
@@ -75,3 +85,4 @@ docker exec -it keycloak /opt/keycloak/bin/kc.sh export --dir /opt/keycloak/data
 This puts the exported files in the `${DATA_PATH}/keycloak/data/export` directory.
 
 To **import**, just place the export files into the `{DATA_PATH}/keycloak/data/import` directory.
+When running the `develop` preset using `USE_LOCAL_DEV=true`, the import directly is populated by the data found in `./authentication/import/`.

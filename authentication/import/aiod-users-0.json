@@ -1,0 +1,63 @@
+{
+  "realm" : "aiod",
+  "users" : [ {
+    "id" : "5e827ac1-259d-406a-b3de-cf4f79f88364",
+    "username" : "reviewer",
+    "emailVerified" : false,
+    "createdTimestamp" : 1739270119298,
+    "enabled" : true,
+    "totp" : false,
+    "credentials" : [ {
+      "id" : "f1d002bb-fe3a-4e2f-98bc-d59e106b9cef",
+      "type" : "password",
+      "userLabel" : "My password",
+      "createdDate" : 1739270134064,
+      "secretData" : "{\"value\":\"ln0H8nywxRLL3RMRrZLRWxpLVxUs2uIMfWI88hXdaV1arQM6X3d8ifu22fMVT6SCG4qmcacTez5wyVz1f3BNKA==\",\"salt\":\"ShLn7knzRoD3EgiFWt3n5w==\",\"additionalParameters\":{}}",
+      "credentialData" : "{\"hashIterations\":210000,\"algorithm\":\"pbkdf2-sha512\",\"additionalParameters\":{}}"
+    } ],
+    "disableableCredentialTypes" : [ ],
+    "requiredActions" : [ ],
+    "realmRoles" : [ "default-roles-aiod", "review_aiod_resources" ],
+    "notBefore" : 0,
+    "groups" : [ ]
+  }, {
+    "id" : "89a75223-67dc-4f84-aac9-674fa1769ba6",
+    "username" : "service-account-aiod-api",
+    "emailVerified" : false,
+    "createdTimestamp" : 1689156970757,
+    "enabled" : true,
+    "totp" : false,
+    "serviceAccountClientId" : "aiod-api",
+    "credentials" : [ ],
+    "disableableCredentialTypes" : [ ],
+    "requiredActions" : [ ],
+    "realmRoles" : [ "default-roles-aiod" ],
+    "clientRoles" : {
+      "aiod-api" : [ "uma_protection" ]
+    },
+    "notBefore" : 0,
+    "groups" : [ ]
+  }, {
+    "id" : "4a80f256-3928-4cfa-ba66-5e22bb36fc01",
+    "username" : "user",
+    "firstName" : "",
+    "lastName" : "",
+    "emailVerified" : false,
+    "createdTimestamp" : 1689685331612,
+    "enabled" : true,
+    "totp" : false,
+    "credentials" : [ {
+      "id" : "d2a2b1de-0f42-4dc3-9ad7-d26b62dcc531",
+      "type" : "password",
+      "userLabel" : "My password",
+      "createdDate" : 1689685345632,
+      "secretData" : "{\"value\":\"fT1UBmMhrRt/Z/0DL5YdyFM/9yAP5YyE4DQOhHsD8DyEp66qo+ZQ5tGiMhCeBMTVFHoG4wOP3LakEXOCvtBADA==\",\"salt\":\"FL4nLEZy2MRRMb5rH8ylHA==\",\"additionalParameters\":{}}",
+      "credentialData" : "{\"hashIterations\":210000,\"algorithm\":\"pbkdf2-sha512\",\"additionalParameters\":{}}"
+    } ],
+    "disableableCredentialTypes" : [ ],
+    "requiredActions" : [ ],
+    "realmRoles" : [ "default-roles-aiod"],
+    "notBefore" : 0,
+    "groups" : [ ]
+  } ]
+}
