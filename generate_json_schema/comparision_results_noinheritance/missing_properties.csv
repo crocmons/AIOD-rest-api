@@ -1,18 +1,12 @@
-Entity,Property 1,Property 2,Property 3,Property 4,Property 5,Property 6,Property 7,Property 8,Property 9,Property 10,Property 11,Property 12,Property 13,Property 14,Property 15
-service,service_category,use_case_example,service_type,service_status,provider,conditions,prerequisites,coverage,,,,,,,
-aiodentry,entry_published,content,modified,entry_created,,,,,,,,,,,
-dataset,pid,variable_measured,,,,,,,,,,,,,
-mlmodel,training_status,,,,,,,,,,,,,,
-aiodconcept,sameas,relevant_link,,,,,,,,,,,,,
-runnabledistribution,other_dependency,compilation_process,execution_time_msec,deployment_process,deployment_time_msec,software_dependency,compilation_time_msec,,,,,,,,
-person,member_of,languages,,,,,,,,,,,,,
-organisation,turnover,number_of_employees,,,,,,,,,,,,,
-event,event_mode,project,duration,event_status,,,,,,,,,,,
-computationalasset,pricing_scheme,os,kernel,,,,,,,,,,,,
-airesource,business_sector,documented_in,part_of,location,,,,,,,,,,,
-aiasset,date_created,applies,pricing,licence,,,,,,,,,,,
-educationalresource,offered_by,qualification,schedule,uses_resource,under_classification,enrollment_start_date,offered_via,end_date,prerequisite_knowledge,enrollment_end_date,taught_by,expected_outcome,learning_mode,cost,start_date
-experiment,exemplary_execution_settings,uses_dataset,uses_model,,,,,,,,,,,,
-distribution,date_modified,has_computational_requirement,,,,,,,,,,,,,
-project,total_cost_euros,,,,,,,,,,,,,,
-publication,has_isbn,has_issn,,,,,,,,,,,,,
+Entity,Property 1,Property 2,Property 3,Property 4,Property 5,Property 6,Property 7,Property 8,Property 9
+service,prerequisites,service type,service status,provider,support languages,conditions,service category,use case example,coverage
+experiment,exemplary execution settings,uses dataset,reproducibility explanation,uses model,experimental workflow,,,,
+agent,has platform account,contact info,,,,,,,
+event,duration,start date,registration link,related asset,event mode,end date,project,event status,
+person,member of,speak languages,,,,,,,
+publication,pid,has issn,has isbn,,,,,,
+organisation,organisation type,date founded,legal name,ai relevance,,,,,
+location,latitude,region,elevation m,longitude,city,number,postal code,street,
+dataset,pid,dataset type,spatial coverage,measurement technique,variable measured,temporal coverage,,,
+distribution,date published,content url,has computational requiremnt,technology readiness level,encoding format,date created,checksum algorithm,content size kb,date motdified
+project,total cost euros,project funder,,,,,,,

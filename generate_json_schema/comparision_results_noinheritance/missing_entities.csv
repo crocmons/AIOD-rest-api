@@ -1,87 +1,92 @@
 Missing Entities
-computationalrequirement
-provenancestatement
-experimentexecution
-saas
-rightsstatement
-researchproblem
-workflowexecutionstep
-successstory
-cpu
+ecosystem resource
+announcement
+accelerator
 operation
-mediatype
-training
-datadownload
-tutorial
-platformaccount
-protocol
-bibliographicresource
-licensedocument
-physicalresource
-expertgroup
-purpose
-businessfunction
-jobannouncement
-problem
-physicalmedium
-locationperiodorjurisdiction
-frequency
-businessproblem
-policy
-model
-class
+expert group
+experiment execution
+risk
+ec project
+workflow step
+computational asset
+job announcement
+course
+size
+computational requirement
 presentation
+memory
+storage
 solution
-ecosystemresource
 video
 audio
-workflowstep
-mediatypeorextent
-periodoftime
-jurisdiction
-size
-opencallproject
-risk
-fundingopportunity
-storageasset
-computecomponent
-cloudcomputeasset
-storage
-innovationservice
-methodofinstruction
 library
-container
-safetyandtrustservice
-announcement
-workflowexecution
-sizeorduration
-approach
-datamodel
-ecproject
-informationalservice
-companyrevenue
-fileformat
-challenge
-image
-dataservice
-agentclass
-vocabularyencodingscheme
-contactdetails
-course
-computeasset
-notebook
-businesssector
-workflow
-documentaryresource
-multimedia
-classification
-newsitem
-methodofaccrual
-memory
-requirement
-linguisticsystem
+success story
+contact details
+company revenue
 assessment
+radar
+robot model
+classification
+lidar
+image
+temperature sensor
+aiod entry
+data model
+ml model
+training
+ai resource
+data service
+ai asset
+innovation service
+workflow
+actor
+workflow execution
+compute asset
+sonar
+business problem
+protocol
+robotic equipment
+problem
+requirement
+notebook
 standard
-accelerator
-companysize
-developerservice
+saas
+storage asset
+platform account
+challenge
+camera
+business sector
+cloud compute asset
+open call project
+business function
+documentary resource
+sensor
+news category
+device
+map
+approach
+workflow execution step
+purpose
+scientific domain
+actuation
+funding opportunity
+data download
+multimedia
+cpu
+company size
+tutorial
+container
+model
+news item
+compute component
+aiod concept
+case study
+informational service
+knowledge asset
+resource bundle
+educational resource
+research area
+developer service
+runnable distribution
+safety and trust service
+research problem
