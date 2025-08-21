@@ -1,0 +1,13 @@
+apiVersion: 1
+datasources:
+  - uid: mysql
+    name: API MySQL
+    type: mysql
+    access: proxy
+    url: ${GRAFANA_MYSQL_HOST}:${GRAFANA_MYSQL_PORT}
+    database: ${GRAFANA_MYSQL_DB}
+    user: ${GRAFANA_MYSQL_USER}
+    secureJsonData:
+      password: ${GRAFANA_MYSQL_PASSWORD}
+    isDefault: false
+    editable: false

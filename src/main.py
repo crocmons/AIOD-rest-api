@@ -9,7 +9,7 @@ import argparse
 import logging
 from pathlib import Path
 
-import pkg_resources
+from importlib.metadata import version as pkg_version, PackageNotFoundError
 import uvicorn
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
@@ -43,6 +43,9 @@ from routers import (
     bookmark_router,
     asset_router,
 )
+from prometheus_fastapi_instrumentator import Instrumentator
+from middleware.access_log import AccessLogMiddleware
+from routers.access_stats_router import create as create_access_stats_router
 from versioning import (
     versions,
     add_version_to_openapi,
@@ -97,6 +100,8 @@ def add_routes(app: FastAPI, version: Version, url_prefix=""):
     ):
         app.include_router(router.create(url_prefix, version))
 
+    app.include_router(create_access_stats_router(url_prefix))
+
 
 def create_app() -> FastAPI:
     """Create the FastAPI application, complete with routes."""
@@ -120,8 +125,11 @@ def create_app() -> FastAPI:
             raise ValueError(f"dev.taxonomy must be a path to a file, but is {taxonomy_path!r}.")
         synchronize_taxonomy_from_file(taxonomy_file)
 
-    pyproject_toml = pkg_resources.get_distribution("aiod_metadata_catalogue")
-    app = build_app(url_prefix=DEV_CONFIG.get("url_prefix", ""), version=pyproject_toml.version)
+    try:
+        dist_version = pkg_version("aiod_metadata_catalogue")
+    except PackageNotFoundError:
+        dist_version = "dev"
+    app = build_app(url_prefix=DEV_CONFIG.get("url_prefix", ""), version=dist_version)
     return app
 
 
@@ -149,23 +157,34 @@ def build_app(*, url_prefix: str = "", version: str = "dev"):
         version="latest",
         **kwargs,
     )
-    add_routes(main_app, version=Version.LATEST)
-    main_app.add_exception_handler(HTTPException, http_exception_handler)
-    add_version_to_openapi(main_app, root_path=url_prefix)
-
-    for version, info in versions.items():
-        if info.retired:
-            continue
-        app = FastAPI(
-            title=f"AIoD Metadata Catalogue {version}",
-            version=f"{version}",
-            **kwargs,
+    versioned_apps = [
+        (
+            FastAPI(
+                title=f"AIoD Metadata Catalogue {version}",
+                version=f"{version}",
+                **kwargs,
+            ),
+            version,
         )
+        for version, info in versions.items()
+        if not info.retired
+    ]
+    for app, version in [(main_app, Version.LATEST)] + versioned_apps:
         add_routes(app, version=version)
         app.add_exception_handler(HTTPException, http_exception_handler)
         add_deprecation_and_sunset_middleware(app)
         add_version_to_openapi(app, root_path=url_prefix)
-        main_app.mount(f"/{version}", app)
+
+    Instrumentator().instrument(main_app).expose(
+        main_app, endpoint="/metrics", include_in_schema=False
+    )
+    # Since all traffic goes through the main app, this middleware only
+    # needs to be registered with the main app and not the mounted apps.
+    main_app.add_middleware(AccessLogMiddleware)
+
+    for app, _ in versioned_apps:
+        main_app.mount(f"/{app.version}", app)
+
     return main_app
 
 
