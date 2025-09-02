@@ -14,6 +14,7 @@ import uvicorn
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from sqlmodel import select, SQLModel
+from starlette.requests import Request
 
 from authentication import get_user_or_raise, KeycloakUser, assert_required_settings_configured
 from config import KEYCLOAK_CONFIG, DB_CONFIG, DEV_CONFIG
@@ -57,17 +58,19 @@ from versioning import (
 def add_routes(app: FastAPI, version: Version, url_prefix=""):
     """Add routes to the FastAPI application"""
 
-    @app.get(url_prefix + "/", include_in_schema=False, response_class=HTMLResponse)
-    def home() -> str:
+    @app.get("/", include_in_schema=False, response_class=HTMLResponse)
+    def home(request: Request) -> str:
         """Provides a redirect page to the docs."""
-        return """
+        proxy_prefix = request.headers.get("x-forwarded-prefix", "")
+        prefix = proxy_prefix + version.prefix
+        return f"""
         <!DOCTYPE html>
         <html>
           <head>
-            <meta http-equiv="refresh" content="0; url='docs'" />
+            <meta http-equiv="refresh" content="0; url='{prefix}/docs'" />
           </head>
           <body>
-            <p>The REST API documentation is <a href="docs">here</a>.</p>
+            <p>The REST API documentation is <a href="{prefix}/docs">here</a>.</p>
           </body>
         </html>
         """
@@ -152,7 +155,6 @@ def build_app(*, url_prefix: str = "", version: str = "dev"):
         },
     )
     main_app = FastAPI(
-        root_path=url_prefix,
         title="AI-on-Demand Metadata Catalogue REST API",
         version="latest",
         **kwargs,
@@ -173,7 +175,7 @@ def build_app(*, url_prefix: str = "", version: str = "dev"):
         add_routes(app, version=version)
         app.add_exception_handler(HTTPException, http_exception_handler)
         add_deprecation_and_sunset_middleware(app)
-        add_version_to_openapi(app, root_path=url_prefix)
+        add_version_to_openapi(app)
 
     Instrumentator().instrument(main_app).expose(
         main_app, endpoint="/metrics", include_in_schema=False

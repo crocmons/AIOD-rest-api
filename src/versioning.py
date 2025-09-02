@@ -13,7 +13,11 @@ from typing import NamedTuple
 
 from fastapi import FastAPI
 from starlette.requests import Request
-from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
+from fastapi.openapi.docs import (
+    get_swagger_ui_html,
+    get_redoc_html,
+    get_swagger_ui_oauth2_redirect_html,
+)
 from starlette.responses import HTMLResponse
 
 from config import CONFIG, default_config_path
@@ -27,6 +31,12 @@ class Version(StrEnum):
     V2 = auto()
     V3 = auto()
     LATEST = auto()
+
+    @property
+    def prefix(self) -> str:
+        if self == Version.LATEST:
+            return ""
+        return f"/{self}"
 
 
 def add_deprecation_header_middleware(app: FastAPI, date: datetime, link: str | None = None):
@@ -79,7 +89,7 @@ def add_deprecation_and_sunset_middleware(app: FastAPI):
         add_sunset_header_middleware(app, date=info.sunset, link=info.link)
 
 
-def add_version_to_openapi(versioned_api: FastAPI, root_path: str = ""):
+def add_version_to_openapi(versioned_api: FastAPI):
     """Adds the version prefix to all paths in the schema."""
     if versioned_api.version == "latest":
         version_prefix = ""
@@ -117,19 +127,20 @@ def add_version_to_openapi(versioned_api: FastAPI, root_path: str = ""):
     versioned_api._openapi = versioned_api.openapi
     versioned_api.openapi = custom_openapi
 
-    def overridden_swagger():
+    def overridden_swagger(request: Request):
+        root_path = request.headers.get("x-forwarded-prefix", "")
         show_versions = {"latest": f"{root_path}/docs"} | {
             version: f"{root_path}/{version}/docs"
             for version, info in versions.items()
             if not info.retired
         }
         menu = generate_version_menu(all_versions=show_versions, selected=versioned_api.version)
-
+        redirect_url = f"{root_path}{version_prefix}{versioned_api.swagger_ui_oauth2_redirect_url}"
         html_response = get_swagger_ui_html(
             openapi_url=f"{root_path}{version_prefix}/openapi.json",
             title="AI-on-Demand REST API",
             swagger_favicon_url="https://aiod.eu/wp-content/themes/aiod-v2/assets/img/favicon-192x192.png",
-            oauth2_redirect_url=versioned_api.swagger_ui_oauth2_redirect_url,
+            oauth2_redirect_url=redirect_url,
             init_oauth=versioned_api.swagger_ui_init_oauth,
         )
         html_str = html_response.body.decode()
@@ -142,7 +153,15 @@ def add_version_to_openapi(versioned_api: FastAPI, root_path: str = ""):
 
     versioned_api.get("/docs", include_in_schema=False)(overridden_swagger)
 
-    def overridden_redoc():
+    async def oauth_redirect(request: Request) -> HTMLResponse:
+        return get_swagger_ui_oauth2_redirect_html()
+
+    versioned_api.add_route(
+        versioned_api.swagger_ui_oauth2_redirect_url, oauth_redirect, include_in_schema=False
+    )
+
+    def overridden_redoc(request: Request):
+        root_path = request.headers.get("x-forwarded-prefix", "")
         html = get_redoc_html(
             openapi_url=f"{root_path}{version_prefix}/openapi.json",
             title="AI-on-Demand REST API",
