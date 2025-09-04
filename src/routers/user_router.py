@@ -5,6 +5,7 @@ from pydantic import create_model, Field
 from sqlalchemy import select
 from sqlmodel import Session
 
+from dependencies.pagination import PaginationParams
 from routers.resource_routers import versioned_routers
 from authentication import KeycloakUser, get_user_or_raise
 from database.authorization import Permission, PermissionType
@@ -32,17 +33,34 @@ def create(url_prefix: str, version: Version) -> APIRouter:
         },
     )
 
+    resources_for_user_description = "Return all assets for which you have administrator rights."
+    if version == Version.V2:
+        resources_for_user_description += (
+            " For backwards compatibility reasons, if `limit=10` no limit is applied."
+            " In V3 and later, the default limit of 10 is respected."
+        )
+
     @router.get(
         f"/user/resources",
+        description=resources_for_user_description,
         tags=["User"],
-        description="Return all assets for which you have administrator rights",
         response_model=Catalogue,
     )
     def get_versioned_resources_for_user(
+        pagination: PaginationParams,
         user: KeycloakUser = Depends(get_user_or_raise),
         session: Session = Depends(get_session),
     ) -> dict[str, list[AIoDConcept]]:
-        resources = _get_resources_for_user(user, session)
+        limit: int | None = pagination.limit
+        if limit == 10 and version == Version.V2:
+            limit = None
+
+        resources = _get_resources_for_user(
+            user,
+            session,
+            offset=pagination.offset,
+            limit=limit,
+        )
         orm_to_read = {
             r.resource_class.__tablename__: r.orm_to_read
             for r in versioned_routers.get(version, [])
@@ -55,7 +73,13 @@ def create(url_prefix: str, version: Version) -> APIRouter:
     return router
 
 
-def _get_resources_for_user(user: KeycloakUser, session: Session) -> dict[str, list[AIoDConcept]]:
+def _get_resources_for_user(
+    user: KeycloakUser,
+    session: Session,
+    *,
+    offset: int = 0,
+    limit: int | None = None,
+) -> dict[str, list[AIoDConcept]]:
     # "Ownership" is currently equivalent to having ADMIN permissions
     stmt = (
         select(AIoDEntryORM)
@@ -64,7 +88,10 @@ def _get_resources_for_user(user: KeycloakUser, session: Session) -> dict[str, l
             Permission.user_identifier == user._subject_identifier,
             Permission.type_ == PermissionType.ADMIN,
         )
+        .offset(offset)
     )
+    if limit:
+        stmt = stmt.limit(limit)
     entries = session.scalars(stmt).all()
     assets_to_fetch = [entry.identifier for entry in entries]
     # We have AIoD entries, but want their respective asset information (e.g. publication).
