@@ -41,7 +41,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    for table in TAXONOMY_TABLES:
+    for table, _ in TAXONOMY_TABLES:
         op.drop_column(table_name=table, column_name="definition")
         op.drop_column(table_name=table, column_name="official")
         op.alter_column(
