@@ -16,8 +16,12 @@ from database.review import (
     SubmissionBase,
     ReviewCreate,
     Decision,
+    SubmissionCreate,
+    AssetReview,
 )
 from database.model.concept.aiod_entry import EntryStatus, AIoDEntryORM
+from database.model.concept.concept import AIoDConcept
+from routers.helper_functions import get_asset_type_by_abbreviation, get_router_by_type
 from versioning import Version
 
 
@@ -50,6 +54,13 @@ def create(url_prefix: str, version: Version) -> APIRouter:
         description="Review an asset.",
         response_model=Review,
     )(_review_resource)
+
+    router.post(
+        path=f"/submissions",
+        tags=["Reviewing"],
+        description=f"Submit an asset for review.",
+    )(_submit_resource)
+
     return router
 
 
@@ -126,6 +137,56 @@ def get_submission(
     return submission
 
 
+def _submit_resource(
+    submission: SubmissionCreate,
+    user: KeycloakUser = Depends(get_user_or_raise),
+):
+    id_to_type = {
+        identifier: get_asset_type_by_abbreviation().get(identifier.split("_")[0])
+        for identifier in submission.asset_identifiers
+    }
+    invalid_identifier = next(
+        (identifier for identifier, type_ in id_to_type.items() if type_ is None), None
+    )
+    if invalid_identifier:
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            detail=f"{invalid_identifier} is not a valid resource identifier.",
+        )
+
+    with DbSession() as session:
+        review_request = Submission(
+            requestee_identifier=user._subject_identifier,
+            comment=submission.comment,
+        )
+        for identifier, asset_type in id_to_type.items():
+            router = get_router_by_type()[cast(type[AIoDConcept], asset_type)]
+            resource = router._retrieve_resource(identifier=identifier, session=session)  # type: ignore
+
+            if not resource.aiod_entry.status == EntryStatus.DRAFT:
+                msg = (
+                    f"Cannot submit {router.resource_name} {identifier} "
+                    f"since it has '{resource.aiod_entry.status}' status."
+                )
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
+
+            if not user_can_administer(user, resource.aiod_entry):
+                # Could choose to instead give same error as if resource does not exist.
+                msg = f"You do not have permission to submit {router.resource_name} {identifier}."
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=msg)
+
+            resource.aiod_entry.status = EntryStatus.SUBMITTED
+            review_request._assets.append(
+                AssetReview(
+                    asset_identifier=resource.identifier,
+                    aiod_entry_identifier=resource.aiod_entry.identifier,
+                )
+            )
+        session.add(review_request)
+        session.commit()
+        return {"submission_identifier": review_request.identifier}
+
+
 def _review_resource(
     review: ReviewCreate,
     user: KeycloakUser = Depends(get_user_or_raise),
@@ -150,18 +211,24 @@ def _review_resource(
         )
     register_user(user, session)
 
-    aiod_entry = cast(AIoDEntryORM, session.get(AIoDEntryORM, submission.aiod_entry_identifier))
-    if user_can_write(user, aiod_entry):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to review your own assets.",
+    for asset_to_review in submission._assets:
+        aiod_entry = cast(
+            AIoDEntryORM, session.get(AIoDEntryORM, asset_to_review.aiod_entry_identifier)
         )
+        if user_can_write(user, aiod_entry):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=(
+                    f"Review request contains asset {asset_to_review.asset_identifier!r}, "
+                    "which you own. You do not have permission to review your own assets."
+                ),
+            )
 
-    if review.decision == Decision.ACCEPTED:
-        new_status = EntryStatus.PUBLISHED
-    else:
-        new_status = EntryStatus.DRAFT
-    aiod_entry.status = new_status
+        if review.decision == Decision.ACCEPTED:
+            new_status = EntryStatus.PUBLISHED
+        else:
+            new_status = EntryStatus.DRAFT
+        aiod_entry.status = new_status
 
     review = Review(
         reviewer_identifier=user._subject_identifier,
@@ -180,23 +247,32 @@ def retract_submission(
 ):
     with DbSession() as session:
         submission = session.get(Submission, submission_identifier)
-        if not user_can_administer(user, submission.asset.aiod_entry):
-            # Could choose to instead give same error as if resource does not exist.
-            msg = f"You do not have permission to retract {submission.asset_type} {submission.asset.identifier}."
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=msg)
+        if submission is None:
+            return HTTPException(
+                status_code=HTTPStatus.NOT_FOUND,
+                detail=f"Submission {submission_identifier} not found.",
+            )
 
-        if submission is None or not submission.is_pending:
+        if not submission.is_pending:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cannot retract this asset, as it is not under review.",
+                detail="Cannot retract this submission, as it is not under review.",
             )
+
+        if not any(
+            user_can_administer(user, session.get(AIoDEntryORM, a.aiod_entry_identifier))
+            for a in submission._assets
+        ):
+            msg = f"You must be administrator of at least one asset in the review to retract the submission."
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=msg)
 
         retraction = Review(
             decision=Decision.RETRACTED,
             reviewer_identifier=user._subject_identifier,
             submission_identifier=submission.identifier,
         )
-        submission.asset.aiod_entry.status = EntryStatus.DRAFT
+        for asset in submission.assets:
+            asset.aiod_entry.status = EntryStatus.DRAFT
         session.add(retraction)
         session.commit()
         return {
