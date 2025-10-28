@@ -19,13 +19,14 @@ keycloak requests - if that becomes prohibitive in the future, we should reevalu
 """
 
 import dataclasses
+import functools
 import logging
 import os
 
 from dotenv import load_dotenv
 from fastapi import HTTPException, Security, status
 from fastapi.security import OpenIdConnect
-from keycloak import KeycloakOpenID
+from keycloak import KeycloakOpenID, KeycloakAdmin
 
 from config import KEYCLOAK_CONFIG
 
@@ -35,6 +36,7 @@ load_dotenv()
 oidc = OpenIdConnect(openIdConnectUrl=KEYCLOAK_CONFIG.get("openid_connect_url"), auto_error=False)
 
 REVIEWER_ROLE = os.getenv("REVIEWER_ROLE_NAME")
+ADMIN_ROLE = os.getenv("ADMIN_ROLE_NAME")
 client_secret = os.getenv("KEYCLOAK_CLIENT_SECRET")
 
 keycloak_openid = KeycloakOpenID(
@@ -44,6 +46,16 @@ keycloak_openid = KeycloakOpenID(
     realm_name=KEYCLOAK_CONFIG.get("realm"),
     verify=True,
 )
+
+
+@functools.cache
+def keycloak_api() -> KeycloakAdmin:
+    return KeycloakAdmin(
+        server_url=KEYCLOAK_CONFIG.get("server_url"),
+        realm_name=KEYCLOAK_CONFIG.get("realm"),
+        client_id=KEYCLOAK_CONFIG.get("client_id"),
+        client_secret_key=os.getenv("KEYCLOAK_CLIENT_SECRET"),
+    )
 
 
 def assert_required_settings_configured() -> None:
@@ -74,6 +86,10 @@ class KeycloakUser:
     @property
     def is_reviewer(self):
         return REVIEWER_ROLE in self.roles
+
+    @property
+    def is_admin(self):
+        return ADMIN_ROLE in self.roles
 
     @property
     def is_connector(self) -> bool:
@@ -158,6 +174,24 @@ async def get_user_or_raise(token=Security(oidc)) -> KeycloakUser:
             detail=f"{err} - This endpoint requires authorization. You need to be logged in.",
             headers={"WWW-Authenticate": "Bearer"},
         ) from err
+
+
+def get_user_by_username(username: str) -> KeycloakUser | None:
+    """Gets the keycloak user by its username. `user.roles` will always be empty."""
+    users = keycloak_api().get_users(query={"username": username, "exact": True})
+    if not users:
+        return None
+
+    if len(users) > 1:
+        raise NotImplementedError(
+            f"Multiple users with username {username} found, expected behavior undefined."
+        )
+    user = users[0]
+    return KeycloakUser(
+        name=user.get("username"),
+        roles=set(),  # Not included with the call
+        _subject_identifier=user.get("id"),
+    )
 
 
 class InvalidUserError(Exception):
