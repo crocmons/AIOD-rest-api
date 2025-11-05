@@ -1,6 +1,7 @@
 import copy
 from unittest.mock import Mock
 
+from fastapi.encoders import jsonable_encoder
 from starlette.testclient import TestClient
 
 from database.model.agent.contact import Contact
@@ -351,3 +352,82 @@ def test_organisation_delete_image(
         )
         assert second_delete_response.status_code == HTTPStatus.NOT_FOUND
         assert "No image with the name" in second_delete_response.json()["detail"]
+
+
+def test_organisation_put_without_media_keeps_media(
+        client: TestClient,
+        organisation: Organisation,
+):
+    organisation.media = []
+    identifier = register_asset(organisation)
+
+    fake_image = io.BytesIO(b"\x89PNG\r\n\x1a\n...")  # fake PNG bytes
+    fake_image.name = "logo.png"
+
+    with logged_in_user():
+        response = client.post(
+            f"/organisations/{identifier}/image",
+            params={"name": "logo"},
+            files={"file": ("logo.png", fake_image, "image/png")},
+            headers={"Authorization": "Fake token"},
+        )
+        assert response.status_code == HTTPStatus.OK, response.json()
+
+        organisation.name = "new name"
+        response = client.put(
+            f"/organisations/{identifier}",
+            json=jsonable_encoder(organisation.dict()),
+            headers={"Authorization": "Fake token"},
+        )
+        assert response.status_code == HTTPStatus.OK, response.json()
+        response = client.get(
+            f"/organisations/{identifier}",
+            headers={"Authorization": "Fake token"},
+        )
+        assert response.status_code == HTTPStatus.OK, response.json()
+        assert response.json()["name"] == "new name", response.json()
+        assert response.json()["media"], response.json()
+
+
+def test_organisation_put_with_media_keeps_media_if_no_new_binary(
+        client: TestClient,
+        organisation: Organisation,
+):
+    organisation.media = []
+    identifier = register_asset(organisation)
+
+    fake_image = io.BytesIO(b"\x89PNG\r\n\x1a\n...")  # fake PNG bytes
+    fake_image.name = "logo.png"
+
+    with logged_in_user():
+        response = client.post(
+            f"/organisations/{identifier}/image",
+            params={"name": "logo"},
+            files={"file": ("logo.png", fake_image, "image/png")},
+            headers={"Authorization": "Fake token"},
+        )
+        assert response.status_code == HTTPStatus.OK, response.json()
+
+        response = client.get(
+            f"/organisations/{identifier}?get_image=true",
+            headers={"Authorization": "Fake token"},
+        )
+        org = response.json()
+        del org["aiod_entry"]
+        org["media"].append(
+            {"name": "foo", "binary_blob": "bar="},
+        )
+        response = client.put(
+            f"/organisations/{identifier}",
+            json=org,
+            headers={"Authorization": "Fake token"},
+        )
+        assert response.status_code == HTTPStatus.BAD_REQUEST, "No new binary may be added through a PUT request"
+
+        org["media"].pop()
+        response = client.put(
+            f"/organisations/{identifier}",
+            json=org,
+            headers={"Authorization": "Fake token"},
+        )
+        assert response.status_code == HTTPStatus.OK, response.json()
