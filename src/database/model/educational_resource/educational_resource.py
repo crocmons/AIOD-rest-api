@@ -6,7 +6,6 @@ from database.model.agent.location import Location, LocationORM
 from database.model.ai_resource.resource import AIResource, AIResourceBase
 from database.model.ai_resource.text import TextORM, Text
 from database.model.educational_resource.access_mode import AccessMode
-from database.model.educational_resource.educational_level import EducationalLevel
 from database.model.educational_resource.educational_resource_type import EducationalResourceType
 from database.model.educational_resource.pace import Pace
 from database.model.educational_resource.prerequisite import Prerequisite
@@ -20,6 +19,27 @@ from database.model.serializers import (
     CastDeserializer,
     CastDeserializerList,
     FindByNameDeserializerList,
+)
+from database.model.named_relation import create_taxonomy
+from versioning import VersionedResource, Version, VersionedResourceCollection
+
+
+EducationalLevel = create_taxonomy(
+    class_name="EducationalLevel",
+    table_name="educational_level",
+    plural_name="educational levels",
+)
+
+EducationalCompetency = create_taxonomy(
+    class_name="EducationalCompetency",
+    table_name="educational_competency",
+    plural_name="educational competencies",
+)
+
+LearningMode = create_taxonomy(
+    class_name="LearningMode",
+    table_name="learning_mode",
+    plural_name="learning modes",
 )
 
 
@@ -35,6 +55,7 @@ class EducationalResourceBase(AIResourceBase):
 class EducationalResource(EducationalResourceBase, AIResource, table=True):  # type: ignore [call-arg]
     __tablename__ = "educational_resource"
     __abbreviation__ = "edu"
+    __plural__ = "educational resources"
 
     type_identifier: int | None = Field(
         foreign_key=EducationalResourceType.__tablename__ + ".identifier"
@@ -59,14 +80,19 @@ class EducationalResource(EducationalResourceBase, AIResource, table=True):  # t
     content: TextORM | None = Relationship(
         sa_relationship_kwargs=dict(foreign_keys="[EducationalResource.content_identifier]")
     )
-    educational_level: list[EducationalLevel] = Relationship(
+    educational_level: list[EducationalLevel] = Relationship(  # type: ignore[valid-type]
         link_model=many_to_many_link_factory(
             table_from="educational_resource",
             table_to=EducationalLevel.__tablename__,
             from_identifier_type=str,
         )
     )
-    in_language: list[Language] = Relationship(
+    required_competency_level_identifier: int | None = Field(
+        foreign_key=f"{EducationalCompetency.__tablename__}.identifier",
+        description="The required competency level for engaging with this resource.",
+    )
+    required_competency_level: EducationalCompetency | None = Relationship()  # type: ignore[valid-type]
+    in_language: list[Language] = Relationship(  # type: ignore[valid-type]
         link_model=many_to_many_link_factory(
             table_from="educational_resource",
             table_to=Language.__tablename__,
@@ -126,14 +152,21 @@ class EducationalResource(EducationalResourceBase, AIResource, table=True):  # t
             description="The level or levels of education for which this resource is intended.",
             _serializer=AttributeSerializer("name"),
             deserializer=FindByNameDeserializerList(EducationalLevel),
-            example=["primary school", "secondary school", "university"],
+            example=["Bachelor’s or equivalent level", "primary education"],
             default_factory_pydantic=list,
+        )
+        required_competency_level: Optional[str] = ManyToOne(
+            description="The required competency level for engaging with this resource.",
+            identifier_name="required_competency_level_identifier",
+            _serializer=AttributeSerializer("name"),
+            deserializer=FindByNameDeserializer(EducationalCompetency),
+            example="intermediate",
         )
         in_language: list[str] = ManyToMany(
             description="The language(s) of the educational resource, in ISO639-3.",
             _serializer=AttributeSerializer("name"),
             deserializer=FindByNameDeserializerList(Language),
-            example=["eng", "fra", "spa"],
+            example=["Catalan"],
             default_factory_pydantic=list,
         )
         location: list[Location] = ManyToMany(
@@ -165,3 +198,11 @@ class EducationalResource(EducationalResourceBase, AIResource, table=True):  # t
             ],
             default_factory_pydantic=list,
         )
+
+
+educational_resource_versions = VersionedResourceCollection(
+    {
+        Version.V2: VersionedResource(EducationalResource),
+        Version.LATEST: VersionedResource(EducationalResource),
+    }
+)

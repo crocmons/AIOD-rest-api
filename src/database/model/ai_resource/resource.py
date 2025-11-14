@@ -38,6 +38,13 @@ from database.model.serializers import (
     FindByNameDeserializerList,
 )
 from database.model.resource_read_and_create import resource_read
+from database.model.named_relation import create_taxonomy
+
+AIParadigm = create_taxonomy(
+    class_name="AIParadigm",
+    table_name="ai_paradigm",
+    plural_name="AI paradigms",
+)
 
 
 class AIResourceBase(AIoDConceptBase, metaclass=abc.ABCMeta):
@@ -80,6 +87,7 @@ class AIResource(AIResourceBase, AIoDConcept, metaclass=abc.ABCMeta):
     industrial_sector: list[IndustrialSector] = Relationship()  # type: ignore[valid-type]
     research_area: list[ResearchArea] = Relationship()  # type: ignore[valid-type]
     scientific_domain: list[ScientificDomain] = Relationship()  # type: ignore[valid-type]
+    falls_under_paradigm: list[AIParadigm] = Relationship()  # type: ignore[valid-type]
 
     contact: list[Contact] = Relationship()
     contacts: list[Contact] = Relationship(sa_relationship_kwargs=dict(viewonly=True))
@@ -119,7 +127,7 @@ class AIResource(AIResourceBase, AIoDConcept, metaclass=abc.ABCMeta):
             description="An alias for the item, commonly used for the resource instead of the "
             "name.",
             _serializer=AttributeSerializer("name"),
-            deserializer=FindByNameDeserializerList(AlternateName),
+            deserializer=FindByNameDeserializerList(AlternateName, case_sensitive=True),
             example=["alias 1", "alias 2"],
             default_factory_pydantic=list,
             on_delete_trigger_orphan_deletion=lambda: [
@@ -184,6 +192,15 @@ class AIResource(AIResourceBase, AIoDConcept, metaclass=abc.ABCMeta):
             _serializer=AttributeSerializer("name"),
             deserializer=FindByNameDeserializerList(ScientificDomain),
             example=["Computer and Information Sciences", "Mathematics"],
+            default_factory_pydantic=list,
+        )
+        falls_under_paradigm: list[str] = ManyToMany(
+            description="The AI paradigm this project falls under. See"
+            f'<a href="{CONFIG.get("domain")}docs#/Taxonomies/ai_paradigm_AI_paradigms_get">AI Paradigms</a> '  # noqa: E501
+            "for more information.",
+            _serializer=AttributeSerializer("name"),
+            deserializer=FindByNameDeserializerList(AIParadigm),
+            example=["Collaborative AI", "Explainable AI"],
             default_factory_pydantic=list,
         )
         # TODO(jos): documentedIn - KnowledgeAsset. This should probably be defined on ResourceTable
@@ -265,8 +282,10 @@ class AIResource(AIResourceBase, AIoDConcept, metaclass=abc.ABCMeta):
             "industrial_sector",
             "research_area",
             "scientific_domain",
+            "ai_paradigm",
         ):
-            relationships[table_to].link_model = many_to_many_link_factory(
+            relationship = "falls_under_paradigm" if table_to == "ai_paradigm" else table_to
+            relationships[relationship].link_model = many_to_many_link_factory(
                 table_from=cls.__tablename__, table_to=table_to, from_identifier_type=str
             )
 

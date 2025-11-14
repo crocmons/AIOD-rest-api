@@ -1,7 +1,7 @@
 [project]
 name = "aiod_metadata_catalogue"
 description = "A Metadata Catalogue for AI on Demand "
-version = "1.5.20250709"
+version = "2.0.20251113"
 requires-python = ">=3.11"
 authors = [
     { name = "Adrián Alcolea" },
@@ -37,6 +37,7 @@ dependencies = [
     "mysql-connector-python==9.1.0",
     "elasticsearch==8.16.0",
     "jinja2==3.1.4",
+    "prometheus-fastapi-instrumentator==6.1.0",
 ]
 readme = "README.md"
 
@@ -83,3 +84,4 @@ env_files = [
     ".env",  # Only used if running from docker container
     "tests/.env"  # Only used if running from docker container
 ]
+markers=["versions"]

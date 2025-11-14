@@ -14,6 +14,7 @@ from starlette.testclient import TestClient
 from authentication import keycloak_openid
 from database.deletion.triggers import create_delete_triggers, \
     create_identifier_synchronization_triggers
+from database.model.ai_resource.resource import AIParadigm
 from database.model.concept.aiod_entry import EntryStatus, AIoDEntryORM
 from database.model.concept.concept import AIoDConcept
 from database.model.platform.platform import Platform
@@ -26,6 +27,12 @@ from database.model.ai_resource.scientific_domain import ScientificDomain
 from database.model.ai_asset.license import License
 from database.model.knowledge_asset.PublicationType import PublicationType
 from database.model.news.news_category import NewsCategory
+from database.model.agent.organisation import OrganisationType
+from database.model.event.event import EventMode, EventStatus
+from database.model.agent.language import Language
+from database.model.educational_resource.educational_resource import EducationalLevel, \
+    EducationalCompetency
+from database.model.agent.location import Country
 from tests.testutils.test_resource import RouterTestResource, factory_test_resource
 from tests.testutils.users import bypass_reviewer_publish_everything
 from taxonomies.synchronize_taxonomy import Term
@@ -60,7 +67,39 @@ DEFAULT_NEWS_CATEGORY = [
 DEFAULT_LICENSE = [
     Term("CC-BY-4.0", "for use in tests", children=[]),
 ]
-
+DEFAULT_ORGANISATION_TYPE = [
+    Term("research university", "for use in tests", children=[]),
+    Term("association", "for use in tests", children=[]),
+]
+DEFAULT_EVENT_MODE = [
+    Term("Physical", "for use in tests", children=[]),
+]
+DEFAULT_EVENT_STATUS = [
+   Term("Planned", "for use in tests", children=[]),
+]
+DEFAULT_LANGUAGE = [
+    Term("nld","for use in tests", children=[]),
+    Term("eng","for use in tests", children=[]),
+    Term("English","for use in tests", children=[]),
+    Term("Catalan","for use in tests", children=[]),
+    Term("Spanish","for use in tests", children=[]),
+]
+DEFAULT_EDUCATIONAL_LEVEL = [
+    Term("university","for use in tests", children=[]),
+    Term("secondary school","for use in tests", children=[]),
+    Term("primary education","for use in tests", children=[]),
+    Term("Bachelor’s or equivalent level","for use in tests", children=[]),
+]
+DEFAULT_EDUCATIONAL_COMPETENCY = [
+    Term("intermediate","for use in tests", children=[]),
+]
+DEFAULT_COUNTRY = [
+    Term("Spain", "for use in tests", children=[])
+]
+DEFAULT_AI_PARADIGMS = [
+    Term("Explainable AI", "for use in tests", children=[]),
+    Term("Collaborative AI", "for use in tests", children=[])
+]
 
 @pytest.fixture(scope="session")
 def engine() -> Iterator[Engine]:
@@ -114,6 +153,14 @@ def clear_db(request, engine: Engine):
             (License, DEFAULT_LICENSE),
             (PublicationType, DEFAULT_PUBLICATION_TYPE),
             (NewsCategory, DEFAULT_NEWS_CATEGORY),
+            (OrganisationType, DEFAULT_ORGANISATION_TYPE),
+            (EventMode, DEFAULT_EVENT_MODE),
+            (EventStatus, DEFAULT_EVENT_STATUS),
+            (Language, DEFAULT_LANGUAGE),
+            (EducationalLevel, DEFAULT_EDUCATIONAL_LEVEL),
+            (EducationalCompetency, DEFAULT_EDUCATIONAL_COMPETENCY),
+            (Country, DEFAULT_COUNTRY),
+            (AIParadigm, DEFAULT_AI_PARADIGMS),
         ]:
             for term in terms:
                 session.add(taxonomy(**term._asdict(), official=True))
@@ -149,7 +196,12 @@ def client(request, engine: Engine) -> TestClient:
     Create a TestClient that can be used to mock sending requests to our application
     """
     app = build_app(version="unittest")
-    yield TestClient(app, base_url=f"http://localhost/{request.param}")
+    client = TestClient(
+        app,
+        base_url=f"http://localhost{request.param.prefix}/",  # param is Version
+    )
+    client.version = request.param
+    yield client
 
 
 # *NEVER* broaden the scope of this fixture, bypassing reviews should be on a test-by-test basis

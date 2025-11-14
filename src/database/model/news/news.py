@@ -13,6 +13,7 @@ from database.model.serializers import (
     CastDeserializer,
     FindByNameDeserializerList,
 )
+from versioning import Version, VersionedResource, VersionedResourceCollection
 
 
 class NewsBase(AIResourceBase):
@@ -38,6 +39,7 @@ class NewsBase(AIResourceBase):
 class News(NewsBase, AIResource, table=True):  # type: ignore [call-arg]
     __tablename__ = "news"
     __abbreviation__ = "news"
+    __plural__ = "news"
 
     category: list[NewsCategory] = Relationship(  # type: ignore[valid-type]
         link_model=many_to_many_link_factory(
@@ -66,3 +68,11 @@ class News(NewsBase, AIResource, table=True):  # type: ignore [call-arg]
             deserializer=CastDeserializer(TextORM),
             on_delete_trigger_deletion_by="content_identifier",
         )
+
+
+news_versions = VersionedResourceCollection(
+    {
+        Version.V2: VersionedResource(News),
+        Version.LATEST: VersionedResource(News),
+    }
+)

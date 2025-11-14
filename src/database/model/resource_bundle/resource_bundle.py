@@ -12,6 +12,7 @@ from database.model.serializers import (
     FindByIdentifierDeserializerList,
     FindByNameDeserializerList,
 )
+from versioning import Version, VersionedResource, VersionedResourceCollection
 
 
 class ResourceBundleBase(AIResourceBase):
@@ -25,6 +26,7 @@ class ResourceBundleBase(AIResourceBase):
 class ResourceBundle(ResourceBundleBase, AIResource, table=True):  # type: ignore [call-arg]
     __tablename__ = "resource_bundle"
     __abbreviation__ = "res"
+    __plural__ = "resource bundles"
 
     # Many-to-Many relationship linking ResourceBundle to external resources (URLs)
     includes_external_reference: List[ExternalResource] = Relationship(
@@ -57,3 +59,11 @@ class ResourceBundle(ResourceBundleBase, AIResource, table=True):  # type: ignor
             deserializer=FindByIdentifierDeserializerList(AIResourceORM),
             default_factory_pydantic=list,
         )
+
+
+resource_bundle_versions = VersionedResourceCollection(
+    {
+        Version.V2: VersionedResource(ResourceBundle),
+        Version.LATEST: VersionedResource(ResourceBundle),
+    }
+)

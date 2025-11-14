@@ -7,6 +7,7 @@ from database.model.models_and_experiments.badge import Badge
 from database.model.models_and_experiments.runnable_distribution import RunnableDistribution
 from database.model.relationships import ManyToMany, OneToMany
 from database.model.serializers import AttributeSerializer, FindByNameDeserializerList
+from versioning import Version, VersionedResource, VersionedResourceCollection
 
 
 class ExperimentBase(AIAssetBase):
@@ -43,6 +44,7 @@ class ExperimentBase(AIAssetBase):
 class Experiment(ExperimentBase, AIAsset, table=True):  # type: ignore [call-arg]
     __tablename__ = "experiment"
     __abbreviation__ = "exp"
+    __plural__ = "experiments"
 
     badge: list[Badge] = Relationship(
         link_model=many_to_many_link_factory(
@@ -59,3 +61,11 @@ class Experiment(ExperimentBase, AIAsset, table=True):  # type: ignore [call-arg
             example=["ACM Artifacts Evaluated - Reusable"],
         )
         distribution: list[RunnableDistribution] = OneToMany(default_factory_pydantic=list)
+
+
+experiment_versions = VersionedResourceCollection(
+    {
+        Version.V2: VersionedResource(Experiment),
+        Version.LATEST: VersionedResource(Experiment),
+    }
+)

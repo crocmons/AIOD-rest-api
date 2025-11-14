@@ -1,7 +1,7 @@
 from http import HTTPStatus
 
+import pytest
 from starlette.testclient import TestClient
-from database.session import DbSession
 
 from tests.testutils.users import logged_in_user, ALICE
 from database.model.bookmark.bookmark import Bookmark
@@ -10,6 +10,7 @@ from tests.testutils.users import register_asset, register_user
 from datetime import datetime
 from database.model.agent.person import Person
 from database.model.agent.contact import Contact
+from versioning import Version
 
 
 def test_create_bookmark(
@@ -18,7 +19,7 @@ def test_create_bookmark(
 
     identifier = register_asset(person)
 
-    with logged_in_user():
+    with logged_in_user(ALICE):
         response = client.post(
             f"/bookmarks?resource_identifier={identifier}",
             headers={"Authorization": "fake token"},
@@ -140,3 +141,45 @@ def test_delete_bookmark(
         )
     assert response.status_code == HTTPStatus.OK
     assert all(b["resource_identifier"] != identifier for b in response.json())
+
+
+@pytest.mark.versions(Version.V2, Version.LATEST)
+def test_get_bookmark_pagination(client: TestClient, publication_factory) -> None:
+    PAGINATION_DEFAULT_LIMIT = 10
+    publications = [publication_factory() for _ in range(PAGINATION_DEFAULT_LIMIT + 1)]
+    with logged_in_user(ALICE):
+        for pub in publications:
+            register_asset(pub, owner=ALICE)
+            response = client.post(
+                f"/bookmarks?resource_identifier={pub.identifier}",
+                headers={"Authorization": "fake token"},
+            )
+            assert response.status_code == HTTPStatus.OK
+
+        response = client.get(
+            "/bookmarks",
+            headers={"Authorization": "fake token"},
+        )
+        assert response.status_code == HTTPStatus.OK
+        assert len(response.json()) == PAGINATION_DEFAULT_LIMIT
+
+        response = client.get(
+            "/bookmarks?limit=100",
+            headers={"Authorization": "fake token"},
+        )
+        assert response.status_code == HTTPStatus.OK
+        assert len(response.json()) == PAGINATION_DEFAULT_LIMIT + 1
+
+        response = client.get(
+            "/bookmarks?offset=10",
+            headers={"Authorization": "fake token"},
+        )
+        assert response.status_code == HTTPStatus.OK
+        assert len(response.json()) == 1
+
+        response = client.get(
+            "/bookmarks?offset=8&limit=2",
+            headers={"Authorization": "fake token"},
+        )
+        assert response.status_code == HTTPStatus.OK
+        assert len(response.json()) == 2

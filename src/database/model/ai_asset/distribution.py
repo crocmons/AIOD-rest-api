@@ -1,8 +1,10 @@
+import base64
 from datetime import datetime
 from typing import Type
 
-from pydantic import create_model
-from sqlalchemy import Column, Integer, ForeignKey, String, LargeBinary
+from fastapi.encoders import jsonable_encoder
+from pydantic import create_model, validator
+from sqlalchemy import Column, ForeignKey, String, LargeBinary
 from sqlmodel import Field
 
 from database.model.concept.concept import AIoDConceptBase
@@ -54,9 +56,29 @@ class DistributionBase(AIoDConceptBase):
     # Currently, only organisation accepts this field, potentially to store images (ex. organisation logo).
     binary_blob: bytes | None = Field(
         default=None,
-        description="Binary blob for storing image (or other type of media) data.",
+        description=(
+            "Binary blob for storing image (or other type of media) data. "
+            "You may not set this property directly, set it indirectly through dedicated "
+            "endpoints such as /organisations/{identifier}/image instead."
+        ),
         sa_column=Column(LargeBinary),
     )
+
+    @validator("binary_blob", pre=True, always=True)
+    def decode_string_to_bytes(cls, v) -> bytes | None:
+        if v is None or isinstance(v, bytes):
+            return v
+        if not isinstance(v, str):
+            raise TypeError("`binary_blob` can only be bytes, str, or None.")
+        return base64.b64decode(v)
+
+    def dict(self, *args, **kwargs):
+        # Defining it as a `Config` does not work for some reason.
+        item_dict = super().dict(*args, **kwargs)
+        item = jsonable_encoder(
+            item_dict, custom_encoder={bytes: lambda v: base64.b64encode(v).decode("utf-8")}
+        )
+        return item
 
 
 def distribution_factory(table_from: str, distribution_name="distribution") -> Type:

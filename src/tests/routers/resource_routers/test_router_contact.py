@@ -1,4 +1,6 @@
 import copy
+from http import HTTPStatus
+
 import pytest
 from unittest.mock import Mock
 
@@ -27,7 +29,7 @@ def test_happy_path(client: TestClient, body_asset: dict, auto_publish: None):
     body["telephone"] = ["0032 xxxx xxxx"]
     body["location"] = [
         {
-            "address": {"country": "NED", "street": "Street Name 10", "postal_code": "1234AB"},
+            "address": {"country": "Spain", "street": "Street Name 10", "postal_code": "1234AB"},
             "geo": {"latitude": 37.42242, "longitude": -122.08585, "elevation_millimeters": 2000},
         }
     ]
@@ -48,7 +50,7 @@ def test_happy_path(client: TestClient, body_asset: dict, auto_publish: None):
     assert response_json["telephone"] == ["0032 xxxx xxxx"]
     assert response_json["location"] == [
         {
-            "address": {"country": "NED", "street": "Street Name 10", "postal_code": "1234AB"},
+            "address": {"country": "Spain", "street": "Street Name 10", "postal_code": "1234AB"},
             "geo": {"latitude": 37.42242, "longitude": -122.08585, "elevation_millimeters": 2000},
         }
     ]
@@ -159,7 +161,7 @@ def test_email_mask_for_authenticated_user(
         session.commit()
         session.refresh(contact2)
 
-    response = client.get("/contacts", headers=headers)
+    response = client.get("/contacts?direction=asc", headers=headers)
     response_json = response.json()
     assert response.status_code == 200, response_json
     assert len(response_json) == 2, response_json
@@ -170,8 +172,8 @@ def test_email_mask_for_authenticated_user(
     assert response.status_code == 200, response.json()
     response_json = response.json()
     assert set(response_json["email"]) == {"fake2@email.com", "fake@email.com"}
-    response = client.get("/platforms/aiod/contacts/", headers=headers)
 
+    response = client.get("/platforms/aiod/contacts?direction=asc", headers=headers)
     response_json = response.json()
     assert response.status_code == 200, response_json
 
@@ -235,3 +237,14 @@ def test_email_privacy_for_ai4europe_cms(
     assert response.status_code == 200, response_json
     assert len(response_json) > 0, response_json
     assert response_json["email"] == ["fake@email.com", "fake2@email.com"]
+
+
+def test_empty_country(client: TestClient, body_asset: dict, auto_publish: None):
+    body = copy.deepcopy(body_asset)
+    body["name"] = "Contact name"
+    body["location"] = [{"address": {}}]
+    with logged_in_user():
+        response = client.post("/contacts", json=body, headers={"Authorization": "Fake token"})
+        assert response.status_code == HTTPStatus.OK, response.json()
+    response = client.get(f"/contacts/{response.json()['identifier']}")
+    assert response.status_code == HTTPStatus.OK

@@ -1,11 +1,13 @@
 from typing import Optional
 
+from pydantic import validator
 from sqlalchemy import Column, Integer, ForeignKey, String
 from sqlmodel import SQLModel, Field, Relationship
 
 from database.model.field_length import NORMAL, SHORT, IDENTIFIER_LENGTH
-from database.model.relationships import OneToOne
-from database.model.serializers import CastDeserializer
+from database.model.relationships import OneToOne, ManyToOne
+from database.model.serializers import CastDeserializer, AttributeSerializer, FindByNameDeserializer
+from database.model.named_relation import create_taxonomy
 
 
 class GeoBase(SQLModel):
@@ -37,6 +39,13 @@ class GeoORM(GeoBase, table=True):  # type: ignore [call-arg]
 
 class Geo(GeoBase):
     """The geographic coordinates of a physical location"""
+
+
+Country = create_taxonomy(
+    class_name="Country",
+    table_name="country",
+    plural_name="countries",
+)
 
 
 class AddressBase(SQLModel):
@@ -72,13 +81,6 @@ class AddressBase(SQLModel):
         max_length=NORMAL,
         schema_extra={"example": "Wetstraat 170, 1040 Brussel"},
     )
-    country: str | None = Field(
-        default=None,
-        description="The country as ISO 3166-1 alpha-3",
-        schema_extra={"example": "BEL"},
-        min_length=3,
-        max_length=3,
-    )
 
 
 class AddressORM(AddressBase, table=True):  # type: ignore [call-arg]
@@ -86,16 +88,37 @@ class AddressORM(AddressBase, table=True):  # type: ignore [call-arg]
 
     identifier: int | None = Field(primary_key=True)
 
-    # TODO(jos): make country an enum. This is difficult though, because deserialization isn't
-    #  working on non-main entities
     location_identifier: int | None = Field(
         sa_column=Column(Integer, ForeignKey("location.identifier", ondelete="CASCADE"))
     )
     location: Optional["LocationORM"] = Relationship(back_populates="address")
+    country_identifier: int | None = Field(
+        foreign_key=f"{Country.__tablename__}.identifier",
+    )
+    country: Country | None = Relationship()  # type: ignore [valid-type]
+
+    class RelationshipConfig:
+        country: Optional[str] = ManyToOne(
+            description="The country the address is from.",
+            identifier_name="country_identifier",
+            _serializer=AttributeSerializer("name"),
+            deserializer=FindByNameDeserializer(Country),
+            example="Germany",
+        )
 
 
 class Address(AddressBase):
     """A postal address"""
+
+    country: str | None
+
+    @validator("country", pre=True)
+    def use_country_name(cls, v) -> str | None:
+        if v is None or isinstance(v, str):
+            return v
+        if isinstance(v, Country):
+            return v.name
+        raise TypeError(f"Expected country to be `str` or `Country`, not {type(v)}.")
 
 
 class LocationBase(SQLModel):
@@ -104,6 +127,7 @@ class LocationBase(SQLModel):
 
 class LocationORM(LocationBase, table=True):  # type: ignore [call-arg]
     __tablename__ = "location"
+    __plural__ = "locations"
 
     identifier: int | None = Field(primary_key=True)
     address: Optional["AddressORM"] = Relationship(

@@ -8,8 +8,11 @@ from sqlmodel import SQLModel, Session, select
 from starlette.status import HTTP_404_NOT_FOUND
 
 from authentication import KeycloakUser
-from database.model.helper_functions import get_relationships
+from database.model.helper_functions import get_relationships, get_asset_by_identifier
 from database.model.named_relation import NamedRelation, Taxonomy
+from database.model.ai_resource.resource_table import AIResourceORM
+from database.session import DbSession
+
 
 MODEL = TypeVar("MODEL", bound=SQLModel)
 
@@ -99,7 +102,7 @@ class FindByIdentifierDeserializer(DeSerializer[SQLModel]):
 
     @staticmethod
     def deserialize_ids(clazz: type[SQLModel], session: Session, ids: list[int]):
-        query = select(clazz).where(clazz.identifier.in_(ids))  # noqa
+        query = select(clazz).where(clazz.identifier.in_(ids))
         existing = session.scalars(query).all()
         ids_not_found = set(ids) - {e.identifier for e in existing}
         if any(ids_not_found):
@@ -168,6 +171,7 @@ class FindByNameDeserializerList(DeSerializer[NamedRelation]):
     """Deserialization of NamedRelations: uniquely identified by their name."""
 
     clazz: type[NamedRelation]
+    case_sensitive: bool = False
 
     def deserialize(
         self, session: Session, name: list[str] | None, user: KeycloakUser | None = None
@@ -176,10 +180,14 @@ class FindByNameDeserializerList(DeSerializer[NamedRelation]):
             return []
         if not isinstance(name, list):
             raise ValueError("Expected a list. Do you need to use FindByNameDeserializer instead?")
-        names = {n.casefold() for n in name}
+        names = {n if self.case_sensitive else n.casefold() for n in name}
         query = select(self.clazz).where(self.clazz.name.in_(names))  # type: ignore[attr-defined]
         existing = list(session.scalars(query).all())
-        names_not_found = names - {e.name.casefold() for e in existing}
+        if self.case_sensitive:
+            # The query above is not case sensitive (MySQL default), so we filter exact matches
+            existing = [e for e in existing if e.name in names]
+        existing_names = {e.name if self.case_sensitive else e.name.casefold() for e in existing}
+        names_not_found = names - existing_names
         enforced_taxonomy = issubclass(self.clazz, Taxonomy) and (
             user is None or not user.is_connector
         )
@@ -248,16 +256,30 @@ def create_getter_dict(attribute_serializers: Dict[str, Serializer]):
     object."""
     attribute_names = set(attribute_serializers.keys())
 
+    def is_soft_deleted(item) -> bool:
+        if hasattr(item, "date_deleted") and item.date_deleted:
+            return True
+        if isinstance(item, AIResourceORM):
+            with DbSession() as session:
+                clazz_, resource = get_asset_by_identifier(item.identifier, session)
+                return resource.date_deleted is not None
+
+        return False  # Not sure what cases are not covered here.
+
     class GetterDictSerializer(GetterDict):
         def get(self, key: Any, default: Any = None) -> Any:
-            # if key == "has_part" and hasattr(self._obj, "ai_resource"):
-            #     return [p.identifier for p in self._obj.ai_resource.has_part]
             if key in attribute_names:
                 serializer = attribute_serializers[key]
                 attribute_value = serializer.value(model=self._obj, attribute_name=key)
                 if attribute_value is not None:
                     if isinstance(attribute_value, list):
-                        return [serializer.serialize(v) for v in attribute_value]
+                        return [
+                            serializer.serialize(v)
+                            for v in attribute_value
+                            if not is_soft_deleted(v)
+                        ]
+                    if is_soft_deleted(attribute_value):
+                        return None
                     return serializer.serialize(attribute_value)
             return super().get(key, default)
 

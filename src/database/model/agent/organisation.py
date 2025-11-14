@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Optional, Literal
+from typing import Optional
 
 from sqlmodel import Field, Relationship
 
@@ -7,7 +7,6 @@ from database.model.named_relation import Taxonomy, create_taxonomy
 from database.model.agent.agent import AgentBase, Agent
 from database.model.agent.agent_table import AgentTable
 from database.model.agent.contact import Contact
-from database.model.agent.organisation_type import OrganisationType
 from database.model.field_length import NORMAL, LONG
 from database.model.helper_functions import many_to_many_link_factory
 from database.model.relationships import ManyToOne, ManyToMany, OneToOne
@@ -17,12 +16,31 @@ from database.model.serializers import (
     FindByIdentifierDeserializer,
     FindByIdentifierDeserializerList,
 )
+from versioning import Version, VersionedResource, VersionedResourceCollection
 
 
-Turnover: type[Taxonomy] = create_taxonomy(class_name="Turnover", table_name="turnover")
+OrganisationType: type[Taxonomy] = create_taxonomy(
+    class_name="OrganisationType",
+    table_name="organisation_type",
+    plural_name="organisation types",
+)
+
+OrganisationActivityType: type[Taxonomy] = create_taxonomy(
+    class_name="OrganisationActivityType",
+    table_name="organisation_activity_type",
+    plural_name="organisation activity types",
+)
+
+Turnover: type[Taxonomy] = create_taxonomy(
+    class_name="Turnover",
+    table_name="turnover",
+    plural_name="turnovers",
+)
 
 NumberOfEmployees: type[Taxonomy] = create_taxonomy(
-    class_name="NumberOfEmployees", table_name="number_of_employees"
+    class_name="NumberOfEmployees",
+    table_name="number_of_employees",
+    plural_name="numbers of employees",
 )
 
 
@@ -47,11 +65,12 @@ class OrganisationBase(AgentBase):
 class Organisation(OrganisationBase, Agent, table=True):  # type: ignore [call-arg]
     __tablename__ = "organisation"
     __abbreviation__ = "org"
+    __plural__ = "organisations"
 
     contact_details: Optional[Contact] = Relationship(sa_relationship_kwargs={"uselist": False})
 
     type_identifier: int | None = Field(foreign_key=OrganisationType.__tablename__ + ".identifier")
-    type: Optional[OrganisationType] = Relationship()
+    type: Optional[OrganisationType] = Relationship()  # type: ignore[valid-type]
 
     member: list[AgentTable] = Relationship(
         link_model=many_to_many_link_factory(
@@ -88,7 +107,7 @@ class Organisation(OrganisationBase, Agent, table=True):  # type: ignore [call-a
             identifier_name="type_identifier",
             _serializer=AttributeSerializer("name"),
             deserializer=FindByNameDeserializer(OrganisationType),
-            example="Research Institution",
+            example="Research University",
         )
         member: list[str] = ManyToMany(
             description="The identifier of an agent (e.g. organisation or person) that is a "
@@ -119,3 +138,10 @@ class Organisation(OrganisationBase, Agent, table=True):  # type: ignore [call-a
 
 deserializer = FindByIdentifierDeserializer(Organisation)
 Contact.RelationshipConfig.organisation.deserializer = deserializer  # type: ignore
+
+organisation_versions = VersionedResourceCollection(
+    {
+        Version.V2: VersionedResource(Organisation),
+        Version.LATEST: VersionedResource(Organisation),
+    }
+)

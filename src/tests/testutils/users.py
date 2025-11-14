@@ -11,12 +11,12 @@ from database.model.concept.aiod_entry import EntryStatus, AIoDEntryORM
 from database.model.concept.concept import AIoDConcept
 from database.review import Submission, Review, Decision
 from database.session import DbSession
+from database.review import AssetReview
 
-ALICE = KeycloakUser("Alice", set(), "alice-sub")
-BOB = KeycloakUser("Bob", set(), "bob-sub")
-REVIEWER = KeycloakUser("Reviewer", {cast(str, REVIEWER_ROLE)}, "reviewer-sub")
+ALICE = KeycloakUser("Alice", set(), "alice000-0000-0000-0000-000000000000")
+BOB = KeycloakUser("Bob", set(), "bob00000-0000-0000-0000-000000000000")
+REVIEWER = KeycloakUser("Reviewer", {cast(str, REVIEWER_ROLE)}, "reviewer-0000-0000-0000-000000000000")
 CONNECTOR_ROLE = "platform_example"
-
 
 
 def _register_user_in_db(user: KeycloakUser) -> KeycloakUser:
@@ -81,10 +81,9 @@ def register_asset(asset: AIoDConcept, /, *, owner: KeycloakUser | None = None, 
 
         asset.aiod_entry.status = status
         if status in [EntryStatus.SUBMITTED, EntryStatus.PUBLISHED, EntryStatus.REJECTED]:
-            submission = Submission(
-                requestee_identifier=owner._subject_identifier,
-                aiod_entry_identifier=asset.aiod_entry.identifier,
-                asset_type=asset.__tablename__,
+            submission = Submission(requestee_identifier=owner._subject_identifier)
+            submission._assets.append(
+                AssetReview(asset_identifier=asset.identifier, aiod_entry_identifier=asset.aiod_entry.identifier)
             )
             session.add(submission)
             if status == EntryStatus.PUBLISHED:

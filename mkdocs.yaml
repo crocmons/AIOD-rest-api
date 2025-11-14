@@ -46,12 +46,15 @@ nav:
       - 'Authentication': hosting/authentication.md
       - 'Connectors': hosting/connectors.md
       - 'Synchronization': hosting/synchronization.md
+      - 'Monitoring': hosting/metrics.md
+      - 'Proxies': hosting/proxy.md
   - 'Developer Resources':
       - developer/index.md
       - 'Authentication': developer/authentication.md
       - 'User Model': developer/users.md
       - 'Metadata Schema':
           - developer/schema/index.md
+          - 'Versioning': developer/schema/versioning.md
           - 'Attributes': developer/schema/attributes.md
           - 'Relationships': developer/schema/relationships.md
           - 'Objects': developer/schema/objects.md

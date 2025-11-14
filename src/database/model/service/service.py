@@ -2,6 +2,7 @@ from sqlmodel import Field
 
 from database.model.ai_resource.resource import AIResourceBase, AIResource
 from database.model.field_length import NORMAL, LONG
+from versioning import Version, VersionedResource, VersionedResourceCollection
 
 
 class ServiceBase(AIResourceBase):
@@ -24,6 +25,15 @@ class ServiceBase(AIResourceBase):
 class Service(ServiceBase, AIResource, table=True):  # type: ignore [call-arg]
     __tablename__ = "service"
     __abbreviation__ = "srvc"
+    __plural__ = "services"
 
     class RelationshipConfig(AIResource.RelationshipConfig):
         pass
+
+
+service_versions = VersionedResourceCollection(
+    {
+        Version.V2: VersionedResource(Service),
+        Version.LATEST: VersionedResource(Service),
+    }
+)

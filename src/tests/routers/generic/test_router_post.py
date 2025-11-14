@@ -2,11 +2,15 @@ from http import HTTPStatus
 import pytest
 from starlette.testclient import TestClient
 
+from database.model.concept.aiod_entry import EntryStatus
+from database.model.knowledge_asset.publication import Publication
+from database.session import DbSession
 from tests.testutils.users import logged_in_user, kc_connector_with_roles
 from tests.routers.resource_routers.test_router_organisation import with_organisation_taxonomies
 from database.model.platform.platform_names import PlatformName
 from database.model.resource_read_and_create import resource_create
 from routers import resource_routers
+from versioning import Version
 
 
 @pytest.mark.parametrize(
@@ -189,6 +193,24 @@ def test_connector_cannot_post_to_other_platform(
     assert response.json()["detail"] == "No permission to upload assets for aiod platform."
 
 
+def test_connector_uploads_bypass_review(client: TestClient, publication: Publication):
+    publication.platform = "example"
+    publication.platform_resource_identifier = "example_id"
+    with logged_in_user(kc_connector_with_roles()):
+        response = client.post(
+            "/publications",
+            content=publication.json(),
+            headers={"Authorization": "Fake token"}
+        )
+        assert response.status_code == HTTPStatus.OK, response.json()
+
+    identifier = response.json()["identifier"]
+    with DbSession() as session:
+        asset = session.get(Publication, identifier)
+        assert asset.aiod_entry.status == EntryStatus.PUBLISHED
+
+
+
 def test_taxonomy_is_enforced_for_user(
         client: TestClient,
         body_asset: dict
@@ -233,9 +255,10 @@ def test_taxonomy_is_not_enforced_for_connector(
         assert response.status_code == HTTPStatus.OK, response.json()
 
 
+@pytest.mark.versions(Version.LATEST)
 @pytest.mark.parametrize(
     "router",
-    tested_routers := [r for r in resource_routers.router_list if r.resource_name != 'platform'],
+    tested_routers := [r for r in resource_routers.versioned_routers[Version.LATEST] if r.resource_name != 'platform'],
     ids=map(lambda r: r.resource_name, tested_routers),
 )
 def test_example_is_valid(router, client: TestClient, with_organisation_taxonomies):

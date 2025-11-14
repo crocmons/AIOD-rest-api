@@ -1,6 +1,7 @@
 import copy
 from unittest.mock import Mock
 
+from fastapi.encoders import jsonable_encoder
 from starlette.testclient import TestClient
 
 from database.model.agent.contact import Contact
@@ -53,7 +54,7 @@ def test_happy_path(
     body["date_founded"] = "2023-01-01"
     body["legal_name"] = "A name for the organisation"
     body["ai_relevance"] = "Part of CLAIRE"
-    body["type"] = "Research Institute"
+    body["type"] = "Research University"
     body["turnover"] = "<1 million euros"
     with DbSession() as session:
         session.add(organisation)  # The new organisation will be a member of this organisation
@@ -79,7 +80,7 @@ def test_happy_path(
     assert response_json["date_founded"] == "2023-01-01"
     assert response_json["legal_name"] == "A name for the organisation"
     assert response_json["ai_relevance"] == "Part of CLAIRE"
-    assert response_json["type"] == "research institute"
+    assert response_json["type"] == "research university"
     assert response_json["turnover"] == "<1 million euros"
     assert response_json["member"] == body["member"]
     assert response_json["contact_details"] == body["contact_details"]
@@ -88,7 +89,7 @@ def test_happy_path(
     assert response_json["contacts"][0]["email"] == ["a@b.com"]
     assert response_json["contacts"][0]["location"] == [
         {
-            "address": {"country": "NED", "street": "Street Name 10", "postal_code": "1234AB"},
+            "address": {"country": "Spain", "street": "Street Name 10", "postal_code": "1234AB"},
             "geo": {"latitude": 37.42242, "longitude": -122.08585, "elevation_millimeters": 2000},
         }
     ]
@@ -351,3 +352,82 @@ def test_organisation_delete_image(
         )
         assert second_delete_response.status_code == HTTPStatus.NOT_FOUND
         assert "No image with the name" in second_delete_response.json()["detail"]
+
+
+def test_organisation_put_without_media_keeps_media(
+        client: TestClient,
+        organisation: Organisation,
+):
+    organisation.media = []
+    identifier = register_asset(organisation)
+
+    fake_image = io.BytesIO(b"\x89PNG\r\n\x1a\n...")  # fake PNG bytes
+    fake_image.name = "logo.png"
+
+    with logged_in_user():
+        response = client.post(
+            f"/organisations/{identifier}/image",
+            params={"name": "logo"},
+            files={"file": ("logo.png", fake_image, "image/png")},
+            headers={"Authorization": "Fake token"},
+        )
+        assert response.status_code == HTTPStatus.OK, response.json()
+
+        organisation.name = "new name"
+        response = client.put(
+            f"/organisations/{identifier}",
+            json=jsonable_encoder(organisation.dict()),
+            headers={"Authorization": "Fake token"},
+        )
+        assert response.status_code == HTTPStatus.OK, response.json()
+        response = client.get(
+            f"/organisations/{identifier}",
+            headers={"Authorization": "Fake token"},
+        )
+        assert response.status_code == HTTPStatus.OK, response.json()
+        assert response.json()["name"] == "new name", response.json()
+        assert response.json()["media"], response.json()
+
+
+def test_organisation_put_with_media_keeps_media_if_no_new_binary(
+        client: TestClient,
+        organisation: Organisation,
+):
+    organisation.media = []
+    identifier = register_asset(organisation)
+
+    fake_image = io.BytesIO(b"\x89PNG\r\n\x1a\n...")  # fake PNG bytes
+    fake_image.name = "logo.png"
+
+    with logged_in_user():
+        response = client.post(
+            f"/organisations/{identifier}/image",
+            params={"name": "logo"},
+            files={"file": ("logo.png", fake_image, "image/png")},
+            headers={"Authorization": "Fake token"},
+        )
+        assert response.status_code == HTTPStatus.OK, response.json()
+
+        response = client.get(
+            f"/organisations/{identifier}?get_image=true",
+            headers={"Authorization": "Fake token"},
+        )
+        org = response.json()
+        del org["aiod_entry"]
+        org["media"].append(
+            {"name": "foo", "binary_blob": "bar="},
+        )
+        response = client.put(
+            f"/organisations/{identifier}",
+            json=org,
+            headers={"Authorization": "Fake token"},
+        )
+        assert response.status_code == HTTPStatus.BAD_REQUEST, "No new binary may be added through a PUT request"
+
+        org["media"].pop()
+        response = client.put(
+            f"/organisations/{identifier}",
+            json=org,
+            headers={"Authorization": "Fake token"},
+        )
+        assert response.status_code == HTTPStatus.OK, response.json()

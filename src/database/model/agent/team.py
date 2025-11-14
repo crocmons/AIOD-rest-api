@@ -10,6 +10,7 @@ from database.model.helper_functions import many_to_many_link_factory
 from database.model.relationships import ManyToOne, ManyToMany
 from database.model.serializers import AttributeSerializer, FindByIdentifierDeserializerList
 from database.model.field_length import IDENTIFIER_LENGTH
+from versioning import Version, VersionedResource, VersionedResourceCollection
 
 
 class TeamBase(AIResourceBase):
@@ -28,6 +29,7 @@ class TeamBase(AIResourceBase):
 class Team(TeamBase, AIResource, table=True):  # type: ignore [call-arg]
     __tablename__ = "team"
     __abbreviation__ = "team"
+    __plural__ = "teams"
 
     organisation_identifier: str | None = Field(
         max_length=IDENTIFIER_LENGTH, foreign_key=Organisation.__tablename__ + ".identifier"
@@ -53,3 +55,11 @@ class Team(TeamBase, AIResource, table=True):  # type: ignore [call-arg]
             example=[],
             default_factory_pydantic=list,
         )
+
+
+team_versions = VersionedResourceCollection(
+    {
+        Version.V2: VersionedResource(Team),
+        Version.LATEST: VersionedResource(Team),
+    }
+)

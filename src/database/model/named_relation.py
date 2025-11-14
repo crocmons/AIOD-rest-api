@@ -3,7 +3,7 @@ from typing import Tuple, ForwardRef, List
 
 from pydantic import create_model
 from sqlalchemy import CheckConstraint, Column, String
-from sqlalchemy.orm import declared_attr, backref
+from sqlalchemy.orm import declared_attr
 from sqlmodel import SQLModel, Field, Relationship
 
 from database.model.field_length import NORMAL, LONG
@@ -57,12 +57,17 @@ class Taxonomy(NamedRelation):
         return tuple()
 
 
-def create_taxonomy(class_name: str, table_name: str) -> type[Taxonomy]:
+def create_taxonomy(
+    class_name: str,
+    table_name: str,
+    plural_name: str,
+) -> type[Taxonomy]:
     clazz = create_model(
         __model_name=class_name,
         __base__=Taxonomy,
         __cls_kwargs__=dict(table=True),
         __tablename__=(str, table_name),
+        __plural__=(str, plural_name),
         # Taxonomies are hierarchical, e.g., a Cow is also a Mammal.
         # These fields are updated dynamically in `__init__subclass__`.
         parent_id=(

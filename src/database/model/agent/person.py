@@ -1,7 +1,6 @@
 from typing import Optional
 
 from pydantic import condecimal
-from sqlalchemy import Column, Integer, ForeignKey
 from sqlmodel import Relationship, Field
 
 from database.model.agent.agent import AgentBase, Agent
@@ -19,6 +18,7 @@ from database.model.serializers import (
     FindByIdentifierDeserializerList,
     FindByNameDeserializerList,
 )
+from versioning import Version, VersionedResource, VersionedResourceCollection
 
 
 class PersonBase(AgentBase):
@@ -49,13 +49,14 @@ class PersonBase(AgentBase):
 class Person(PersonBase, Agent, table=True):  # type: ignore [call-arg]
     __tablename__ = "person"
     __abbreviation__ = "prsn"
+    __plural__ = "persons"
 
     expertise: list[Expertise] = Relationship(
         link_model=many_to_many_link_factory(
             "person", Expertise.__tablename__, from_identifier_type=str
         )
     )
-    languages: list[Language] = Relationship(
+    languages: list[Language] = Relationship(  # type: ignore[valid-type]
         link_model=many_to_many_link_factory(
             "person", Language.__tablename__, from_identifier_type=str
         )
@@ -83,10 +84,10 @@ class Person(PersonBase, Agent, table=True):  # type: ignore [call-arg]
             on_delete_trigger_orphan_deletion=list,
         )
         languages: list[str] = ManyToMany(
-            description="A language this person masters, in ISO639-3",
+            description="A language this person masters",
             _serializer=AttributeSerializer("name"),
             deserializer=FindByNameDeserializerList(Language),
-            example=["eng", "fra", "spa"],
+            example=["Catalan", "Spanish", "English"],
             default_factory_pydantic=list,
         )
 
@@ -103,3 +104,10 @@ deserializer_list = FindByIdentifierDeserializerList(Person)
 AIoDEntryORM.RelationshipConfig.editor.deserializer = deserializer_list  # type: ignore
 deserializer_single = FindByIdentifierDeserializer(Person)
 Contact.RelationshipConfig.person.deserializer = deserializer_single  # type: ignore
+
+person_versions = VersionedResourceCollection(
+    {
+        Version.V2: VersionedResource(Person),
+        Version.LATEST: VersionedResource(Person),
+    }
+)

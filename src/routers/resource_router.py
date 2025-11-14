@@ -2,9 +2,7 @@ import abc
 import datetime
 import traceback
 from functools import partial
-from http import HTTPStatus
-from typing import Annotated, Any, Literal, Sequence, Type, TypeVar, Union
-
+from typing import Annotated, Any, Literal, Sequence, Type, TypeVar, Union, Callable, cast
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Path
 from sqlalchemy import and_, func
 from sqlalchemy.sql.operators import is_
@@ -25,19 +23,18 @@ from database.model.concept.aiod_entry import AIoDEntryORM, EntryStatus
 from database.model.concept.concept import AIoDConcept
 from database.model.platform.platform import Platform
 from database.model.platform.platform_names import PlatformName
-from database.model.resource_read_and_create import (
-    resource_create,
-    resource_read,
-)
 from database.model.serializers import deserialize_resource_relationships
-from database.review import Submission, SubmissionCreate
+from database.review import Submission, SubmissionCreateV2, AssetReview
 from database.session import DbSession
 from dependencies.filtering import ResourceFilters, ResourceFiltersParams
 from dependencies.pagination import Pagination, PaginationParams
+from dependencies.sorting import SortingParams, Sorting, SortDirection
 from error_handling import as_http_exception
+from database.model.ai_asset.distribution import Distribution
+from database.model.helper_functions import get_asset_type_by_abbreviation
+from versioning import Version, VersionedResource
 
 from http import HTTPStatus
-from pydantic import BaseModel
 import base64
 
 RESOURCE = TypeVar("RESOURCE", bound=AIResource)
@@ -61,9 +58,12 @@ class ResourceRouter(abc.ABC):
     - DELETE /[resource]s/{identifier}
     """
 
-    def __init__(self):
-        self.resource_class_create = resource_create(self.resource_class)
-        self.resource_class_read = resource_read(self.resource_class)
+    def __init__(self, resource: VersionedResource | None = None):
+        resource = resource or VersionedResource(self.resource_class)
+        self.resource_class_create = resource.resource_class_create
+        self.resource_class_read = resource.resource_class_read
+        self.create_to_orm = resource.create_to_orm
+        self.orm_to_read = resource.orm_to_read
 
     @property
     @abc.abstractmethod
@@ -104,7 +104,7 @@ class ResourceRouter(abc.ABC):
         """
         return {}
 
-    def create(self, url_prefix: str) -> APIRouter:
+    def create(self, url_prefix: str, version: Version = Version.LATEST) -> APIRouter:
         router = APIRouter()
         default_kwargs = {
             "response_model_exclude_none": True,
@@ -134,14 +134,19 @@ class ResourceRouter(abc.ABC):
             **default_kwargs,
         )
 
-        router.add_api_route(
-            path=f"/{self.resource_name_plural}/submit/{{identifier}}",
-            methods={"POST"},
-            endpoint=self.get_submit_func(),
-            name=self.resource_name,
-            description=f"Submit a {self.resource_name} for review.",
-            **default_kwargs,
-        )
+        if version == Version.V2:
+            router.add_api_route(
+                path=f"/{self.resource_name_plural}/submit/{{identifier}}",
+                methods={"POST"},
+                endpoint=self.get_submit_func(),
+                name=self.resource_name,
+                description=(
+                    "DEPRECATED: Use `POST /submissions` instead. <br>"
+                    f"Submit a {self.resource_name} for review."
+                ),
+                deprecated=True,
+                **default_kwargs,
+            )
 
         router.add_api_route(
             path=f"/{self.resource_name_plural}",
@@ -206,6 +211,7 @@ class ResourceRouter(abc.ABC):
         self,
         schema: str,
         pagination: Pagination,
+        sorting: Sorting,
         resource_filters: ResourceFilters,
         user: KeycloakUser | None = None,
         platform: str | None = None,
@@ -215,22 +221,20 @@ class ResourceRouter(abc.ABC):
         _raise_error_on_invalid_schema(self._possible_schemas, schema)
         with DbSession(autoflush=False) as session:
             try:
+                # mypy does a weird thing here where each individual branch type checks fine,
+                # but together it fails to type check. Likely to do with partial being an object.
                 convert_schema = (
-                    partial(self.schema_converters[schema].convert, session)
+                    cast(Callable, partial(self.schema_converters[schema].convert, session))
                     if schema != "aiod"
-                    else self.resource_class_read.from_orm
+                    else cast(Callable, self.orm_to_read)
                 )
                 resources: Any = self._retrieve_resources_and_post_process(
-                    session, pagination, resource_filters, user, platform
+                    session, pagination, sorting, resource_filters, user, platform
                 )
                 for resource in resources:
-                    if not get_image and hasattr(resource, "media") and resource.media:
+                    if not get_image and hasattr(resource, "media"):
                         for media_obj in resource.media:
                             media_obj.binary_blob = None
-
-                    # Add image blobs if requested
-                    if get_image:
-                        self._add_binary_bytes_to_resource(session, resource)
 
                 return [convert_schema(resource) for resource in resources]
             except Exception as e:
@@ -260,9 +264,6 @@ class ResourceRouter(abc.ABC):
                     for media_obj in resource.media:
                         media_obj.binary_blob = None
 
-                if get_image:
-                    resource = self._add_binary_bytes_to_resource(session, resource)
-
                 if resource.aiod_entry.status != EntryStatus.PUBLISHED:
                     if user is None:
                         raise HTTPException(
@@ -277,7 +278,7 @@ class ResourceRouter(abc.ABC):
 
                 if schema != "aiod":
                     return self.schema_converters[schema].convert(session, resource)
-                return self.resource_class_read.from_orm(resource)
+                return self.orm_to_read(resource)
         except Exception as e:
             raise as_http_exception(e)
 
@@ -290,6 +291,7 @@ class ResourceRouter(abc.ABC):
 
         def get_resources(
             pagination: PaginationParams,
+            sorting: SortingParams,
             resource_filters: ResourceFiltersParams,
             schema: self._possible_schemas_type = "aiod",  # type:ignore
             user: KeycloakUser | None = Depends(get_user_or_none),
@@ -297,6 +299,7 @@ class ResourceRouter(abc.ABC):
             resources = self.get_resources(
                 schema=schema,
                 pagination=pagination,
+                sorting=sorting,
                 resource_filters=resource_filters,
                 user=user,
                 platform=None,
@@ -368,6 +371,7 @@ class ResourceRouter(abc.ABC):
                 ),
             ],
             pagination: PaginationParams,
+            sorting: SortingParams,
             resource_filters: ResourceFiltersParams,
             schema: self._possible_schemas_type = "aiod",  # type:ignore
             user: KeycloakUser | None = Depends(get_user_or_none),
@@ -375,6 +379,7 @@ class ResourceRouter(abc.ABC):
             resources = self.get_resources(
                 schema=schema,
                 pagination=pagination,
+                sorting=sorting,
                 resource_filters=resource_filters,
                 user=user,
                 platform=platform,
@@ -382,18 +387,6 @@ class ResourceRouter(abc.ABC):
             return resources
 
         return get_resources
-
-    def _add_binary_bytes_to_resource(self, session: Session, resource: AIoDConcept):
-        """
-        Attach binary_blob bytes as base64 encoded image from the resource's media.
-        """
-        if hasattr(resource, "media") and resource.media:
-            for media_obj in resource.media:
-                if media_obj.binary_blob:
-                    media_obj.binary_blob = base64.b64encode(media_obj.binary_blob).decode("utf-8")
-                else:
-                    media_obj.binary_blob = None
-        return resource
 
     def get_resource_func(self):
         """
@@ -407,6 +400,7 @@ class ResourceRouter(abc.ABC):
             schema: self._possible_schemas_type = "aiod",  # type: ignore
             user: KeycloakUser | None = Depends(get_user_or_none),
         ):
+            self._raise_if_identifier_is_wrong_type(identifier)
             resource = self.get_resource(
                 identifier=identifier, schema=schema, user=user, platform=None
             )
@@ -414,6 +408,20 @@ class ResourceRouter(abc.ABC):
             return resource
 
         return get_resource
+
+    def _raise_if_identifier_is_wrong_type(self, identifier: str):
+        if not identifier.startswith(self.resource_class.__abbreviation__):
+            hint = ""
+            if other_type := get_asset_type_by_abbreviation().get(identifier.split("_")[0]):
+                hint = f" Did you mean to request a {other_type.__tablename__!r} instead?"
+            raise HTTPException(
+                status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+                detail=(
+                    f"{identifier!r} is not a valid {self.resource_name} identifier, "
+                    f"valid {self.resource_name} identifiers start with "
+                    f"{self.resource_class.__abbreviation__!r}." + hint
+                ),
+            )
 
     def get_platform_resource_func(self):
         """
@@ -482,6 +490,7 @@ class ResourceRouter(abc.ABC):
                         detail="No permission to set platform or platform resource identifier.",
                     )
 
+            _raise_if_contains_binary_blob(resource_create)
             try:
                 with DbSession() as session:
                     try:
@@ -491,6 +500,8 @@ class ResourceRouter(abc.ABC):
                         set_permission(
                             user, resource.aiod_entry, session, type_=PermissionType.ADMIN
                         )
+                        if user.is_connector:
+                            resource.aiod_entry.status = EntryStatus.PUBLISHED
                         session.commit()
                         return {"identifier": resource.identifier}
                     except Exception as e:
@@ -507,7 +518,7 @@ class ResourceRouter(abc.ABC):
         user: KeycloakUser | None = None,
     ):
         """Store a resource in the database"""
-        resource = self.resource_class.from_orm(resource_create_instance)
+        resource = self.create_to_orm(resource_create_instance)
         deserialize_resource_relationships(
             session, self.resource_class, resource, resource_create_instance, user
         )
@@ -535,12 +546,25 @@ class ResourceRouter(abc.ABC):
             resource_create_instance: clz_create,  # type: ignore
             user: KeycloakUser = Depends(get_user_or_raise),
         ):
+            self._raise_if_identifier_is_wrong_type(identifier)
             with DbSession() as session:
                 try:
                     resource: Any = self._retrieve_resource(session, identifier)
+                    if not user.is_connector:
+                        if hasattr(resource_create_instance, "media"):
+                            if not resource_create_instance.media:  # type: ignore[attr-defined]
+                                # This does create the problem that a user cannot remove all media through this endpoint :/
+                                resource_create_instance.media = resource.media  # type: ignore[attr-defined]
+                            elif set(m.binary_blob for m in resource_create_instance.media) != set(  # type: ignore[attr-defined]
+                                m.binary_blob for m in resource.media
+                            ):
+                                _raise_if_contains_binary_blob(resource_create_instance)
+                        else:
+                            _raise_if_contains_binary_blob(resource_create_instance)
                     if not (
                         user_can_write(user, resource.aiod_entry)
                         or user.has_role(f"update_{self.resource_name_plural}")
+                        or user.is_connector_for_platform(resource.platform)
                     ):
                         raise HTTPException(
                             status_code=status.HTTP_403_FORBIDDEN,
@@ -552,6 +576,8 @@ class ResourceRouter(abc.ABC):
                             status_code=status.HTTP_403_FORBIDDEN,
                             detail="You cannot edit an asset under submission.",
                         )
+                    # TODO: Versioning, probably need to change the Create instance into
+                    # ORM object and then do the updates so they are of the same schema.
                     for attribute_name in resource.schema()["properties"]:
                         if hasattr(resource_create_instance, attribute_name):
                             new_value = getattr(resource_create_instance, attribute_name)
@@ -583,6 +609,7 @@ class ResourceRouter(abc.ABC):
             identifier: str,
             user: KeycloakUser = Depends(get_user_or_raise),
         ):
+            self._raise_if_identifier_is_wrong_type(identifier)
             with DbSession() as session:
                 try:
                     # Raise error if it does not exist
@@ -590,6 +617,7 @@ class ResourceRouter(abc.ABC):
                     if not (
                         user_can_administer(user, resource.aiod_entry)
                         or user.has_role(f"delete_{self.resource_name_plural}")
+                        or user.is_connector_for_platform(resource.platform)
                     ):
                         raise HTTPException(
                             status_code=status.HTTP_403_FORBIDDEN,
@@ -615,9 +643,10 @@ class ResourceRouter(abc.ABC):
 
         def submit_resource(
             identifier: str,
-            submission: SubmissionCreate | None = None,
+            submission: SubmissionCreateV2 | None = None,
             user: KeycloakUser = Depends(get_user_or_raise),
         ):
+            self._raise_if_identifier_is_wrong_type(identifier)
             with DbSession() as session:
                 resource = self._retrieve_resource(identifier=identifier, session=session)  # type: ignore
 
@@ -636,9 +665,13 @@ class ResourceRouter(abc.ABC):
                 resource.aiod_entry.status = EntryStatus.SUBMITTED
                 review_request = Submission(
                     requestee_identifier=user._subject_identifier,
-                    aiod_entry_identifier=resource.aiod_entry.identifier,
                     comment=submission.comment if submission else "",
-                    asset_type=self.resource_name,
+                )
+                review_request._assets.append(
+                    AssetReview(
+                        asset_identifier=resource.identifier,
+                        aiod_entry_identifier=resource.aiod_entry.identifier,
+                    )
                 )
                 session.add(review_request)
                 session.commit()
@@ -698,6 +731,7 @@ class ResourceRouter(abc.ABC):
         self,
         session: Session,
         pagination: Pagination,
+        sorting: Sorting,
         resource_filters: ResourceFilters,
         platform: str | None = None,
     ) -> Sequence[type[RESOURCE_MODEL]]:
@@ -716,10 +750,17 @@ class ResourceRouter(abc.ABC):
             else True,
             AIoDEntryORM.status == EntryStatus.PUBLISHED,
         )
+        sort_attribute = getattr(AIoDEntryORM, sorting.sort.lower())
+        sort = (
+            sort_attribute.asc()
+            if sorting.direction == SortDirection.ASC
+            else sort_attribute.desc()
+        )
         query = (
             select(self.resource_class)
             .join(self.resource_class.aiod_entry, isouter=True)
             .where(where_clause)
+            .order_by(sort, AIoDEntryORM.identifier.asc())  # type: ignore[attr-defined]
             .offset(pagination.offset)
             .limit(pagination.limit)
         )
@@ -746,6 +787,7 @@ class ResourceRouter(abc.ABC):
         self,
         session: Session,
         pagination: Pagination,
+        sorting: Sorting,
         resource_filters: ResourceFilters,
         user: KeycloakUser | None = None,
         platform: str | None = None,
@@ -756,7 +798,7 @@ class ResourceRouter(abc.ABC):
         implement further verification on user access to the resource.
         """
         resources: Sequence[type[RESOURCE_MODEL]] = self._retrieve_resources(
-            session, pagination, resource_filters, platform
+            session, pagination, sorting, resource_filters, platform
         )
         return self._mask_or_filter(resources, session, user)
 
@@ -863,4 +905,18 @@ def _raise_error_on_invalid_schema(possible_schemas, schema):
         raise HTTPException(
             detail=f"Invalid schema {schema}. Expected {' or '.join(possible_schemas)}",
             status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+
+def _raise_if_contains_binary_blob(item):
+    distributions = []
+    if hasattr(item, "distribution") and (distribution := getattr(item, "distribution")):
+        distributions += distribution
+    if hasattr(item, "media") and (media := getattr(item, "media")):
+        distributions += media
+
+    if any((isinstance(item, Distribution) and item.binary_blob) for item in distributions):
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Setting `binary_blob` is forbidden. Consider using `content_url` instead.",
         )

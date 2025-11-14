@@ -15,6 +15,7 @@ from database.model.serializers import (
     CastDeserializer,
     FindByIdentifierDeserializerList,
 )
+from versioning import Version, VersionedResource, VersionedResourceCollection
 
 
 class DatasetBase(AIAssetBase):
@@ -48,6 +49,7 @@ class DatasetBase(AIAssetBase):
 class Dataset(DatasetBase, AIAsset, table=True):  # type: ignore [call-arg]
     __tablename__ = "dataset"
     __abbreviation__ = "data"
+    __plural__ = "datasets"
 
     funder: list["AgentTable"] = Relationship(
         link_model=many_to_many_link_factory(
@@ -88,3 +90,11 @@ class Dataset(DatasetBase, AIAsset, table=True):  # type: ignore [call-arg]
             deserializer=CastDeserializer(LocationORM),
             on_delete_trigger_deletion_by="spatial_coverage_identifier",
         )
+
+
+dataset_versions = VersionedResourceCollection(
+    {
+        Version.V2: VersionedResource(Dataset),
+        Version.LATEST: VersionedResource(Dataset),
+    }
+)

@@ -6,17 +6,67 @@ from unittest.mock import Mock
 import pytest
 from starlette.testclient import TestClient
 
-from authentication import KeycloakUser
+from authentication import KeycloakUser, ADMIN_ROLE
 from database.authorization import (
-    PermissionType, user_can_read, user_can_write, user_can_administer, set_permission,
+    PermissionType, user_can_read, user_can_write, user_can_administer, set_permission, Permission,
 )
-from database.model.concept.aiod_entry import EntryStatus, AIoDEntryORM
+from database.model.concept.aiod_entry import EntryStatus
 from database.review import Decision, ReviewCreate
 from database.session import DbSession
 from database.model.knowledge_asset.publication import Publication
 from routers.review_router import ListMode
 from tests.testutils.users import ALICE, BOB, REVIEWER, _register_user_in_db, \
-    logged_in_user, register_asset
+    logged_in_user, register_asset, kc_user_with_roles
+from versioning import Version
+
+
+def test_admin_can_delete_asset(client, publication):
+    identifier = register_asset(publication, owner=ALICE, status=EntryStatus.PUBLISHED)
+    with logged_in_user(kc_user_with_roles(ADMIN_ROLE)):
+        response = client.delete(
+            f"/publications/{identifier}",  headers={"Authorization": "Fake token"}
+        )
+        assert response.status_code == HTTPStatus.OK, response.json()
+
+def test_admin_can_remove_permission(client, publication):
+    identifier = register_asset(publication, owner=ALICE, status=EntryStatus.PUBLISHED)
+    with logged_in_user(kc_user_with_roles(ADMIN_ROLE)):
+        response = client.post(
+            f"/assets/permissions",
+            json={
+                "asset_identifier": identifier,
+                "user": ALICE._subject_identifier,
+                "permission_type": None,
+            },
+            headers={"Authorization": "Fake token"}
+        )
+        assert response.status_code == HTTPStatus.OK, response.json()
+
+    with DbSession() as session:
+        permission = session.get(Permission, {"user_identifier": ALICE._subject_identifier, "aiod_entry_identifier": 1})
+        assert permission is None
+
+
+def test_admin_can_change_permission(client, publication):
+    identifier = register_asset(publication, owner=ALICE, status=EntryStatus.PUBLISHED)
+    _register_user_in_db(BOB)
+
+    with logged_in_user(kc_user_with_roles(ADMIN_ROLE)):
+        response = client.post(
+            f"/assets/permissions",
+            json={
+                "asset_identifier": identifier,
+                "user": BOB._subject_identifier,
+                "permission_type": PermissionType.ADMIN.value,
+            },
+            headers={"Authorization": "Fake token"}
+        )
+        assert response.status_code == HTTPStatus.OK, response.json()
+
+    with DbSession() as session:
+        permission = session.get(Permission, {"user_identifier": BOB._subject_identifier, "aiod_entry_identifier": 1})
+        assert permission is not None
+        assert permission.type_ == PermissionType.ADMIN
 
 
 def test_user_must_be_logged_in_to_publish(client, publication):
@@ -63,10 +113,11 @@ def test_drafts_are_private(
     # with and without authentication
 
 
+@pytest.mark.versions(Version.V2)
 @pytest.mark.parametrize(
     "comment", [None, "foo"]
 )
-def test_user_can_submit_draft_for_review(comment, client, publication):
+def test_user_can_submit_draft_for_review_v2(comment, client, publication):
     identifier = register_asset(publication, owner=ALICE, status=EntryStatus.DRAFT)
     content = f'{{"comment": "{comment}"}}' if comment else None
 
@@ -88,13 +139,72 @@ def test_user_can_submit_draft_for_review(comment, client, publication):
         assert sub["comment"] == (comment if comment else ""), "Comment should be stored."
 
 
+@pytest.mark.parametrize(
+    "comment", [None, "foo"]
+)
+def test_user_can_submit_draft_for_review(comment, client, publication):
+    identifier = register_asset(publication, owner=ALICE, status=EntryStatus.DRAFT)
+    content: dict[str, str | list[str]] = {"asset_identifiers": [identifier]}
+    if comment:
+        content["comment"] = comment
+
+    with logged_in_user(ALICE):
+        submission = client.post(
+            f"/submissions",
+            headers={"Authorization": "Fake token"},
+            json=content,
+        )
+        assert submission.status_code == HTTPStatus.OK, submission.json()
+        assert "submission_identifier" in submission.json()
+
+    with logged_in_user(REVIEWER):
+        queue = client.get("/submissions", headers={"Authorization": "Fake token"})
+        assert queue.status_code == HTTPStatus.OK, queue.json()
+        assert len(queue.json()) == 1, "A successful request should result in a submission."
+        [sub] = queue.json()
+        assert "requestee_identifier" not in sub, "Submissions should not review who submitted."
+        assert sub["comment"] == (comment if comment else ""), "Comment should be stored."
+
+
+def test_user_needs_to_own_all_assets_for_submission(client, publication_factory):
+    own = register_asset(publication_factory(), owner=ALICE, status=EntryStatus.DRAFT)
+    bobs_publication = publication_factory()
+    other = register_asset(bobs_publication, owner=BOB, status=EntryStatus.DRAFT)
+    content: dict[str, str | list[str]] = {"asset_identifiers": [own, other]}
+
+    with logged_in_user(ALICE):
+        submission = client.post(
+            f"/submissions",
+            headers={"Authorization": "Fake token"},
+            json=content,
+        )
+        reason = "Request should be rejected because Alice does not own `other`."
+        assert submission.status_code == HTTPStatus.FORBIDDEN, reason
+        assert "You do not have permission" in submission.json()["detail"]
+
+    with DbSession() as session:
+        session.add(bobs_publication)
+        set_permission(user=ALICE, resource=bobs_publication.aiod_entry, session=session, type_=PermissionType.ADMIN)
+        session.commit()
+
+    with logged_in_user(ALICE):
+        submission = client.post(
+            f"/submissions",
+            headers={"Authorization": "Fake token"},
+            json=content,
+        )
+        reason = "Request should be accepted because Alice does now co-owns `other`."
+        assert submission.status_code == HTTPStatus.OK, reason
+
+
 def test_user_can_not_submit_other_for_review(client, publication):
     identifier = register_asset(publication, owner=ALICE, status=EntryStatus.DRAFT)
 
     with logged_in_user(BOB):
         submission = client.post(
-            f"/publications/submit/{identifier}",
+            f"/submissions",
             headers={"Authorization": "Fake token"},
+            json={"asset_identifiers": [identifier]},
         )
         assert submission.status_code == HTTPStatus.FORBIDDEN, submission.json()
 
@@ -122,7 +232,7 @@ def test_a_submitted_asset_is_pending_for_review(client, publication):
         assert len(queue.json()) == 1, "A submitted asset should be pending until a review is done."
 
 def test_get_submission_by_id(client, publication):
-    register_asset(publication, owner=ALICE, status=EntryStatus.PUBLISHED)
+    identifier = register_asset(publication, owner=ALICE, status=EntryStatus.PUBLISHED)
 
     with logged_in_user(REVIEWER):
         submission = client.get("/submissions/1", headers={"Authorization": "Fake token"})
@@ -133,12 +243,10 @@ def test_get_submission_by_id(client, publication):
         review_date = submission_dict["reviews"][0].pop("decision_date")
         assert submission_date < review_date
         reviews = submission_dict.pop("reviews")
-        asset = submission_dict.pop("asset")
+        assets = submission_dict.pop("assets")
         assert submission_dict == {
             "identifier": 1,
-            "aiod_entry_identifier": 1,
             "comment": "",
-            "asset_type": "publication",
         }
         assert reviews == [
             {
@@ -150,7 +258,8 @@ def test_get_submission_by_id(client, publication):
         ]
         # Convert to loaded JSON, including e.g., stringification of dates
         publication_json = json.loads(publication.json())
-        assert asset == publication_json
+        assert assets == [publication_json]
+
 
 def test_get_submission_by_id_must_be_reviewer_or_owner(client, publication):
     register_asset(publication, owner=ALICE, status=EntryStatus.SUBMITTED)
@@ -199,6 +308,7 @@ def test_submission_by_state_respects_privacy(user: KeycloakUser, mode: ListMode
         returned_submissions = [submission["identifier"] for submission in queue.json()]
         assert returned_submissions == assets, f"{reason} Response: {queue.json()}"
 
+
 def test_an_published_asset_is_not_pending_for_review(client, publication):
     register_asset(publication, owner=ALICE, status=EntryStatus.PUBLISHED)
 
@@ -241,7 +351,7 @@ def test_retrieving_single_submission_works(user: KeycloakUser, mode: ListMode, 
     with logged_in_user(user):
         queue = client.get(f"/submissions?mode={mode}", headers={"Authorization": "Fake token"})
         assert queue.status_code == HTTPStatus.OK, queue.json()
-        assert queue.json()[0]["aiod_entry_identifier"] == asset, reason
+        assert queue.json()[0]["identifier"] == asset, reason
 
 
 def test_user_can_retract_assets(client, publication):
@@ -271,6 +381,35 @@ def test_other_user_can_not_retract_assets(client, publication):
         assert response.status_code == HTTPStatus.FORBIDDEN, response.json()
 
 
+def test_user_needs_only_one_asset_to_retract(client, publication_factory):
+    own = register_asset(publication_factory(), owner=ALICE, status=EntryStatus.DRAFT)
+    bobs_publication = publication_factory()
+    other = register_asset(bobs_publication, owner=BOB, status=EntryStatus.DRAFT)
+    with DbSession() as session:
+        session.add(bobs_publication)
+        set_permission(user=ALICE, resource=bobs_publication.aiod_entry, session=session, type_=PermissionType.ADMIN)
+        session.commit()
+
+    content: dict[str, str | list[str]] = {"asset_identifiers": [own, other]}
+    with logged_in_user(ALICE):
+        submission = client.post(
+            f"/submissions",
+            headers={"Authorization": "Fake token"},
+            json=content,
+        )
+        assert submission.status_code == HTTPStatus.OK
+    submission_identifier = submission.json()["submission_identifier"]
+
+    with logged_in_user(BOB):
+        submission = client.post(
+            f"/submissions/retract/{submission_identifier}",
+            headers={"Authorization": "Fake token"},
+            json=content,
+        )
+        reason = "Since Bob owns one of the two assets, he can retract the submission."
+        assert submission.status_code == HTTPStatus.OK, reason
+
+
 @pytest.mark.parametrize("status", EntryStatus)
 def test_user_can_always_delete_asset(status: EntryStatus, publication, client):
     identifier = register_asset(publication, owner=ALICE, status=status)
@@ -281,6 +420,7 @@ def test_user_can_always_delete_asset(status: EntryStatus, publication, client):
             headers={"Authorization": "Fake token"},
         )
         assert response.status_code == HTTPStatus.OK, response.json()
+
 
 def test_user_can_edit_asset_in_draft(publication, client):
     identifier = register_asset(publication, owner=ALICE, status=EntryStatus.DRAFT)
