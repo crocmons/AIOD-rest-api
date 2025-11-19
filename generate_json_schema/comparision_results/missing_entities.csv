@@ -1,87 +1,107 @@
 Missing Entities
-announcement
-contactdetails
-businessproblem
-businesssector
-course
-storageasset
-fundingopportunity
-methodofaccrual
-platformaccount
-memory
-model
-datadownload
-policy
+ec project
+sensor
+robot model
+knowledge asset
+storage asset
+educational resource
+dcat#resource
+news item
+scientific domain
+compute component
 classification
-challenge
-cpu
-innovationservice
-workflow
-presentation
-workflowexecutionstep
-image
-documentaryresource
-protocol
-periodoftime
-storage
-computecomponent
-ecproject
-businessfunction
-purpose
-frequency
-library
-operation
-mediatype
-video
-rightsstatement
-companysize
-dataservice
-jobannouncement
-safetyandtrustservice
-ecosystemresource
-container
-accelerator
-size
-provenancestatement
-mediatypeorextent
-risk
-standard
-researchproblem
-opencallproject
-vocabularyencodingscheme
-sizeorduration
-assessment
-computationalrequirement
-computeasset
-workflowexecution
-problem
-notebook
-cloudcomputeasset
-physicalresource
-saas
-newsitem
-audio
-workflowstep
-methodofinstruction
-successstory
-training
-companyrevenue
-licensedocument
-solution
 multimedia
-experimentexecution
-linguisticsystem
-locationperiodorjurisdiction
-informationalservice
-physicalmedium
+developer service
+contact details
+standard
+radar
 approach
-class
-tutorial
-expertgroup
-developerservice
-agentclass
-datamodel
-fileformat
+open call project
+job announcement
+computational requirement
+data service
+robotic equipment
+memory
+workflow execution step
+actuation
+risk
+runnable distribution
+data download
+temperature sensor
+protocol
+problem
+computational asset
+aiod entry
+learning mode
+map
+video
+actor
+size
+dcat#dataset
+sonar
+business sector
+experiment execution
+ai paradigm
+model
+camera
+business problem
+safety and trust service
+organisation activity type
+organisationalnetwork
+solution
+audio
+ml model
+training
+cpu
+success story
+expert group
+educational competency level
+organisation type
+event mode
+case study
+company revenue
+sizeorduration
+accelerator
+event status
+challenge
+device
+informational service
+workflow
+lidar
+documentary resource
+involvement level
+cloud compute asset
 requirement
-jurisdiction
+ecosystem resource
+funding opportunity
+data model
 bibliographicresource
+saas
+company size
+platform account
+purpose
+assessment
+network membership
+compute asset
+notebook
+workflow step
+aiod concept
+educational level
+research area
+ai asset
+ai resource
+announcement
+workflow execution
+resource bundle
+container
+business function
+image
+news category
+presentation
+course
+innovation service
+research problem
+storage
+tutorial
+operation
+library
