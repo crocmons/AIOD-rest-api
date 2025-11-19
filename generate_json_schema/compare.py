@@ -22,7 +22,10 @@ class_maps = {
 
 # All names in this maps should be normalized
 # Class: {Implementation: Conceptual Model}
-property_maps = {"publication": {"isbn": "hasisbn"}}
+property_maps = {
+    "publication": {"isbn": "hasisbn"},
+    "aiasset": {"licence": "license"},
+}
 # Some classes are artefacts of the implementation or are required for
 # other parts of the system. We can ignore them in this comparison.
 class_ignores = {
@@ -124,7 +127,6 @@ def report_differences(one: dict, other: dict):
                     :, ["defined_as", "implemented_as", "defined_type", "implemented_type"]
                 ]
             )
-    # add, remove, rename
 
 
 @dataclasses.dataclass
@@ -158,7 +160,17 @@ def report_difference(one: dict, other: dict, clazz: str) -> list[Comparison]:
             prop.defined_type = def_type
         property_map.append(prop)
 
-    return property_map
+    def sort_properties(comparison):
+        # we want the matched properties, then unmatched properties
+        if comparison.implemented_as and comparison.defined_as:
+            return ord(comparison.defined_as[0])
+        if comparison.defined_as:
+            return ord(comparison.defined_as[0]) + 26
+        if comparison.implemented_as:
+            return ord(comparison.implemented_as[0]) + 26 * 2
+        raise NotImplemented
+
+    return sorted(property_map, key=sort_properties)
 
 
 if __name__ == "__main__":
