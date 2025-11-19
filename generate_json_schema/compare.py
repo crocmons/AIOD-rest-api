@@ -22,9 +22,10 @@ class_maps = {
 
 # All names in this maps should be normalized
 # Class: {Implementation: Conceptual Model}
-property_maps = {
+property_renames_by_class = {
     "publication": {"isbn": "hasisbn"},
-    "aiasset": {"licence": "license"},
+    "aiasset": {"license": "licence"},
+    "runnabledistribution": {"deploymenttimemilliseconds": "deploymenttimemsec"}
 }
 # Some classes are artefacts of the implementation or are required for
 # other parts of the system. We can ignore them in this comparison.
@@ -38,6 +39,8 @@ class_ignores = {
     "Bookmark",
     "AIoDEntryCreate",
 }
+
+property_suffix_ignores = {"_id", "_identifier"}
 
 
 def normalize(string: str) -> str:
@@ -141,8 +144,13 @@ class Comparison:
 def report_difference(one: dict, other: dict, clazz: str) -> list[Comparison]:
     implemented_properties = {normalize(prop): prop for prop in one["direct_properties"]}
     defined_properties = {normalize(prop["name"]): prop for prop in other["direct_properties"]}
+
     all_properties = set(defined_properties) | set(implemented_properties)
-    all_properties = {p for p in all_properties if p not in property_maps.get(clazz, {}).values()}
+    property_renames = property_renames_by_class.get(clazz, {})
+    # To avoid reporting a property twice, we only pick one of two definitions for properties
+    # which are named differently in implementation than the conceptual model.
+    all_properties = {p for p in all_properties if p not in property_renames.values()}
+
     property_map = []
     for property_name in all_properties:
         prop = Comparison(normalized_name=property_name)
@@ -150,7 +158,7 @@ def report_difference(one: dict, other: dict, clazz: str) -> list[Comparison]:
             prop.implemented_as = implemented_as
             prop.implemented_type = one["properties"][implemented_as].get("type", "TYPE_UNKNOWN")
 
-        if different_name := property_maps.get(clazz, {}).get(implemented_as):
+        if different_name := property_renames.get(property_name):
             property_name = different_name
         if defined_as := defined_properties.get(property_name):
             prop.defined_as = defined_as["name"]
