@@ -23,9 +23,29 @@ class_maps = {
 # All names in this maps should be normalized
 # Class: {Implementation: Conceptual Model}
 property_renames_by_class = {
-    "publication": {"isbn": "hasisbn"},
+    "aiodentry": {"datecreated": "entrycreated", "datemodified": "modified"},
+    "airesource": {
+        "alternatename": "alternativename",
+        "industrialsector": "businesssector",
+        "ispartof": "partof",
+    },
+    "computationalasset": {"type": "computationalassettype"},
+    "educationalresource": {
+        "prerequisite": "prerequisiteknowledge",
+        "targetaudience": "targetseducationallevel",
+    },
+    "event": {
+        "status": "currenteventstatus",
+        "mode": "usesmode",
+    },
+    "experiment": {"executionsettings": "exemplaryexecutionsettings"},
+    "publication": {
+        "isbn": "hasisbn",
+        "issn": "hasissn",
+    },
+    "person": {"languages": "language"},
     "aiasset": {"license": "licence"},
-    "runnabledistribution": {"deploymenttimemilliseconds": "deploymenttimemsec"}
+    "runnabledistribution": {"deploymenttimemilliseconds": "deploymenttimemsec"},
 }
 # Some classes are artefacts of the implementation or are required for
 # other parts of the system. We can ignore them in this comparison.
@@ -40,7 +60,7 @@ class_ignores = {
     "AIoDEntryCreate",
 }
 
-property_suffix_ignores = {"_id", "_identifier"}
+property_suffix_ignores = {"_id", "_identifier", "__"}
 
 
 def normalize(string: str) -> str:
@@ -50,11 +70,11 @@ def normalize(string: str) -> str:
 def main():
     _, source_path, conceptual_model_path = sys.argv
     source_path = Path(source_path)
-    assert source_path.exists() and source_path.is_dir(), (
+    assert source_path.exists() and source_path.is_dir(), (  # noqa: S101
         f"No source directory {source_path.absolute()} found."
     )
     conceptual_model_path = Path(conceptual_model_path)
-    assert conceptual_model_path.exists() and conceptual_model_path.is_file(), (
+    assert conceptual_model_path.exists() and conceptual_model_path.is_file(), (  # noqa: S101
         f"No conceptual model file {conceptual_model_path.absolute()} found."
     )
 
@@ -120,8 +140,11 @@ def report_differences(one: dict, other: dict):
     print(matching)
 
     for clazz in matching:
-        print()
-        print(clazz)
+        implementation = one[naming_one[clazz]]
+        if "Taxonomy" in implementation["parents"]:
+            continue
+
+        print("\n", clazz)
         diffs = report_difference(one[naming_one[clazz]], other[naming_other[clazz]], clazz)
         if diffs:
             records = [dataclasses.asdict(d) for d in diffs]
@@ -142,7 +165,11 @@ class Comparison:
 
 
 def report_difference(one: dict, other: dict, clazz: str) -> list[Comparison]:
-    implemented_properties = {normalize(prop): prop for prop in one["direct_properties"]}
+    implemented_properties = {
+        normalize(prop): prop
+        for prop in one["direct_properties"]
+        if not any(prop.endswith(suffix) for suffix in property_suffix_ignores)
+    }
     defined_properties = {normalize(prop["name"]): prop for prop in other["direct_properties"]}
 
     all_properties = set(defined_properties) | set(implemented_properties)
