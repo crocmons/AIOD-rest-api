@@ -81,6 +81,13 @@ def main():
         type=str,
         help="Path to the model export definition file",
     )
+    parser.add_argument(
+        "--class",
+        "-c",
+        dest="class_name",
+        type=str,
+        help="Optional: Name of a specific class to inspect (as defined in the model)",
+    )
 
     args = parser.parse_args()
 
@@ -96,7 +103,7 @@ def main():
     definition = json.loads(conceptual_model_path.read_text())
     conceptual_model = {clazz["name"]: clazz for clazz in definition["classes"]}
 
-    report_differences(implementation, conceptual_model)
+    report_differences(implementation, conceptual_model, args.class_name)
 
 
 def load_implemented_schema(source_path) -> dict:
@@ -135,7 +142,7 @@ def load_implemented_schema(source_path) -> dict:
     return implemented_classes
 
 
-def report_differences(one: dict, other: dict):
+def report_differences(one: dict, other: dict, class_name=None):
     naming_one, naming_other = (
         {normalize(name): name for name in one},
         {normalize(name): name for name in other},
@@ -143,6 +150,14 @@ def report_differences(one: dict, other: dict):
     matching = sorted(set(naming_one) & set(naming_other))
     only_one = sorted(set(naming_one) - set(naming_other))
     only_other = sorted(set(naming_other) - set(naming_one))
+
+    if class_name:
+        matching = set(matching) & {normalize(class_name)}
+        only_one = set(only_one) & {normalize(class_name)}
+        only_other = set(only_other) & {normalize(class_name)}
+        if not (matching | only_other | only_one):
+            print(f"Class '{class_name}' not found in either implementation or definition.")
+            return
 
     print("Classes only in the implementation:")
     print(only_one)

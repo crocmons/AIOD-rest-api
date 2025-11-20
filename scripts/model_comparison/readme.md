@@ -39,6 +39,11 @@ For example:
 python compare.py /path/to/rest/api/src /path/to/model-export.json
 ```
 
+To inspect the changes of only a single class, use the `--class` or `-c` option:
+```bash
+python compare.py /path/to/rest/api/src /path/to/model-export.json --class "Person"
+```
+
 To see all available options:
 ```bash
 python compare.py --help
