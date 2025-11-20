@@ -142,39 +142,40 @@ def load_implemented_schema(source_path) -> dict:
     return implemented_classes
 
 
-def report_differences(one: dict, other: dict, class_name=None):
-    naming_one, naming_other = (
-        {normalize(name): name for name in one},
-        {normalize(name): name for name in other},
-    )
-    matching = sorted(set(naming_one) & set(naming_other))
-    only_one = sorted(set(naming_one) - set(naming_other))
-    only_other = sorted(set(naming_other) - set(naming_one))
+def report_differences(implementation: dict, definition: dict, class_name=None):
+    names_implementation = {normalize(name): name for name in implementation}
+    names_definition = {normalize(name): name for name in definition}
+
+    matching = sorted(set(names_implementation) & set(names_definition))
+    only_implementation = sorted(set(names_implementation) - set(names_definition))
+    only_definition = sorted(set(names_definition) - set(names_implementation))
 
     if class_name:
         matching = set(matching) & {normalize(class_name)}
-        only_one = set(only_one) & {normalize(class_name)}
-        only_other = set(only_other) & {normalize(class_name)}
-        if not (matching | only_other | only_one):
+        only_implementation = set(only_implementation) & {normalize(class_name)}
+        only_definition = set(only_definition) & {normalize(class_name)}
+        if not (matching | only_definition | only_implementation):
             print(f"Class '{class_name}' not found in either implementation or definition.")
             return
 
     print("Classes only in the implementation:")
-    print(only_one)
+    print(only_implementation)
 
     print("Classes only in the definition:")
-    print(only_other)
+    print(only_definition)
 
     print("Classes in both")
     print(matching)
 
     for clazz in matching:
-        implementation = one[naming_one[clazz]]
-        if "Taxonomy" in implementation["parents"]:
+        impl = implementation[names_implementation[clazz]]
+        if "Taxonomy" in impl["parents"]:
             continue
 
         print("\n", clazz)
-        diffs = report_difference(one[naming_one[clazz]], other[naming_other[clazz]], clazz)
+        diffs = report_difference(
+            implementation[names_implementation[clazz]], definition[names_definition[clazz]], clazz
+        )
         if diffs:
             records = [dataclasses.asdict(d) for d in diffs]
             print(
@@ -193,13 +194,13 @@ class Comparison:
     implemented_type: str | None = None
 
 
-def report_difference(one: dict, other: dict, clazz: str) -> list[Comparison]:
+def report_difference(implementation: dict, definition: dict, clazz: str) -> list[Comparison]:
     implemented_properties = {
         normalize(prop): prop
-        for prop in one["direct_properties"]
+        for prop in implementation["direct_properties"]
         if not any(prop.endswith(suffix) for suffix in property_suffix_ignores)
     }
-    defined_properties = {normalize(prop["name"]): prop for prop in other["direct_properties"]}
+    defined_properties = {normalize(prop["name"]): prop for prop in definition["direct_properties"]}
 
     all_properties = set(defined_properties) | set(implemented_properties)
     property_renames = property_renames_by_class.get(clazz, {})
@@ -212,7 +213,9 @@ def report_difference(one: dict, other: dict, clazz: str) -> list[Comparison]:
         prop = Comparison(normalized_name=property_name)
         if implemented_as := implemented_properties.get(property_name):
             prop.implemented_as = implemented_as
-            prop.implemented_type = one["properties"][implemented_as].get("type", "TYPE_UNKNOWN")
+            prop.implemented_type = implementation["properties"][implemented_as].get(
+                "type", "TYPE_UNKNOWN"
+            )
 
         if different_name := property_renames.get(property_name):
             property_name = different_name
