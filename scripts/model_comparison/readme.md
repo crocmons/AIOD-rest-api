@@ -28,10 +28,23 @@ uv pip install pandas
 ```
 
 ## Usage
-Invoke the `compare.py` script, specifying the location of the REST API's `src` directory and the model export file.
-Optionally, specify the class on which to report the differences.
+Invoke the `compare.py` script, specifying the location of the REST API's `src` directory and the model export file:
 
-The `compary.py` script may need to be updated over time:
+```bash
+python compare.py <source_path> <conceptual_model_path>
+```
+
+For example:
+```bash
+python compare.py /path/to/rest/api/src /path/to/model-export.json
+```
+
+To see all available options:
+```bash
+python compare.py --help
+```
+
+The `compare.py` script may need to be updated over time:
 
  - `class_maps`: mapping to clarify when the implemented name of a class differs from the name in the definition.
  - `property_renames_by_class`: mapping to clarify for each class when the implemented name of a property differs from the name in the definition.

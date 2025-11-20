@@ -1,6 +1,7 @@
 import dataclasses
 import json
 import sys
+import argparse
 from pathlib import Path
 
 import pandas as pd
@@ -67,15 +68,29 @@ def normalize(string: str) -> str:
 
 
 def main():
-    _, source_path, conceptual_model_path = sys.argv
-    source_path = Path(source_path)
-    assert source_path.exists() and source_path.is_dir(), (  # noqa: S101
-        f"No source directory {source_path.absolute()} found."
+    parser = argparse.ArgumentParser(
+        description="Compare implementation schema with conceptual model definition."
     )
-    conceptual_model_path = Path(conceptual_model_path)
-    assert conceptual_model_path.exists() and conceptual_model_path.is_file(), (  # noqa: S101
-        f"No conceptual model file {conceptual_model_path.absolute()} found."
+    parser.add_argument(
+        "source_path",
+        type=str,
+        help="Path to the implementation source directory",
     )
+    parser.add_argument(
+        "conceptual_model_path",
+        type=str,
+        help="Path to the model export definition file",
+    )
+
+    args = parser.parse_args()
+
+    source_path = Path(args.source_path)
+    if not (source_path.exists() and source_path.is_dir()):
+        parser.error(f"No source directory {source_path.absolute()} found.")
+
+    conceptual_model_path = Path(args.conceptual_model_path)
+    if not (conceptual_model_path.exists() and conceptual_model_path.is_file()):
+        parser.error(f"No conceptual model file {conceptual_model_path.absolute()} found.")
 
     implementation = load_implemented_schema(source_path)
     definition = json.loads(conceptual_model_path.read_text())
